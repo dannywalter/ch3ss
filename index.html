@@ -6,10 +6,7 @@
     <title>CH3SS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
     <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
     <style>
       /* Global Styles */
@@ -640,13 +637,8 @@
               <div class="display">
                 <div class="display-header">WHITE CAPTURED</div>
                 <div class="display-content captured-display">
-                  <div
-                    id="white-captured"
-                    class="captured-pieces white-piece"
-                  ></div>
-                  <div id="white-score" class="score-display score-white">
-                    +0
-                  </div>
+                  <div id="white-captured" class="captured-pieces white-piece"></div>
+                  <div id="white-score" class="score-display score-white">+0</div>
                 </div>
               </div>
             </div>
@@ -654,13 +646,8 @@
               <div class="display">
                 <div class="display-header">BLACK CAPTURED</div>
                 <div class="display-content captured-display">
-                  <div
-                    id="black-captured"
-                    class="captured-pieces black-piece"
-                  ></div>
-                  <div id="black-score" class="score-display score-black">
-                    +0
-                  </div>
+                  <div id="black-captured" class="captured-pieces black-piece"></div>
+                  <div id="black-score" class="score-display score-black">+0</div>
                 </div>
               </div>
             </div>
@@ -674,12 +661,7 @@
                 <div class="display-content rules-content">
                   <div
                     id="pgn-output"
-                    style="
-                      font-size: 0.45rem;
-                      color: #00ffff;
-                      text-align: center;
-                      margin-top: 10px;
-                    "
+                    style="font-size: 0.45rem; color: #00ffff; text-align: center; margin-top: 10px"
                   ></div>
                 </div>
               </div>
@@ -688,9 +670,7 @@
               <div class="display">
                 <div class="display-header">MENU</div>
                 <div class="display-content menu-content">
-                  <button id="menu-button" class="menu-inline-button">
-                    OPTIONS
-                  </button>
+                  <button id="menu-button" class="menu-inline-button">OPTIONS</button>
                 </div>
               </div>
             </div>
@@ -710,9 +690,7 @@
             <div class="option-group">
               <div class="option-label">GAME MODE:</div>
               <div class="option-buttons">
-                <button id="mode-human" class="option-button active">
-                  HUMAN VS HUMAN
-                </button>
+                <button id="mode-human" class="option-button active">HUMAN VS HUMAN</button>
                 <button id="mode-ai" class="option-button">HUMAN VS AI</button>
               </div>
             </div>
@@ -720,12 +698,8 @@
             <div id="ai-options" class="option-group" style="display: none">
               <div class="option-label">PLAY AS:</div>
               <div class="option-buttons">
-                <button id="ai-color-white" class="option-button active">
-                  WHITE (YOU PLAY FIRST)
-                </button>
-                <button id="ai-color-black" class="option-button">
-                  BLACK (AI PLAYS FIRST)
-                </button>
+                <button id="ai-color-white" class="option-button active">WHITE (YOU PLAY FIRST)</button>
+                <button id="ai-color-black" class="option-button">BLACK (AI PLAYS FIRST)</button>
               </div>
             </div>
             <div class="spacer-small"></div>
@@ -744,20 +718,16 @@
             • Rooks move horizontally or vertically<br />
             • Queens combine bishop and rook moves<br />
             • Kings move one square in any direction<br />
-            • Checkmate happens when the king is threatened with capture and
-            can't escape
+            • Checkmate happens when the king is threatened with capture and can't escape
           </div>
         </div>
 
         <div class="modal-section">
           <div class="modal-section-title">SPECIAL MOVES</div>
           <div class="modal-content">
-            • Castling: King moves two squares toward a rook, and the rook moves
-            to the other side of the king<br />
-            • En Passant: Pawns can capture an opponent's pawn that has moved
-            two squares forward in one move<br />
-            • Pawn Promotion: When a pawn reaches the opposite end of the board,
-            it can be promoted to any other piece
+            • Castling: King moves two squares toward a rook, and the rook moves to the other side of the king<br />
+            • En Passant: Pawns can capture an opponent's pawn that has moved two squares forward in one move<br />
+            • Pawn Promotion: When a pawn reaches the opposite end of the board, it can be promoted to any other piece
           </div>
         </div>
 
@@ -826,8 +796,9 @@
       let aiColor = "black"; // AI will play as black by default
       let aiThinking = false; // Flag to prevent interactions while AI is thinking
 
-      // Game variables
+      // Farcade SDK variables
       let isMuted = false; // Track if sound is muted
+      let gameScore = 0; // Track player's score
 
       // Track last move for highlighting
       let lastMove = {
@@ -882,10 +853,7 @@
         const startRow = getPieceColor(piece) === "white" ? 6 : 1;
 
         // Move forward one square
-        if (
-          isInBounds(row + direction, col) &&
-          boardState[row + direction][col] === null
-        ) {
+        if (isInBounds(row + direction, col) && boardState[row + direction][col] === null) {
           moves.push([row + direction, col]);
 
           // Move forward two squares from starting position
@@ -909,19 +877,12 @@
 
           if (isInBounds(newRow, newCol)) {
             const targetPiece = boardState[newRow][newCol];
-            if (
-              targetPiece &&
-              getPieceColor(targetPiece) !== getPieceColor(piece)
-            ) {
+            if (targetPiece && getPieceColor(targetPiece) !== getPieceColor(piece)) {
               moves.push([newRow, newCol]);
             }
 
             // En passant capture
-            if (
-              enPassantTarget &&
-              newRow === enPassantTarget[0] &&
-              newCol === enPassantTarget[1]
-            ) {
+            if (enPassantTarget && newRow === enPassantTarget[0] && newCol === enPassantTarget[1]) {
               moves.push([newRow, newCol]);
             }
           }
@@ -950,10 +911,7 @@
 
           if (isInBounds(newRow, newCol)) {
             const targetPiece = boardState[newRow][newCol];
-            if (
-              !targetPiece ||
-              getPieceColor(targetPiece) !== getPieceColor(piece)
-            ) {
+            if (!targetPiece || getPieceColor(targetPiece) !== getPieceColor(piece)) {
               moves.push([newRow, newCol]);
             }
           }
@@ -1032,10 +990,7 @@
 
       // Get all valid moves for a queen (combines bishop and rook moves)
       function getQueenMoves(row, col, piece, boardState) {
-        return [
-          ...getBishopMoves(row, col, piece, boardState),
-          ...getRookMoves(row, col, piece, boardState),
-        ];
+        return [...getBishopMoves(row, col, piece, boardState), ...getRookMoves(row, col, piece, boardState)];
       }
 
       // Get all valid moves for a king
@@ -1059,10 +1014,7 @@
 
           if (isInBounds(newRow, newCol)) {
             const targetPiece = boardState[newRow][newCol];
-            if (
-              !targetPiece ||
-              getPieceColor(targetPiece) !== getPieceColor(piece)
-            ) {
+            if (!targetPiece || getPieceColor(targetPiece) !== getPieceColor(piece)) {
               moves.push([newRow, newCol]);
             }
           }
@@ -1072,14 +1024,8 @@
         const isWhite = getPieceColor(piece) === "white";
 
         // Kingside castling
-        if (
-          (isWhite && castlingRights.whiteKingSide) ||
-          (!isWhite && castlingRights.blackKingSide)
-        ) {
-          if (
-            boardState[row][col + 1] === null &&
-            boardState[row][col + 2] === null
-          ) {
+        if ((isWhite && castlingRights.whiteKingSide) || (!isWhite && castlingRights.blackKingSide)) {
+          if (boardState[row][col + 1] === null && boardState[row][col + 2] === null) {
             if (
               !isInCheck(currentPlayer, boardState) &&
               !wouldBeInCheck(row, col, row, col + 1, piece, boardState) &&
@@ -1091,10 +1037,7 @@
         }
 
         // Queenside castling
-        if (
-          (isWhite && castlingRights.whiteQueenSide) ||
-          (!isWhite && castlingRights.blackQueenSide)
-        ) {
+        if ((isWhite && castlingRights.whiteQueenSide) || (!isWhite && castlingRights.blackQueenSide)) {
           if (
             boardState[row][col - 1] === null &&
             boardState[row][col - 2] === null &&
@@ -1114,13 +1057,7 @@
       }
 
       // Get all valid moves for a piece
-      function getValidMoves(
-        row,
-        col,
-        piece,
-        boardState,
-        enPassantTarget = null,
-      ) {
+      function getValidMoves(row, col, piece, boardState, enPassantTarget = null) {
         if (!piece) return [];
 
         const pieceType = piece.toLowerCase();
@@ -1144,14 +1081,7 @@
       }
 
       // Check if a move would result in check
-      function wouldBeInCheck(
-        fromRow,
-        fromCol,
-        toRow,
-        toCol,
-        piece,
-        boardState,
-      ) {
+      function wouldBeInCheck(fromRow, fromCol, toRow, toCol, piece, boardState) {
         // Create a copy of the board with the move applied
         const testBoard = JSON.parse(JSON.stringify(boardState));
         testBoard[toRow][toCol] = piece;
@@ -1200,11 +1130,7 @@
           const c = kingCol + dc;
           if (isInBounds(r, c)) {
             const piece = boardState[r][c];
-            if (
-              piece &&
-              piece.toLowerCase() === "p" &&
-              getPieceColor(piece) === opponentColor
-            ) {
+            if (piece && piece.toLowerCase() === "p" && getPieceColor(piece) === opponentColor) {
               return true;
             }
           }
@@ -1226,11 +1152,7 @@
           const c = kingCol + dc;
           if (isInBounds(r, c)) {
             const piece = boardState[r][c];
-            if (
-              piece &&
-              piece.toLowerCase() === "n" &&
-              getPieceColor(piece) === opponentColor
-            ) {
+            if (piece && piece.toLowerCase() === "n" && getPieceColor(piece) === opponentColor) {
               return true;
             }
           }
@@ -1304,11 +1226,7 @@
           const c = kingCol + dc;
           if (isInBounds(r, c)) {
             const piece = boardState[r][c];
-            if (
-              piece &&
-              piece.toLowerCase() === "k" &&
-              getPieceColor(piece) === opponentColor
-            ) {
+            if (piece && piece.toLowerCase() === "k" && getPieceColor(piece) === opponentColor) {
               return true;
             }
           }
@@ -1330,19 +1248,11 @@
             const piece = boardState[row][col];
 
             if (piece && getPieceColor(piece) === playerColor) {
-              const moves = getValidMoves(
-                row,
-                col,
-                piece,
-                boardState,
-                enPassantTarget,
-              );
+              const moves = getValidMoves(row, col, piece, boardState, enPassantTarget);
 
               // For each move, check if it gets the player out of check
               for (const [toRow, toCol] of moves) {
-                if (
-                  !wouldBeInCheck(row, col, toRow, toCol, piece, boardState)
-                ) {
+                if (!wouldBeInCheck(row, col, toRow, toCol, piece, boardState)) {
                   return false; // Found a legal move that gets out of check
                 }
               }
@@ -1381,11 +1291,7 @@
             }
 
             // Highlight selected pieces and valid moves
-            if (
-              selectedPiece &&
-              selectedPiece.row === row &&
-              selectedPiece.col === col
-            ) {
+            if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
               squareElement.classList.add("selected");
             }
 
@@ -1394,25 +1300,15 @@
             }
 
             // Highlight last move
-            if (
-              lastMove.from &&
-              row === lastMove.from[0] &&
-              col === lastMove.from[1]
-            ) {
+            if (lastMove.from && row === lastMove.from[0] && col === lastMove.from[1]) {
               squareElement.classList.add("last-move-from");
             }
 
-            if (
-              lastMove.to &&
-              row === lastMove.to[0] &&
-              col === lastMove.to[1]
-            ) {
+            if (lastMove.to && row === lastMove.to[0] && col === lastMove.to[1]) {
               squareElement.classList.add("last-move-to");
             }
 
-            squareElement.addEventListener("click", () =>
-              handleSquareClick(row, col),
-            );
+            squareElement.addEventListener("click", () => handleSquareClick(row, col));
             rowElement.appendChild(squareElement);
           }
 
@@ -1461,11 +1357,6 @@
           } else {
             capturedPieces.black.push(capturedPiece);
           }
-          // Play capture sound
-          playSound(captureSound);
-        } else {
-          // Play normal move sound
-          playSound(moveSound);
         }
 
         // Move the piece
@@ -1524,8 +1415,7 @@
           toCol === enPassantTarget[1]
         ) {
           // Remove the pawn that was captured via en passant
-          const capturedPawnRow =
-            currentPlayer === "white" ? toRow + 1 : toRow - 1;
+          const capturedPawnRow = currentPlayer === "white" ? toRow + 1 : toRow - 1;
 
           // Add the captured en passant pawn to captured pieces
           const capturedPawn = newBoardState[capturedPawnRow][toCol];
@@ -1566,12 +1456,6 @@
 
         moveHistory.push(moveNotation);
 
-        // Live update the PGN display
-        const pgnOutput = document.getElementById("pgn-output");
-        if (pgnOutput) {
-          pgnOutput.textContent = "PGN: " + moveHistory.join(" ");
-        }
-
         // Store last move for highlighting
         lastMove = {
           from: [fromRow, fromCol],
@@ -1597,7 +1481,8 @@
           gameStatus = "playing";
         }
 
-        // Additional move logic could be added here
+        // Trigger haptic feedback when a piece is moved
+        triggerHapticFeedback();
 
         // Update the UI
         renderBoard();
@@ -1622,13 +1507,7 @@
             selectedPiece = { row, col, piece };
 
             // Calculate valid moves for the selected piece
-            validMoves = getValidMoves(
-              row,
-              col,
-              piece,
-              boardState,
-              enPassantTarget,
-            ).filter(([toRow, toCol]) => {
+            validMoves = getValidMoves(row, col, piece, boardState, enPassantTarget).filter(([toRow, toCol]) => {
               // Filter out moves that would put the king in check
               return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
             });
@@ -1642,9 +1521,7 @@
         const { row: fromRow, col: fromCol, piece } = selectedPiece;
 
         // Check if the clicked square is a valid move
-        const moveIndex = validMoves.findIndex(
-          ([r, c]) => r === row && c === col,
-        );
+        const moveIndex = validMoves.findIndex(([r, c]) => r === row && c === col);
 
         if (moveIndex >= 0) {
           // Move the piece using the common function
@@ -1655,11 +1532,7 @@
           validMoves = [];
 
           // If the game is in AI mode and it's AI's turn, make the AI move
-          if (
-            gameMode === "ai" &&
-            currentPlayer === aiColor &&
-            gameStatus !== "checkmate"
-          ) {
+          if (gameMode === "ai" && currentPlayer === aiColor && gameStatus !== "checkmate") {
             makeAIMove();
           }
         } else {
@@ -1669,21 +1542,8 @@
           const targetPiece = boardState[row][col];
           if (targetPiece && getPieceColor(targetPiece) === currentPlayer) {
             selectedPiece = { row, col, piece: targetPiece };
-            validMoves = getValidMoves(
-              row,
-              col,
-              targetPiece,
-              boardState,
-              enPassantTarget,
-            ).filter(([toRow, toCol]) => {
-              return !wouldBeInCheck(
-                row,
-                col,
-                toRow,
-                toCol,
-                targetPiece,
-                boardState,
-              );
+            validMoves = getValidMoves(row, col, targetPiece, boardState, enPassantTarget).filter(([toRow, toCol]) => {
+              return !wouldBeInCheck(row, col, toRow, toCol, targetPiece, boardState);
             });
           } else {
             // Otherwise, deselect
@@ -1709,10 +1569,24 @@
           winnerElement.textContent = `${winner} WINS!`;
           gameStatusElement.appendChild(winnerElement);
 
-          // Game over logic
-          console.log(`Game over! ${winner} wins!`);
-          // Play game over sound
-          playSound(gameOverSound);
+          // Calculate score for Farcade SDK
+          // 2 points for checkmate, 1 point for draw, 0 for loss
+          if (
+            (winner === "WHITE" && gameMode === "ai" && aiColor === "black") ||
+            (winner === "BLACK" && gameMode === "ai" && aiColor === "white")
+          ) {
+            // Player won against AI
+            gameScore = 2;
+          } else if (gameMode === "ai") {
+            // Player lost against AI
+            gameScore = 0;
+          }
+
+          // Send the score to Farcade SDK
+          updateFarcadeScore();
+
+          // Trigger haptic feedback for game over
+          triggerHapticFeedback();
         }
       }
 
@@ -1779,24 +1653,11 @@
           for (let col = 0; col < 8; col++) {
             const piece = boardState[row][col];
             if (piece && getPieceColor(piece) === color) {
-              const pieceMoves = getValidMoves(
-                row,
-                col,
-                piece,
-                boardState,
-                enPassantTarget,
-              );
+              const pieceMoves = getValidMoves(row, col, piece, boardState, enPassantTarget);
 
               // Filter out moves that would leave the king in check
               const legalMoves = pieceMoves.filter(([toRow, toCol]) => {
-                return !wouldBeInCheck(
-                  row,
-                  col,
-                  toRow,
-                  toCol,
-                  piece,
-                  boardState,
-                );
+                return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
               });
 
               legalMoves.forEach(([toRow, toCol]) => {
@@ -1942,11 +1803,7 @@
 
       // Make AI move with weighted randomness
       function makeAIMove() {
-        if (
-          aiThinking ||
-          gameStatus === "checkmate" ||
-          currentPlayer !== aiColor
-        ) {
+        if (aiThinking || gameStatus === "checkmate" || currentPlayer !== aiColor) {
           return;
         }
 
@@ -1972,10 +1829,7 @@
             tempBoard[move.from[0]][move.from[1]] = null;
 
             // Evaluate the resulting position
-            const score =
-              aiColor === "black"
-                ? -evaluateBoard(tempBoard)
-                : evaluateBoard(tempBoard);
+            const score = aiColor === "black" ? -evaluateBoard(tempBoard) : evaluateBoard(tempBoard);
 
             return {
               ...move,
@@ -1990,10 +1844,7 @@
           let selectedMove;
 
           // Get the top 40% of moves (or at least 1 move)
-          const goodMovesCount = Math.max(
-            1,
-            Math.floor(evaluatedMoves.length * 0.4),
-          );
+          const goodMovesCount = Math.max(1, Math.floor(evaluatedMoves.length * 0.4));
 
           // Choose a random move from the top moves with higher probability for better moves
           const weights = [];
@@ -2046,6 +1897,7 @@
         lastMove = { from: null, to: null };
         enPassantTarget = null;
         aiThinking = false; // Reset AI thinking state
+        gameScore = 0; // Reset the Farcade score
 
         // Reset captured pieces
         capturedPieces = {
@@ -2078,12 +1930,8 @@
         menuModal.classList.add("active");
 
         // Update the UI to reflect current game mode
-        document
-          .getElementById(gameMode === "human" ? "mode-human" : "mode-ai")
-          .classList.add("active");
-        document
-          .getElementById(gameMode === "human" ? "mode-ai" : "mode-human")
-          .classList.remove("active");
+        document.getElementById(gameMode === "human" ? "mode-human" : "mode-ai").classList.add("active");
+        document.getElementById(gameMode === "human" ? "mode-ai" : "mode-human").classList.remove("active");
 
         // Show/hide AI options based on game mode
         aiOptionsContainer.style.display = gameMode === "ai" ? "block" : "none";
@@ -2172,36 +2020,46 @@
         aiColorWhiteButton.classList.remove("active");
       }
 
-      // Sound functionality
-      const moveSound = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU9vTwAAAP//////////AAABAAAAAAD//////////////wAAAQEAAAAA//////////8AAAEAAQAAAAD/////AAD/////AAABAAAAAAD/////////////AAABAAAAAAD//////////////wAAAQAAAAAA//////////8AAAEAAQAAAAD/////AAD/////AAABAAAAAAD/////////////AAABAAAAAAD//////////////wAAAQAAAAAA//////////8AAAEAAQAAAAD/////AAD/////AAABAAAAAAD/////////////AAABAAAAAAD//////////////wAAAQAAAAAA//////////8AAAEAAQAAAAD/////AAD/////AAABAAAAAAD/////////////AAABAAAAAAD//////////////wAAAQAAAAAA//////////8AAAEAAQAAAAD/////AAD//w==");
-      const captureSound = new Audio("data:audio/wav;base64,UklGRptvT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YXVvTwAAAAEBAQD8/Pz8AgICAgEBAQH9/f39AgICAgEBAQH+/v7+AQEBAQEBAQH+/v7+AQEBAQEBAQD//////v7+/gICAgIBAQEB/v7+/gEBAQECAgIC/v7+/v///////////v7+/gEBAQECAgIC/v7+/v///////////v7+/gICAgIAAAAAAQEBAf39/f0DAwMDAQEBAf39/f0CAgICAgICAv7+/v4CAgICAgICAv39/f0CAgICAgICAv39/f0BAQEB//////39/f0BAQEB//////39/f0AAAAA//////39/f3///////////7+/v4=");
-      const gameOverSound = new Audio("data:audio/wav;base64,UklGRqNvT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZ1vTwAAAAD////+/v79/f38/Pz8/Pz8/Pz9/f3+/v7///8BAQEDAAAAAAAAAP///////v7+/f39/Pz8+/v7+/v7+/v7/Pz8/f39/v7+AAAAAAEBAAAAAAAAAAAA//////7+/v39/fz8/Pv7+/r6+vr6+vv7+/z8/P39/f7+/v8AAAECBAEAAAAAAAAA//////7+/v39/fz8/Pv7+/r6+vr6+vr6+/v7/Pz8/f39/v7+AAAAAAEBAAAAAAAAAAAA/////v7+/f39/Pz8+/v7+vr6+fn5+fr6+vv7+/z8/P39/f7+/v8AAAECBAEAAAAAAAAA//////7+/v39/fz8/Pv7+/r6+vn5+fn5+vr6+/v7/Pz8/f39/v7+AAAAAAEBAAAAAAAAAAAAAFdBVkVmbXQgAAAAAAAA=");
-      
-      // Function to play sounds if not muted
-      function playSound(sound) {
-        if (!isMuted) {
-          sound.play();
+      // Farcade SDK Integration
+
+      // Initialize SDK when the game is fully loaded and ready to play
+      window.addEventListener("DOMContentLoaded", () => {
+        if (window.FarcadeSDK) {
+          // Signal that the game is ready to play
+          window.FarcadeSDK.singlePlayer.actions.ready();
+
+          // Set up event handlers for Farcade SDK events
+
+          // Handle play_again event
+          window.FarcadeSDK.on("play_again", () => {
+            // Reset the game state
+            resetGame();
+          });
+
+          // Handle toggle_mute event
+          window.FarcadeSDK.on("toggle_mute", (data) => {
+            // Set game audio based on data.isMuted
+            isMuted = data.isMuted;
+            // Future audio can check isMuted before playing
+          });
+        }
+      });
+
+      // Function to send score to Farcade SDK
+      function updateFarcadeScore() {
+        if (window.FarcadeSDK) {
+          window.FarcadeSDK.singlePlayer.actions.gameOver({
+            score: gameScore,
+          });
         }
       }
-      
-      // Toggle sound on/off
-      function toggleSound() {
-        isMuted = !isMuted;
-        const soundButton = document.getElementById("sound-button");
-        if (soundButton) {
-          soundButton.textContent = isMuted ? "🔇" : "🔊";
+
+      // Function to trigger haptic feedback
+      function triggerHapticFeedback() {
+        if (window.FarcadeSDK) {
+          window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
         }
       }
-      
-      // Add a sound button to the UI
-      const soundButton = document.createElement("button");
-      soundButton.id = "sound-button";
-      soundButton.className = "control-button";
-      soundButton.textContent = isMuted ? "🔇" : "🔊";
-      soundButton.addEventListener("click", toggleSound);
-      
-      // Add the sound button next to the menu button
-      menuButton.parentNode.insertBefore(soundButton, menuButton.nextSibling);
     </script>
   </body>
 </html>
