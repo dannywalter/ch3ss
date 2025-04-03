@@ -305,11 +305,12 @@
       }
 
       .scoreboard-text {
-        font-size: 0.45rem;
-        padding: 6px;
-        line-height: 1.5;
+        font-size: 0.75rem;
+        padding: 20px 50px 20px 50px;
+        line-height: 2;
         color: #ff99ff;
         text-shadow: 0 0 3px #ff00ff;
+        text-align: center;
       }
 
       .winner {
@@ -607,6 +608,7 @@
           display: block;
         }
       }
+      
     </style>
   </head>
   <body>
@@ -657,11 +659,11 @@
           <div class="info-row">
             <div class="info-panel">
               <div class="display">
-                <div class="display-header">CYBERPUNK CHESS</div>
+                <div class="display-header">CH3SS</div>
                 <div class="display-content rules-content">
                   <div
                     id="pgn-output"
-                    style="font-size: 0.45rem; color: #00ffff; text-align: center; margin-top: 10px"
+                    style="font-size: 0.45rem; color: #00ffff; text-align: center; margin-top: 0px"
                   ></div>
                 </div>
               </div>
@@ -682,7 +684,7 @@
     <!-- Game Menu Modal -->
     <div id="menu-modal" class="modal-overlay">
       <div class="modal">
-        <div class="modal-header">CYBER CHESS MENU</div>
+        <div class="modal-header">CH3SS MENU</div>
 
         <div class="modal-section">
           <div class="modal-section-title">GAME OPTIONS</div>
@@ -787,7 +789,8 @@
       let boardState = JSON.parse(JSON.stringify(initialBoardState));
       let selectedPiece = null;
       let currentPlayer = "white";
-      let gameStatus = "playing"; // playing, check, checkmate
+      let gameStatus = "playing"; // playing, check, checkmate, draw
+      let drawReason = null; // null, "stalemate", "50move", "repetition"
       let validMoves = [];
       let enPassantTarget = null;
 
@@ -805,6 +808,11 @@
         from: null, // [row, col]
         to: null, // [row, col]
       };
+
+      // Track 50-move rule only counts moves since the last pawn move or capture
+      let halfMoveClock = 0;
+
+      let positionCounts = {}; // For threefold repetition
 
       // Track captured pieces
       let capturedPieces = {
@@ -844,6 +852,11 @@
       // Check if a move is within the board boundaries
       function isInBounds(row, col) {
         return row >= 0 && row < 8 && col >= 0 && col < 8;
+      }
+
+      // Check for Repetition Draw
+      function getBoardKey(boardState, currentPlayer) {
+        return JSON.stringify(boardState) + "_" + currentPlayer;
       }
 
       // Get all valid moves for a pawn
@@ -1315,18 +1328,55 @@
           boardElement.appendChild(rowElement);
         }
 
-        // Display checkmate overlay if game is over
-        if (gameStatus === "checkmate") {
-          const checkmateOverlay = document.createElement("div");
-          checkmateOverlay.className = "checkmate-overlay";
+        // Display end-of-game overlay if game is over
+        if (gameStatus === "checkmate" || gameStatus === "draw") {
+          const overlay = document.createElement("div");
+          overlay.className = "checkmate-overlay"; // reuse same style
 
-          const checkmateText = document.createElement("div");
-          checkmateText.className = "checkmate-text";
-          checkmateText.textContent = "CHECKMATE";
+          // Wrapper for text and button
+          const content = document.createElement("div");
+          content.style.display = "flex";
+          content.style.flexDirection = "column";
+          content.style.alignItems = "center";
+          content.style.gap = "10px";
 
-          checkmateOverlay.appendChild(checkmateText);
-          boardElement.appendChild(checkmateOverlay);
+          // Main title
+          const title = document.createElement("div");
+          title.className = "checkmate-text";
+
+          // Subtext for draw reasons
+          const subtext = document.createElement("div");
+          subtext.className = "scoreboard-text"; // smaller, already styled
+
+          if (gameStatus === "checkmate") {
+            title.textContent = "CHECKMATE";
+          } else {
+            if (drawReason === "stalemate") {
+              title.textContent = "STALEMATE";
+            } else {
+              title.textContent = "DRAW";
+              if (drawReason === "50move") {
+                subtext.textContent = "50 moves without a capture or pawn move";
+              } else if (drawReason === "repetition") {
+                subtext.textContent = "Same position repeated 3 times";
+              }
+            }
+          }
+
+          // Button
+          const newGameButton = document.createElement("button");
+          newGameButton.className = "button";
+          newGameButton.textContent = "NEW GAME";
+          newGameButton.id = "new-game-checkmate";
+          newGameButton.addEventListener("click", resetGame);
+
+          content.appendChild(title);
+          if (subtext.textContent) content.appendChild(subtext);
+          content.appendChild(newGameButton);
+          overlay.appendChild(content);
+          boardElement.appendChild(overlay);
         }
+
 
         // Update game info display
         updateGameStatus();
@@ -1357,6 +1407,13 @@
           } else {
             capturedPieces.black.push(capturedPiece);
           }
+        }
+
+        // Reset 50-move rule counter if pawn move or capture, else increment
+        if (piece.toLowerCase() === "p" || capturedPiece) {
+          halfMoveClock = 0;
+        } else {
+          halfMoveClock++;
         }
 
         // Move the piece
@@ -1456,6 +1513,13 @@
 
         moveHistory.push(moveNotation);
 
+        // Update PGN output after every move
+        const pgnOutput = document.getElementById("pgn-output");
+        if (pgnOutput) {
+          pgnOutput.textContent = "PGN: " + moveHistory.map((m, i) =>
+          (i % 2 === 0 ? `${Math.floor(i / 2) + 1}.` : '') + m).join(" ");
+        }
+
         // Store last move for highlighting
         lastMove = {
           from: [fromRow, fromCol],
@@ -1465,9 +1529,25 @@
         // Switch to the other player
         currentPlayer = currentPlayer === "white" ? "black" : "white";
 
+        // Track position for 3-fold repetition
+        const boardKey = getBoardKey(boardState, currentPlayer);
+        positionCounts[boardKey] = (positionCounts[boardKey] || 0) + 1;
+
+        // Check for 3-fold repetition
+        function isThreefoldRepetition() {
+          const boardKey = getBoardKey(boardState, currentPlayer);
+          return positionCounts[boardKey] >= 3;
+        }
+
+        // Check for 50-move rule
+        function isFiftyMoveRule() {
+          return halfMoveClock >= 100;
+        }
+
         // Check for check or checkmate
         if (isCheckmate(currentPlayer, boardState)) {
           gameStatus = "checkmate";
+          drawReason = null;
           // Show PGN in console and update display
           console.log("PGN:", moveHistory.join(" "));
 
@@ -1475,11 +1555,44 @@
           if (pgnOutput) {
             pgnOutput.textContent = "PGN: " + moveHistory.join(" ");
           }
+        } else if (isStalemate(currentPlayer, boardState)) {
+          gameStatus = "draw";
+          drawReason = "stalemate";
+        } else if (isFiftyMoveRule()) {
+          gameStatus = "draw";
+          drawReason = "50move";
+        } else if (isThreefoldRepetition()) {
+          gameStatus = "draw";
+          drawReason = "repetition";
         } else if (isInCheck(currentPlayer, boardState)) {
           gameStatus = "check";
         } else {
           gameStatus = "playing";
         }
+
+        // Check for stalemate
+        function isStalemate(playerColor, boardState) {
+          if (isInCheck(playerColor, boardState)) return false;
+
+          // Try all legal moves for the player
+          for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+              const piece = boardState[row][col];
+              if (piece && getPieceColor(piece) === playerColor) {
+                const moves = getValidMoves(row, col, piece, boardState, enPassantTarget);
+                const legalMoves = moves.filter(([toRow, toCol]) => {
+                  return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
+                });
+                if (legalMoves.length > 0) {
+                  return false; // At least one legal move exists
+                }
+              }
+            }
+          }
+
+          return true; // No legal moves and not in check
+        }
+
 
         // Trigger haptic feedback when a piece is moved
         triggerHapticFeedback();
@@ -1586,6 +1699,26 @@
           //updateFarcadeScore();
 
           // Trigger haptic feedback for game over
+          triggerHapticFeedback();
+        }
+
+        if (gameStatus === "draw") {
+          const drawElement = document.createElement("div");
+          drawElement.className = "winner";
+
+          if (drawReason === "stalemate") {
+            drawElement.textContent = "STALEMATE";
+          } else if (drawReason === "50move") {
+            drawElement.textContent = "50 MOVES";
+          } else if (drawReason === "repetition") {
+            drawElement.textContent = "REPETITION";
+          } else {
+            drawElement.textContent = "DRAW";
+          }
+
+          gameStatusElement.appendChild(drawElement);
+
+          gameScore = 1;
           triggerHapticFeedback();
         }
       }
@@ -1898,6 +2031,14 @@
         enPassantTarget = null;
         aiThinking = false; // Reset AI thinking state
         gameScore = 0; // Reset the Farcade score
+        moveHistory = [];
+        halfMoveClock = 0; // Reset the 50-move rule counter
+
+        // Clear PGN display
+        const pgnOutput = document.getElementById("pgn-output");
+        if (pgnOutput) {
+          pgnOutput.textContent = "";
+        }
 
         // Reset captured pieces
         capturedPieces = {
