@@ -7,8 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-    <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
-    <style>
+    <!--<script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script> -->    <style>
       /* Global Styles */
       *,
       *::before,
@@ -797,8 +796,8 @@
       let aiThinking = false; // Flag to prevent interactions while AI is thinking
 
       // Farcade SDK variables
-      let isMuted = false; // Track if sound is muted
-      let gameScore = 0; // Track player's score
+      // let isMuted = false; // Track if sound is muted
+      // let gameScore = 0; // Track player's score
 
       // Track last move for highlighting
       let lastMove = {
@@ -1583,7 +1582,7 @@
           }
 
           // Send the score to Farcade SDK
-          updateFarcadeScore();
+          //updateFarcadeScore();
 
           // Trigger haptic feedback for game over
           triggerHapticFeedback();
@@ -2020,9 +2019,8 @@
         aiColorWhiteButton.classList.remove("active");
       }
 
-      <!-- Disable Farcade SDK Integration -->
+/*       // Farcade SDK Integration
 
-<!--
       // Initialize SDK when the game is fully loaded and ready to play
       window.addEventListener("DOMContentLoaded", () => {
         if (window.FarcadeSDK) {
@@ -2053,15 +2051,14 @@
             score: gameScore,
           });
         }
-      }
+      } */
 
       // Function to trigger haptic feedback
       function triggerHapticFeedback() {
         if (window.FarcadeSDK) {
           window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
         }
-      }
--->
+      } 
     </script>
   </body>
 </html>
