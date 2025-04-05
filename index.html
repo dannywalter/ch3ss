@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-    <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>   
+    <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
     <style>
       /* Global Styles */
       *,
@@ -86,6 +86,7 @@
         width: 100%;
         max-width: 360px; /* Maximized size for 400px container width */
         margin: 0 auto;
+        touch-action: none;
       }
 
       .row {
@@ -116,6 +117,9 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
       }
 
       .light-square {
@@ -608,7 +612,6 @@
           display: block;
         }
       }
-      
     </style>
   </head>
   <body>
@@ -793,6 +796,7 @@
       let drawReason = null; // null, "stalemate", "50move", "repetition"
       let validMoves = [];
       let enPassantTarget = null;
+      let touchStartSquare = null;
 
       // AI variables
       let gameMode = "ai"; // human, ai
@@ -1301,9 +1305,81 @@
               pieceElement.className = `piece ${pieceColor}-piece`;
               pieceElement.textContent = pieceMapping[piece];
               squareElement.appendChild(pieceElement);
+
+              // TOUCH DRAG SUPPORT
+              let ghost = null;
+              let offsetX = 0;
+              let offsetY = 0;
+
+              pieceElement.addEventListener("touchstart", (e) => {
+                e.preventDefault();
+                if (getPieceColor(piece) !== currentPlayer) return;
+
+                selectedPiece = { row, col, piece };
+                validMoves = getValidMoves(row, col, piece, boardState, enPassantTarget).filter(([toRow, toCol]) => {
+                  return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
+                });
+
+                const touch = e.touches[0];
+                offsetX = touch.clientX;
+                offsetY = touch.clientY;
+
+                ghost = pieceElement.cloneNode(true);
+                ghost.style.position = "fixed";
+                ghost.style.left = `${offsetX - 20}px`;
+                ghost.style.top = `${offsetY - 20}px`;
+                ghost.style.zIndex = "1000";
+                ghost.style.pointerEvents = "none";
+                ghost.style.opacity = "0.8";
+                document.body.appendChild(ghost);
+              });
+
+              document.addEventListener("touchmove", (e) => {
+                if (ghost) {
+                  const touch = e.touches[0];
+                  ghost.style.left = `${touch.clientX - 20}px`;
+                  ghost.style.top = `${touch.clientY - 20}px`;
+                }
+              });
+
+              document.addEventListener("touchend", (e) => {
+                if (ghost) {
+                  document.body.removeChild(ghost);
+                  ghost = null;
+
+                  const touch = e.changedTouches[0];
+                  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+                  if (target && target.classList.contains("square")) {
+                    const toRow = parseInt(target.dataset.row, 10);
+                    const toCol = parseInt(target.dataset.col, 10);
+
+                    if (selectedPiece) {
+                      const { row: fromRow, col: fromCol } = selectedPiece;
+                      const isValid = validMoves.some(([r, c]) => r === toRow && c === toCol);
+
+                      if (isValid) {
+                        const moveSucceeded = movePiece(fromRow, fromCol, toRow, toCol);
+                        if (moveSucceeded) {
+                          // only re-render if move was successful
+                          renderBoard();
+
+                          // let the AI play if it's its turn now
+                          if (gameMode === "ai" && currentPlayer === aiColor && gameStatus === "playing") {
+                            setTimeout(() => makeAIMove(), 300);
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  selectedPiece = null;
+                  validMoves = [];
+                }
+              });
             }
 
-            // Highlight selected pieces and valid moves
+            // Visual highlights
             if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
               squareElement.classList.add("selected");
             }
@@ -1312,7 +1388,6 @@
               squareElement.classList.add("valid-move");
             }
 
-            // Highlight last move
             if (lastMove.from && row === lastMove.from[0] && col === lastMove.from[1]) {
               squareElement.classList.add("last-move-from");
             }
@@ -1328,42 +1403,31 @@
           boardElement.appendChild(rowElement);
         }
 
-        // Display end-of-game overlay if game is over
+        // Draw/checkmate overlay
         if (gameStatus === "checkmate" || gameStatus === "draw") {
           const overlay = document.createElement("div");
-          overlay.className = "checkmate-overlay"; // reuse same style
+          overlay.className = "checkmate-overlay";
 
-          // Wrapper for text and button
           const content = document.createElement("div");
           content.style.display = "flex";
           content.style.flexDirection = "column";
           content.style.alignItems = "center";
           content.style.gap = "10px";
 
-          // Main title
           const title = document.createElement("div");
           title.className = "checkmate-text";
 
-          // Subtext for draw reasons
           const subtext = document.createElement("div");
-          subtext.className = "scoreboard-text"; // smaller, already styled
+          subtext.className = "scoreboard-text";
 
           if (gameStatus === "checkmate") {
             title.textContent = "CHECKMATE";
           } else {
-            if (drawReason === "stalemate") {
-              title.textContent = "STALEMATE";
-            } else {
-              title.textContent = "DRAW";
-              if (drawReason === "50move") {
-                subtext.textContent = "50 moves without a capture or pawn move";
-              } else if (drawReason === "repetition") {
-                subtext.textContent = "Same position repeated 3 times";
-              }
-            }
+            title.textContent = drawReason === "stalemate" ? "STALEMATE" : "DRAW";
+            if (drawReason === "50move") subtext.textContent = "50 moves without a capture or pawn move";
+            else if (drawReason === "repetition") subtext.textContent = "Same position repeated 3 times";
           }
 
-          // Button
           const newGameButton = document.createElement("button");
           newGameButton.className = "button";
           newGameButton.textContent = "NEW GAME";
@@ -1377,11 +1441,7 @@
           boardElement.appendChild(overlay);
         }
 
-
-        // Update game info display
         updateGameStatus();
-
-        // Update captured pieces display
         updateCapturedPieces();
       }
 
@@ -1516,8 +1576,8 @@
         // Update PGN output after every move
         const pgnOutput = document.getElementById("pgn-output");
         if (pgnOutput) {
-          pgnOutput.textContent = "PGN: " + moveHistory.map((m, i) =>
-          (i % 2 === 0 ? `${Math.floor(i / 2) + 1}.` : '') + m).join(" ");
+          pgnOutput.textContent =
+            "PGN: " + moveHistory.map((m, i) => (i % 2 === 0 ? `${Math.floor(i / 2) + 1}.` : "") + m).join(" ");
         }
 
         // Store last move for highlighting
@@ -1592,7 +1652,6 @@
 
           return true; // No legal moves and not in check
         }
-
 
         // Trigger haptic feedback when a piece is moved
         triggerHapticFeedback();
@@ -2161,7 +2220,7 @@
         aiColorWhiteButton.classList.remove("active");
       }
 
-/*       // Farcade SDK Integration
+      /*       // Farcade SDK Integration
 
       // Initialize SDK when the game is fully loaded and ready to play
       window.addEventListener("DOMContentLoaded", () => {
@@ -2200,7 +2259,7 @@
         if (window.FarcadeSDK) {
           window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
         }
-      } 
+      }
     </script>
   </body>
 </html>
