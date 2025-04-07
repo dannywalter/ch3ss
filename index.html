@@ -1976,77 +1976,184 @@
       }
 
       // Make AI move with weighted randomness
-      function makeAIMove() {
-        if (aiThinking || gameStatus === "checkmate" || currentPlayer !== aiColor) {
-          debugLog('AI move cancelled:', { aiThinking, gameStatus, currentPlayer, aiColor });
-          return;
+    function makeAIMove() {
+        // Prevent AI move if game is over or it's not AI's turn or AI is already thinking
+        if (aiThinking || (gameStatus !== "playing" && gameStatus !== "check") || currentPlayer !== aiColor) {
+            debugLog('AI move cancelled or not AI turn:', { aiThinking, gameStatus, currentPlayer, aiColor });
+            // Ensure thinking flag is false if cancelled here
+            if (gameStatus === "checkmate" || gameStatus === "draw") aiThinking = false;
+            return;
         }
 
         debugLog('AI starting move evaluation');
         aiThinking = true;
-        selectedPiece = null;
-        validMoves = [];
+        selectedPiece = null; // Ensure no piece selection interferes
+        validMoves = []; // Clear any leftover valid moves display
 
+        // Use setTimeout to simulate thinking time and prevent blocking the UI thread
         setTimeout(() => {
-          const possibleMoves = getAllPossibleMoves(aiColor, boardState);
-          debugLog(`AI found ${possibleMoves.length} possible moves`);
-
-          const evaluatedMoves = possibleMoves.map((move) => {
-            const tempBoard = JSON.parse(JSON.stringify(boardState));
-            tempBoard[move.to[0]][move.to[1]] = move.piece;
-            tempBoard[move.from[0]][move.from[1]] = null;
-
-            // Always check if this move leaves the king in check.
-            if (isInCheck(aiColor, tempBoard)) {
-              return { ...move, score: -1000 };
+            // Double-check game status hasn't changed while waiting and it's still AI's turn
+            if ((gameStatus !== "playing" && gameStatus !== "check") || currentPlayer !== aiColor) {
+                debugLog('AI move aborted, game ended or turn changed during thinking time.');
+                aiThinking = false;
+                renderBoard(); // Re-render to show final state if needed
+                return;
             }
 
-            const score = aiColor === "black" ? -evaluateBoard(tempBoard) : evaluateBoard(tempBoard);
-            const isCapture = boardState[move.to[0]][move.to[1]] !== null;
-            const captureBonus = isCapture ? 0.5 : 0;
-            return { ...move, score: score + captureBonus };
-          });
+            // Get all *strictly legal* moves (should filter moves into check)
+            const possibleMoves = getAllPossibleMoves(aiColor, boardState);
+            debugLog(`AI found ${possibleMoves.length} possible moves initially`);
 
-          evaluatedMoves.sort((a, b) => b.score - a.score);
+            // ***** NEW STALEMATE/CHECKMATE CHECK *****
+            if (possibleMoves.length === 0) {
+                if (isInCheck(aiColor, boardState)) {
+                    // No legal moves AND in check = Checkmate
+                    debugLog(`AI found 0 moves and is in check. CHECKMATE.`);
+                    gameStatus = "checkmate";
+                    // Optional: Update score if tracking vs AI
+                    // gameScore = 0; // Player wins if AI is checkmated
+                    // updateFarcadeScore();
+                } else {
+                    // No legal moves AND NOT in check = Stalemate
+                    debugLog(`AI found 0 moves and is NOT in check. STALEMATE.`);
+                    gameStatus = "draw";
+                    drawReason = "stalemate";
+                    // Optional: Update score if tracking vs AI
+                    // gameScore = 1; // Draw score
+                    // updateFarcadeScore();
+                }
+                aiThinking = false;
+                renderBoard(); // Update UI to show Checkmate/Stalemate overlay
+                return; // Stop further processing for this turn
+            }
+            // ***** END OF NEW CHECK *****
 
-          const inCheck = isInCheck(aiColor, boardState);
-          const filteredMoves = inCheck ?
-              evaluatedMoves.filter(m => m.score > -1000) : evaluatedMoves;
 
-          let selectedMove;
-          const goodMovesCount = Math.max(1, Math.floor(filteredMoves.length * 0.4));
-          const weights = [];
-          let totalWeight = 0;
+            // If we reach here, there are possible moves, proceed with evaluation...
+            const evaluatedMoves = possibleMoves.map((move) => {
+                // Create a temporary board state to simulate the move
+                const tempBoard = JSON.parse(JSON.stringify(boardState));
+                tempBoard[move.to[0]][move.to[1]] = move.piece;
+                tempBoard[move.from[0]][move.from[1]] = null;
 
-          for (let i = 0; i < goodMovesCount; i++) {
-              const weight = Math.pow(0.8, i);
-              weights.push(weight);
-              totalWeight += weight;
-          }
+                // Although getAllPossibleMoves should filter checks, we double-check here
+                // to assign the -1000 score for the filtering step below.
+                if (isInCheck(aiColor, tempBoard)) {
+                    debugLog(`Move (${move.from.join(',')}) to (${move.to.join(',')}) results in check - scoring -1000`);
+                    return { ...move, score: -1000 };
+                }
 
-          const randomValue = Math.random() * totalWeight;
-          let cumulativeWeight = 0;
-          for (let i = 0; i < goodMovesCount; i++) {
-              cumulativeWeight += weights[i];
-              if (randomValue <= cumulativeWeight) {
-                  selectedMove = filteredMoves[i];
-                  break;
-              }
-          }
+                // Evaluate the board *after* the potential move
+                // Score is relative to white. If AI is black, negate the score.
+                const boardScore = evaluateBoard(tempBoard);
+                const score = aiColor === "black" ? -boardScore : boardScore;
 
-          if (!selectedMove) {
-              selectedMove = filteredMoves[0];
-          }
+                // Simple bonus for captures to encourage taking pieces
+                const isCapture = boardState[move.to[0]][move.to[1]] !== null;
+                const captureBonus = isCapture ? (pieceValues[boardState[move.to[0]][move.to[1]].toLowerCase()] || 0.5) : 0; // Bonus based on captured piece value or default 0.5
 
-          const [fromRow, fromCol] = selectedMove.from;
-          const [toRow, toCol] = selectedMove.to;
-          movePiece(fromRow, fromCol, toRow, toCol);
-          renderBoard();
+                return { ...move, score: score + captureBonus };
+            });
 
-          debugLog('AI selected move:', selectedMove);
-          aiThinking = false;
-        }, 500);
-      }
+            // Sort moves: Best score first
+            evaluatedMoves.sort((a, b) => b.score - a.score);
+            // Only log top 5 for brevity if many moves
+            // debugLog("AI evaluated moves (Top 5):", evaluatedMoves.slice(0, 5));
+
+            // Filter out any moves that somehow still resulted in check (score -1000)
+            // This relies on the isInCheck call within the map function above working correctly.
+            const filteredMoves = evaluatedMoves.filter(m => m.score > -1000);
+            debugLog(`AI has ${filteredMoves.length} valid moves after filtering checks.`);
+
+            // This should not happen if the initial possibleMoves.length check is working
+            if (filteredMoves.length === 0) {
+                console.error("AI Error: No valid moves after filtering, but initial possibleMoves > 0. Check evaluation/filtering logic.");
+                aiThinking = false;
+                renderBoard(); // Re-render current state
+                return;
+            }
+
+            // --- Weighted Random Selection from Good Moves ---
+            let selectedMove;
+            // Consider the top ~40% of moves, max, for randomness
+            const goodMovesCount = Math.max(1, Math.floor(filteredMoves.length * 0.4));
+            const weights = [];
+            let totalWeight = 0;
+
+            // Assign exponentially decreasing weights to the top moves
+            for (let i = 0; i < goodMovesCount; i++) {
+                // Ensure index is within bounds of filteredMoves
+                if (i < filteredMoves.length) {
+                    const weight = Math.pow(0.8, i); // Adjust 0.8 for more/less randomness
+                    weights.push(weight);
+                    totalWeight += weight;
+                } else {
+                    break; // Stop if we run out of moves
+                }
+            }
+
+            const randomValue = Math.random() * totalWeight;
+            let cumulativeWeight = 0;
+            for (let i = 0; i < goodMovesCount; i++) {
+                 // Ensure index is within bounds of filteredMoves and weights
+                 if (i < filteredMoves.length && i < weights.length) {
+                    cumulativeWeight += weights[i];
+                    if (randomValue <= cumulativeWeight) {
+                        selectedMove = filteredMoves[i];
+                        break;
+                    }
+                 } else {
+                    break; // Stop if we run out of moves/weights
+                 }
+            }
+
+            // Fallback: If random selection somehow fails, pick the absolute best filtered move
+            if (!selectedMove) {
+                debugLog("AI Warning: Weighted random selection failed, picking best move.");
+                selectedMove = filteredMoves[0]; // Pick the best one from the filtered list
+            }
+            // --- End of Selection Logic ---
+
+
+            // Ensure a move was actually selected
+            if (!selectedMove) {
+                 console.error("AI Critical Error: Could not select a move despite having valid options.");
+                 aiThinking = false;
+                 return;
+            }
+
+            const [fromRow, fromCol] = selectedMove.from;
+            const [toRow, toCol] = selectedMove.to;
+            const pieceToMove = boardState[fromRow][fromCol]; // Get piece before simulation for sanity check
+
+            // --- Final Sanity Check (Optional but recommended) ---
+            // Verify the chosen move doesn't put the AI in check *just before* executing it.
+            if (!pieceToMove) {
+                 console.error(`!!! AI Critical Error: Trying to move null piece from (${fromRow},${fromCol}) !!!`, selectedMove);
+                 aiThinking = false;
+                 return;
+            }
+            if (wouldBeInCheck(fromRow, fromCol, toRow, toCol, pieceToMove, boardState)) {
+                 console.error(`!!! AI Critical Error: Chosen move from (${fromRow},${fromCol}) to (${toRow},${toCol}) results in check despite filtering !!!`, selectedMove);
+                 debugLog("All filtered moves were:", filteredMoves);
+                 // If this happens, perhaps force pick the next best move if available? For now, just stop.
+                 aiThinking = false;
+                 return;
+            }
+            // --- End Sanity Check ---
+
+            debugLog('AI selected move:', selectedMove);
+
+            // Execute the chosen move
+            // movePiece handles board update, state changes, and calls renderBoard()
+            movePiece(fromRow, fromCol, toRow, toCol);
+
+            aiThinking = false; // AI is done thinking
+
+            // Note: renderBoard() and updateGameStatus() are called inside movePiece
+
+        }, 500); // AI "thinking" delay in milliseconds
+    }
 
       // Reset the game to the initial state
       function resetGame() {
