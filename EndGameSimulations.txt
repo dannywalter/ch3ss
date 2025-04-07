@@ -1,0 +1,78 @@
+// ----- TEST FUNCTION V3 (Add this in your <script> block) -----
+
+      function setupKingCheckWithPawnGuardTest() {
+        console.log("--- Setting up V3: King Must Escape Check (Pawn Guards Escape Square) ---");
+
+        // 1. Define the board state
+        // k@d8, Q@h4 (checking k), P@d6 (attacks c7, e7), K@g1
+        const testBoardState_v3 = [
+          // 8   a     b     c     d     e     f     g     h
+          [null, null, null, "k", null, null, null, null], // Row 0 (Rank 8) - Black King at d8
+          // 7
+          [null, null, null, null, null, null, null, null], // Row 1 (Rank 7)
+          // 6
+          [null, null, null, "P", null, null, null, null], // Row 2 (Rank 6) - White Pawn at d6
+          // 5
+          [null, null, null, null, null, null, null, null], // Row 3 (Rank 5)
+          // 4
+          [null, null, null, null, null, null, null, "Q"], // Row 4 (Rank 4) - White Queen at h4
+          // 3
+          [null, null, null, null, null, null, null, null], // Row 5 (Rank 3)
+          // 2
+          [null, null, null, null, null, null, null, null], // Row 6 (Rank 2)
+          // 1
+          [null, null, null, null, null, null, "K", null], // Row 7 (Rank 1) - White King at g1
+        ];
+
+        // 2. Set game state variables MANUALLY
+        boardState = JSON.parse(JSON.stringify(testBoardState_v3)); // Use a deep copy
+        currentPlayer = "black"; // AI's turn
+        aiColor = "black"; // Ensure AI knows its color
+        gameMode = "ai"; // Ensure AI logic is active
+        gameStatus = "check"; // Start the AI in check state correctly
+        drawReason = null;
+        selectedPiece = null;
+        validMoves = [];
+        lastMove = { from: null, to: null };
+        enPassantTarget = null;
+        aiThinking = false; // Reset just in case
+        halfMoveClock = 0;
+        positionCounts = {}; // Reset repetition counter
+        moveHistory = []; // Clear history for the test
+        capturedPieces = { white: [], black: [] }; // Clear captures
+
+        // Assume castling is not possible/relevant in this mid-game state
+        castlingRights = {
+          whiteKingSide: false,
+          whiteQueenSide: false,
+          blackKingSide: false,
+          blackQueenSide: false,
+        };
+
+        // 3. Update the UI
+        console.log("Rendering test board V3 state. Current player:", currentPlayer);
+        renderBoard(); // This also calls updateGameStatus
+
+        // 4. Trigger AI (Optional - depends if your game loop does this)
+        // If your game doesn't automatically trigger the AI, you might call it:
+        // setTimeout(makeAIMove, 100);
+        // Otherwise, ensure it's Black's turn in AI mode.
+
+        console.log("--- Test Setup V3 Complete ---");
+        // Expected Outcome:
+        // King 'k' starts at d8 [0][3], checked by Q@h4.
+        // Pawn 'P' at d6 [2][3] attacks c7 [1][2] and e7 [1][4].
+        // Queen 'Q' at h4 [4][7] also attacks c7 [1][2].
+        // VALID MOVES for King: c8 [0][2], e8 [0][4], d7 [1][3].
+        // INVALID MOVES for King: c7 [1][2], e7 [1][4].
+        // AI MUST choose one of the VALID moves.
+      }
+
+      // ----- END OF TEST FUNCTION V3 -----
+
+      // --- How to Use ---
+      // 1. Add the function above to your script.
+      // 2. Open your game in the browser.
+      // 3. Open the browser's Developer Console (usually F12).
+      // 4. Type `setupKingCheckWithPawnGuardTest()` and press Enter.
+      // 5. Observe the board and the console logs (`debugLog` outputs).
