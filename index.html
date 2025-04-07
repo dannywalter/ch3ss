@@ -612,6 +612,37 @@
           display: block;
         }
       }
+
+      /* Touch drag and drop styles */
+      .ghost-piece {
+        position: fixed;
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1.1);
+        transition: transform 0.1s ease;
+      }
+
+      .piece.dragging {
+        opacity: 0.3;
+      }
+
+      .square.valid-drop {
+        background: rgba(0, 255, 0, 0.2) !important;
+        box-shadow: 0 0 15px #00ff00 inset !important;
+      }
+
+      .square.capture-highlight {
+        background: rgba(255, 0, 0, 0.3) !important;
+        box-shadow: 0 0 15px #ff0000 inset !important;
+        animation: captureFlash 0.3s ease;
+      }
+
+      @keyframes captureFlash {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
     </style>
   </head>
   <body>
@@ -1123,133 +1154,148 @@
         return null; // King not found (shouldn't happen in a valid game)
       }
 
-      // Check if a player is in check without using getValidMoves to avoid recursion
+      // Debugging function
+      function debugLog(message, data = null) {
+        const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+        console.log(`[${timestamp}] ${message}`, data ? data : '');
+      }
+
+      // Direct check detection without using move validation
+    function isSquareAttacked(row, col, byColor, boardState) {
+        // --- CORRECTED Pawn Attack Check V2 ---
+        // Check if the target square (row, col) is attacked by a pawn of 'byColor'
+        let attackingPawnRow;
+        let pawnToFind;
+
+        if (byColor === 'white') {
+            // White pawns ('P') attack diagonally "forward" from their perspective,
+            // which means a DECREASING row index from the board's perspective.
+            // Therefore, if square (row, col) is attacked by a White Pawn,
+            // that pawn must be on the row BELOW it (row + 1).
+            attackingPawnRow = row + 1;
+            pawnToFind = 'P';
+        } else { // byColor === 'black'
+            // Black pawns ('p') attack diagonally "forward" from their perspective,
+            // which means an INCREASING row index from the board's perspective.
+            // Therefore, if square (row, col) is attacked by a Black Pawn,
+            // that pawn must be on the row ABOVE it (row - 1).
+            attackingPawnRow = row - 1;
+            pawnToFind = 'p';
+        }
+
+        // Check the two diagonal squares where an attacking pawn of the correct color could be
+        const potentialPawnCols = [col - 1, col + 1];
+
+        for (const attackingPawnCol of potentialPawnCols) {
+            if (isInBounds(attackingPawnRow, attackingPawnCol)) {
+                const piece = boardState[attackingPawnRow][attackingPawnCol];
+                if (piece === pawnToFind) {
+                    // Found a pawn of the correct color in the correct attacking position
+                    debugLog(`Square ${row},${col} is attacked by pawn ${pawnToFind} at ${attackingPawnRow},${attackingPawnCol}`);
+                    return true; // Square IS attacked by a pawn
+                }
+            }
+        }
+        // --- End of CORRECTED Pawn Attack Check V2 ---
+
+
+        // Check knight attacks
+        const knightMoves = [
+            [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+            [1, -2], [1, 2], [2, -1], [2, 1]
+        ];
+
+        for (const [dr, dc] of knightMoves) {
+            const r = row + dr;
+            const c = col + dc;
+            if (isInBounds(r, c)) {
+                const piece = boardState[r][c];
+                if (piece && piece.toLowerCase() === 'n' && getPieceColor(piece) === byColor) {
+                    debugLog(`Square ${row},${col} is attacked by knight at ${r},${c}`);
+                    return true;
+                }
+            }
+        }
+
+        // Check diagonal attacks (bishop/queen)
+        const bishopDirections = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+        for (const [dr, dc] of bishopDirections) {
+            let r = row + dr;
+            let c = col + dc;
+            while (isInBounds(r, c)) {
+                const piece = boardState[r][c];
+                if (piece) {
+                    if (getPieceColor(piece) === byColor &&
+                        (piece.toLowerCase() === 'b' || piece.toLowerCase() === 'q')) {
+                        debugLog(`Square ${row},${col} is attacked by bishop/queen at ${r},${c}`);
+                        return true;
+                    }
+                    break; // Stop at first piece encountered in this direction
+                }
+                r += dr;
+                c += dc;
+            }
+        }
+
+        // Check horizontal/vertical attacks (rook/queen)
+        const rookDirections = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        for (const [dr, dc] of rookDirections) {
+            let r = row + dr;
+            let c = col + dc;
+            while (isInBounds(r, c)) {
+                const piece = boardState[r][c];
+                if (piece) {
+                    if (getPieceColor(piece) === byColor &&
+                        (piece.toLowerCase() === 'r' || piece.toLowerCase() === 'q')) {
+                        debugLog(`Square ${row},${col} is attacked by rook/queen at ${r},${c}`);
+                        return true;
+                    }
+                    break; // Stop at first piece encountered in this direction
+                }
+                r += dr;
+                c += dc;
+            }
+        }
+
+        // Check king attacks (for adjacent squares)
+        const kingMoves = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [0, -1],           [0, 1],
+            [1, -1], [1, 0], [1, 1]
+        ];
+
+        for (const [dr, dc] of kingMoves) {
+            const r = row + dr;
+            const c = col + dc;
+            if (isInBounds(r, c)) {
+                const piece = boardState[r][c];
+                if (piece && piece.toLowerCase() === 'k' && getPieceColor(piece) === byColor) {
+                    debugLog(`Square ${row},${col} is attacked by king at ${r},${c}`);
+                    return true;
+                }
+            }
+        }
+
+        // If no attacks found
+        return false;
+    }
+
       function isInCheck(playerColor, boardState) {
+        debugLog(`Checking if ${playerColor} is in check`);
         const kingPosition = findKing(playerColor, boardState);
-        if (!kingPosition) return false;
+        if (!kingPosition) {
+          debugLog('No king found!');
+          return false;
+        }
 
         const [kingRow, kingCol] = kingPosition;
+        debugLog(`King found at row: ${kingRow}, col: ${kingCol}`);
+        
         const opponentColor = playerColor === "white" ? "black" : "white";
-
-        // Check for attacking pawns
-        const pawnDirections =
-          playerColor === "white"
-            ? [
-                [-1, -1],
-                [-1, 1],
-              ]
-            : [
-                [1, -1],
-                [1, 1],
-              ];
-        for (const [dr, dc] of pawnDirections) {
-          const r = kingRow + dr;
-          const c = kingCol + dc;
-          if (isInBounds(r, c)) {
-            const piece = boardState[r][c];
-            if (piece && piece.toLowerCase() === "p" && getPieceColor(piece) === opponentColor) {
-              return true;
-            }
-          }
-        }
-
-        // Check for knights
-        const knightMoves = [
-          [-2, -1],
-          [-2, 1],
-          [-1, -2],
-          [-1, 2],
-          [1, -2],
-          [1, 2],
-          [2, -1],
-          [2, 1],
-        ];
-        for (const [dr, dc] of knightMoves) {
-          const r = kingRow + dr;
-          const c = kingCol + dc;
-          if (isInBounds(r, c)) {
-            const piece = boardState[r][c];
-            if (piece && piece.toLowerCase() === "n" && getPieceColor(piece) === opponentColor) {
-              return true;
-            }
-          }
-        }
-
-        // Check for attacking rooks and queens (horizontal and vertical)
-        const rookDirections = [
-          [-1, 0],
-          [1, 0],
-          [0, -1],
-          [0, 1],
-        ];
-        for (const [dr, dc] of rookDirections) {
-          let r = kingRow + dr;
-          let c = kingCol + dc;
-          while (isInBounds(r, c)) {
-            const piece = boardState[r][c];
-            if (piece) {
-              if (
-                getPieceColor(piece) === opponentColor &&
-                (piece.toLowerCase() === "r" || piece.toLowerCase() === "q")
-              ) {
-                return true;
-              }
-              break;
-            }
-            r += dr;
-            c += dc;
-          }
-        }
-
-        // Check for attacking bishops and queens (diagonal)
-        const bishopDirections = [
-          [-1, -1],
-          [-1, 1],
-          [1, -1],
-          [1, 1],
-        ];
-        for (const [dr, dc] of bishopDirections) {
-          let r = kingRow + dr;
-          let c = kingCol + dc;
-          while (isInBounds(r, c)) {
-            const piece = boardState[r][c];
-            if (piece) {
-              if (
-                getPieceColor(piece) === opponentColor &&
-                (piece.toLowerCase() === "b" || piece.toLowerCase() === "q")
-              ) {
-                return true;
-              }
-              break;
-            }
-            r += dr;
-            c += dc;
-          }
-        }
-
-        // Check for enemy king (king cannot be directly next to another king)
-        const kingDirections = [
-          [-1, -1],
-          [-1, 0],
-          [-1, 1],
-          [0, -1],
-          [0, 1],
-          [1, -1],
-          [1, 0],
-          [1, 1],
-        ];
-        for (const [dr, dc] of kingDirections) {
-          const r = kingRow + dr;
-          const c = kingCol + dc;
-          if (isInBounds(r, c)) {
-            const piece = boardState[r][c];
-            if (piece && piece.toLowerCase() === "k" && getPieceColor(piece) === opponentColor) {
-              return true;
-            }
-          }
-        }
-
-        return false;
+        const isAttacked = isSquareAttacked(kingRow, kingCol, opponentColor, boardState);
+        
+        debugLog(`King at ${kingRow},${kingCol} is${isAttacked ? '' : ' not'} in check`);
+        return isAttacked;
       }
 
       // Check if a player is in checkmate
@@ -1305,78 +1351,6 @@
               pieceElement.className = `piece ${pieceColor}-piece`;
               pieceElement.textContent = pieceMapping[piece];
               squareElement.appendChild(pieceElement);
-
-              // TOUCH DRAG SUPPORT
-              let ghost = null;
-              let offsetX = 0;
-              let offsetY = 0;
-
-              pieceElement.addEventListener("touchstart", (e) => {
-                e.preventDefault();
-                if (getPieceColor(piece) !== currentPlayer) return;
-
-                selectedPiece = { row, col, piece };
-                validMoves = getValidMoves(row, col, piece, boardState, enPassantTarget).filter(([toRow, toCol]) => {
-                  return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
-                });
-
-                const touch = e.touches[0];
-                offsetX = touch.clientX;
-                offsetY = touch.clientY;
-
-                ghost = pieceElement.cloneNode(true);
-                ghost.style.position = "fixed";
-                ghost.style.left = `${offsetX - 20}px`;
-                ghost.style.top = `${offsetY - 20}px`;
-                ghost.style.zIndex = "1000";
-                ghost.style.pointerEvents = "none";
-                ghost.style.opacity = "0.8";
-                document.body.appendChild(ghost);
-              });
-
-              document.addEventListener("touchmove", (e) => {
-                if (ghost) {
-                  const touch = e.touches[0];
-                  ghost.style.left = `${touch.clientX - 20}px`;
-                  ghost.style.top = `${touch.clientY - 20}px`;
-                }
-              });
-
-              document.addEventListener("touchend", (e) => {
-                if (ghost) {
-                  document.body.removeChild(ghost);
-                  ghost = null;
-
-                  const touch = e.changedTouches[0];
-                  const target = document.elementFromPoint(touch.clientX, touch.clientY);
-
-                  if (target && target.classList.contains("square")) {
-                    const toRow = parseInt(target.dataset.row, 10);
-                    const toCol = parseInt(target.dataset.col, 10);
-
-                    if (selectedPiece) {
-                      const { row: fromRow, col: fromCol } = selectedPiece;
-                      const isValid = validMoves.some(([r, c]) => r === toRow && c === toCol);
-
-                      if (isValid) {
-                        const moveSucceeded = movePiece(fromRow, fromCol, toRow, toCol);
-                        if (moveSucceeded) {
-                          // only re-render if move was successful
-                          renderBoard();
-
-                          // let the AI play if it's its turn now
-                          if (gameMode === "ai" && currentPlayer === aiColor && gameStatus === "playing") {
-                            setTimeout(() => makeAIMove(), 300);
-                          }
-                        }
-                      }
-                    }
-                  }
-
-                  selectedPiece = null;
-                  validMoves = [];
-                }
-              });
             }
 
             // Visual highlights
@@ -1448,12 +1422,15 @@
       // Function to move a piece from one square to another
       // This is used by both human player moves and AI moves
       function movePiece(fromRow, fromCol, toRow, toCol) {
+        debugLog(`Attempting move from (${fromRow},${fromCol}) to (${toRow},${toCol})`);
         const piece = boardState[fromRow][fromCol];
-
+        
         if (!piece) {
-          console.error("No piece at source position:", fromRow, fromCol);
+          debugLog('No piece at source position');
           return false;
         }
+
+        debugLog(`Moving piece: ${piece}`);
 
         // Create a copy of the board for the new state
         const newBoardState = JSON.parse(JSON.stringify(boardState));
@@ -1605,7 +1582,11 @@
         }
 
         // Check for check or checkmate
+        const inCheck = isInCheck(currentPlayer, boardState);
+        debugLog(`Is ${currentPlayer} in check after move? ${inCheck}`);
+        
         if (isCheckmate(currentPlayer, boardState)) {
+          debugLog(`CHECKMATE detected for ${currentPlayer}`);
           gameStatus = "checkmate";
           drawReason = null;
           // Show PGN in console and update display
@@ -1625,6 +1606,7 @@
           gameStatus = "draw";
           drawReason = "repetition";
         } else if (isInCheck(currentPlayer, boardState)) {
+          debugLog(`CHECK detected for ${currentPlayer}`);
           gameStatus = "check";
         } else {
           gameStatus = "playing";
@@ -1996,87 +1978,74 @@
       // Make AI move with weighted randomness
       function makeAIMove() {
         if (aiThinking || gameStatus === "checkmate" || currentPlayer !== aiColor) {
+          debugLog('AI move cancelled:', { aiThinking, gameStatus, currentPlayer, aiColor });
           return;
         }
 
+        debugLog('AI starting move evaluation');
         aiThinking = true;
         selectedPiece = null;
         validMoves = [];
 
-        // Add a small delay to make the AI appear to "think"
         setTimeout(() => {
-          // Get all possible moves for the AI
           const possibleMoves = getAllPossibleMoves(aiColor, boardState);
+          debugLog(`AI found ${possibleMoves.length} possible moves`);
 
-          if (possibleMoves.length === 0) {
-            aiThinking = false;
-            return; // No valid moves
-          }
-
-          // Evaluate each move
           const evaluatedMoves = possibleMoves.map((move) => {
-            // Create a temporary board with this move applied
             const tempBoard = JSON.parse(JSON.stringify(boardState));
             tempBoard[move.to[0]][move.to[1]] = move.piece;
             tempBoard[move.from[0]][move.from[1]] = null;
 
-            // Evaluate the resulting position
-            const score = aiColor === "black" ? -evaluateBoard(tempBoard) : evaluateBoard(tempBoard);
+            // Always check if this move leaves the king in check.
+            if (isInCheck(aiColor, tempBoard)) {
+              return { ...move, score: -1000 };
+            }
 
-            return {
-              ...move,
-              score,
-            };
+            const score = aiColor === "black" ? -evaluateBoard(tempBoard) : evaluateBoard(tempBoard);
+            const isCapture = boardState[move.to[0]][move.to[1]] !== null;
+            const captureBonus = isCapture ? 0.5 : 0;
+            return { ...move, score: score + captureBonus };
           });
 
-          // Sort moves by score (best first)
           evaluatedMoves.sort((a, b) => b.score - a.score);
 
-          // Apply weighted randomness to choose a move
+          const inCheck = isInCheck(aiColor, boardState);
+          const filteredMoves = inCheck ?
+              evaluatedMoves.filter(m => m.score > -1000) : evaluatedMoves;
+
           let selectedMove;
-
-          // Get the top 40% of moves (or at least 1 move)
-          const goodMovesCount = Math.max(1, Math.floor(evaluatedMoves.length * 0.4));
-
-          // Choose a random move from the top moves with higher probability for better moves
+          const goodMovesCount = Math.max(1, Math.floor(filteredMoves.length * 0.4));
           const weights = [];
           let totalWeight = 0;
 
           for (let i = 0; i < goodMovesCount; i++) {
-            // Weight decreases exponentially with rank
-            const weight = Math.pow(0.8, i);
-            weights.push(weight);
-            totalWeight += weight;
+              const weight = Math.pow(0.8, i);
+              weights.push(weight);
+              totalWeight += weight;
           }
 
-          // Random number between 0 and the total weight
           const randomValue = Math.random() * totalWeight;
-
-          // Find which move corresponds to this random value
           let cumulativeWeight = 0;
           for (let i = 0; i < goodMovesCount; i++) {
-            cumulativeWeight += weights[i];
-            if (randomValue <= cumulativeWeight) {
-              selectedMove = evaluatedMoves[i];
-              break;
-            }
+              cumulativeWeight += weights[i];
+              if (randomValue <= cumulativeWeight) {
+                  selectedMove = filteredMoves[i];
+                  break;
+              }
           }
 
-          // If somehow we didn't select a move, take the best one
           if (!selectedMove) {
-            selectedMove = evaluatedMoves[0];
+              selectedMove = filteredMoves[0];
           }
 
-          // Execute the selected move
           const [fromRow, fromCol] = selectedMove.from;
           const [toRow, toCol] = selectedMove.to;
-
-          // Update the board with the move
           movePiece(fromRow, fromCol, toRow, toCol);
           renderBoard();
 
+          debugLog('AI selected move:', selectedMove);
           aiThinking = false;
-        }, 500); // 500ms delay to simulate thinking
+        }, 500);
       }
 
       // Reset the game to the initial state
@@ -2260,6 +2229,167 @@
           window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
         }
       }
+
+      // Touch event handlers for the entire board
+      let activeGhost = null;
+      let isPieceBeingDragged = false;
+
+      boardElement.addEventListener("touchstart", (e) => {
+        debugLog('Touch start event triggered');
+        if (gameStatus === "checkmate" || aiThinking) {
+          debugLog('Touch ignored - game over or AI thinking');
+          return;
+        }
+
+        const touch = e.touches[0];
+        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+        debugLog('Touch target:', element?.className);
+        
+        if (!element || !element.classList.contains('piece')) return;
+        
+        const square = element.parentElement;
+        const row = parseInt(square.dataset.row);
+        const col = parseInt(square.dataset.col);
+        const piece = boardState[row][col];
+        
+        if (!piece || getPieceColor(piece) !== currentPlayer) return;
+        
+        e.preventDefault();
+        isPieceBeingDragged = true;
+        
+        // Use the same selection system as click handling
+        selectedPiece = { row, col, piece };
+        validMoves = getValidMoves(row, col, piece, boardState, enPassantTarget).filter(([toRow, toCol]) => {
+          return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
+        });
+
+        debugLog('Valid moves for selected piece:', validMoves);
+
+        // Create ghost piece
+        activeGhost = element.cloneNode(true);
+        activeGhost.classList.add('ghost-piece');
+        activeGhost.style.left = `${touch.clientX}px`;
+        activeGhost.style.top = `${touch.clientY}px`;
+        document.body.appendChild(activeGhost);
+
+        // Add dragging state to original piece
+        element.classList.add('dragging');
+
+        // Highlight valid moves
+        validMoves.forEach(([r, c]) => {
+          const targetSquare = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+          if (targetSquare) {
+            if (boardState[r][c] && getPieceColor(boardState[r][c]) !== currentPlayer) {
+              targetSquare.classList.add('capture-highlight');
+            } else {
+              targetSquare.classList.add('valid-drop');
+            }
+          }
+        });
+      });
+
+      document.addEventListener("touchmove", (e) => {
+        if (!activeGhost || !isPieceBeingDragged) return;
+        
+        e.preventDefault();
+        const touch = e.touches[0];
+        activeGhost.style.left = `${touch.clientX}px`;
+        activeGhost.style.top = `${touch.clientY}px`;
+
+        // Update highlights based on current touch position
+        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (targetElement) {
+          const square = targetElement.closest('.square');
+          if (square) {
+            const row = parseInt(square.dataset.row);
+            const col = parseInt(square.dataset.col);
+            
+            // Remove all current highlights
+            document.querySelectorAll('.square').forEach(square => {
+              square.classList.remove('valid-drop', 'capture-highlight');
+            });
+            
+            // Add appropriate highlight if it's a valid move
+            if (validMoves.some(([r, c]) => r === row && c === col)) {
+              debugLog('Valid drop target found:', { row, col });
+              if (boardState[row][col] && getPieceColor(boardState[row][col]) !== currentPlayer) {
+                square.classList.add('capture-highlight');
+              } else {
+                square.classList.add('valid-drop');
+              }
+            }
+          }
+        }
+      });
+
+      document.addEventListener("touchend", (e) => {
+        if (!activeGhost || !isPieceBeingDragged || !selectedPiece) return;
+        
+        e.preventDefault();
+        isPieceBeingDragged = false;
+        
+        // Clean up ghost piece
+        document.body.removeChild(activeGhost);
+        activeGhost = null;
+
+        // Remove dragging state and highlights
+        document.querySelector('.piece.dragging')?.classList.remove('dragging');
+        document.querySelectorAll('.square').forEach(square => {
+          square.classList.remove('valid-drop', 'capture-highlight');
+        });
+
+        const touch = e.changedTouches[0];
+        let targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+        let square = targetElement?.closest('.square');
+
+        if (square && gameStatus !== "checkmate" && !aiThinking) {
+            const toRow = parseInt(square.dataset.row);
+            const toCol = parseInt(square.dataset.col);
+            const { row: fromRow, col: fromCol } = selectedPiece;
+            
+            const isValid = validMoves.some(([r, c]) => r === toRow && c === toCol);
+            debugLog('Attempting move:', { fromRow, fromCol, toRow, toCol, isValid });
+
+            if (isValid) {
+                const isCapture = boardState[toRow][toCol] !== null;
+                if (isCapture) {
+                    square.classList.add('capture-highlight');
+                }
+
+                const moveSucceeded = movePiece(fromRow, fromCol, toRow, toCol);
+                debugLog('Move result:', moveSucceeded);
+                
+                if (moveSucceeded) {
+                    // Clear selection and valid moves immediately
+                    selectedPiece = null;
+                    validMoves = [];
+                    renderBoard();
+
+                    // Remove capture highlight after animation
+                    if (isCapture) {
+                        setTimeout(() => {
+                            square.classList.remove('capture-highlight');
+                        }, 300);
+                    }
+
+                    // If it's an AI game and it's AI's turn, schedule the AI move
+                    if (gameMode === 'ai' && currentPlayer === aiColor && gameStatus !== 'checkmate') {
+                        debugLog('Scheduling AI move...');
+                        setTimeout(() => {
+                            if (gameStatus !== 'checkmate') {
+                                makeAIMove();
+                            }
+                        }, 500);
+                    }
+                }
+            }
+        }
+
+        // Clear selection state
+        selectedPiece = null;
+        validMoves = [];
+        renderBoard();
+      });
     </script>
   </body>
 </html>

@@ -1,0 +1,15 @@
+{
+  "name": "project-name",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^27.5.1"
+  },
+  "description": "on-chain chess using ZORA to deploy erc-20 tokens for every move",
+  "main": "jest.config.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
