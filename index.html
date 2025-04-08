@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>CH3SS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,6 +16,11 @@
         box-sizing: border-box;
         margin: 0;
         padding: 0;
+      }
+
+      html {
+        -webkit-text-size-adjust: none;
+        text-size-adjust: none;
       }
 
       body {
@@ -107,19 +112,21 @@
 
       .piece {
         position: absolute;
-        top: 59%;
+        top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        font-size: calc(17px + 3vmin);
-        cursor: grab;
-        width: 90%;
-        height: 90%;
+        width: 80%; /* Percentage of square size */
+        height: 80%; /* Maintain aspect ratio */
         display: flex;
         justify-content: center;
         align-items: center;
         user-select: none;
         -webkit-user-select: none;
         -ms-user-select: none;
+        /* Use viewport-relative font sizing with a minimum */
+        font-size: clamp(16px, 4.5vmin, 32px);
+        line-height: 1;
+        cursor: grab;
       }
 
       .light-square {
@@ -138,25 +145,25 @@
           0 0 5px #ff00ff inset !important;
       }
 
+      .last-move-from {
+        background: rgba(255, 255, 255, 0.3) !important;
+        box-shadow:
+          0 0 10px rgba(255, 255, 255, 0.5),
+          0 0 5px rgba(255, 255, 255, 0.5) inset !important;
+      }
+
+      .last-move-to {
+        background: rgba(255, 255, 255, 0.4) !important;
+        box-shadow:
+          0 0 10px rgba(255, 255, 255, 0.6),
+          0 0 5px rgba(255, 255, 255, 0.6) inset !important;
+      }
+
       .valid-move {
         background: #00ff0040 !important;
         box-shadow:
           0 0 15px #00ff00,
           0 0 5px #00ff00 inset !important;
-      }
-
-      .last-move-from {
-        background: rgba(255, 165, 0, 0.3) !important;
-        box-shadow:
-          0 0 10px rgba(255, 165, 0, 0.5),
-          0 0 5px rgba(255, 165, 0, 0.5) inset !important;
-      }
-
-      .last-move-to {
-        background: rgba(255, 140, 0, 0.4) !important;
-        box-shadow:
-          0 0 10px rgba(255, 140, 0, 0.6),
-          0 0 5px rgba(255, 140, 0, 0.6) inset !important;
       }
 
       .white-piece {
@@ -563,6 +570,30 @@
       }
 
       /* Media Queries for Responsive Design - Tablet & Desktop */
+      @media (max-width: 480px) {
+        .piece {
+          /* Adjust for smaller screens */
+          width: 75%;
+          height: 75%;
+          font-size: clamp(14px, 8vmin, 28px);
+        }
+      }
+
+      @media screen and (-webkit-min-device-pixel-ratio: 2) {
+        .piece {
+          /* Adjust for high DPI screens */
+          font-size: clamp(14px, 9vmin, 32px);
+        }
+      }
+
+      @media screen and (-webkit-min-device-pixel-ratio: 3) {
+        .piece {
+          /* Adjust for even higher DPI screens (iPhone) */
+          font-size: clamp(14px, 10vmin, 42px);
+          top: 40%;
+        }
+      }
+
       @media (min-width: 481px) {
         .arcade {
           padding: 8px;
@@ -619,7 +650,7 @@
         pointer-events: none;
         z-index: 1000;
         opacity: 0.8;
-        transform: translate(-50%, -50%) scale(1.1);
+        transform: translate(-50%, -65%) scale(3.1);
         transition: transform 0.1s ease;
       }
 
@@ -629,19 +660,25 @@
 
       .square.valid-drop {
         background: rgba(0, 255, 0, 0.2) !important;
-        box-shadow: 0 0 15px #00ff00 inset !important;
+        box-shadow: 0 0 15px 10px #00ff00 !important;
       }
 
       .square.capture-highlight {
         background: rgba(255, 0, 0, 0.3) !important;
-        box-shadow: 0 0 15px #ff0000 inset !important;
+        box-shadow: 0 0 15px 10px #ff0000 !important;
         animation: captureFlash 0.3s ease;
       }
 
       @keyframes captureFlash {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-        100% { transform: scale(1); }
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
       }
     </style>
   </head>
@@ -662,7 +699,7 @@
             <div class="info-panel">
               <div class="display">
                 <div class="display-header">STATUS</div>
-                <div id="game-status" class="display-content">PLAYING</div>
+                <div id="game-status" class="display-content">PLAYING vs AI</div>
               </div>
             </div>
           </div>
@@ -1156,145 +1193,166 @@
 
       // Debugging function
       function debugLog(message, data = null) {
-        const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-        console.log(`[${timestamp}] ${message}`, data ? data : '');
+        const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
+        console.log(`[${timestamp}] ${message}`, data ? data : "");
       }
 
       // Direct check detection without using move validation
-    function isSquareAttacked(row, col, byColor, boardState) {
+      function isSquareAttacked(row, col, byColor, boardState) {
         // --- CORRECTED Pawn Attack Check V2 ---
         // Check if the target square (row, col) is attacked by a pawn of 'byColor'
         let attackingPawnRow;
         let pawnToFind;
 
-        if (byColor === 'white') {
-            // White pawns ('P') attack diagonally "forward" from their perspective,
-            // which means a DECREASING row index from the board's perspective.
-            // Therefore, if square (row, col) is attacked by a White Pawn,
-            // that pawn must be on the row BELOW it (row + 1).
-            attackingPawnRow = row + 1;
-            pawnToFind = 'P';
-        } else { // byColor === 'black'
-            // Black pawns ('p') attack diagonally "forward" from their perspective,
-            // which means an INCREASING row index from the board's perspective.
-            // Therefore, if square (row, col) is attacked by a Black Pawn,
-            // that pawn must be on the row ABOVE it (row - 1).
-            attackingPawnRow = row - 1;
-            pawnToFind = 'p';
+        if (byColor === "white") {
+          // White pawns ('P') attack diagonally "forward" from their perspective,
+          // which means a DECREASING row index from the board's perspective.
+          // Therefore, if square (row, col) is attacked by a White Pawn,
+          // that pawn must be on the row BELOW it (row + 1).
+          attackingPawnRow = row + 1;
+          pawnToFind = "P";
+        } else {
+          // byColor === 'black'
+          // Black pawns ('p') attack diagonally "forward" from their perspective,
+          // which means an INCREASING row index from the board's perspective.
+          // Therefore, if square (row, col) is attacked by a Black Pawn,
+          // that pawn must be on the row ABOVE it (row - 1).
+          attackingPawnRow = row - 1;
+          pawnToFind = "p";
         }
 
         // Check the two diagonal squares where an attacking pawn of the correct color could be
         const potentialPawnCols = [col - 1, col + 1];
 
         for (const attackingPawnCol of potentialPawnCols) {
-            if (isInBounds(attackingPawnRow, attackingPawnCol)) {
-                const piece = boardState[attackingPawnRow][attackingPawnCol];
-                if (piece === pawnToFind) {
-                    // Found a pawn of the correct color in the correct attacking position
-                    debugLog(`Square ${row},${col} is attacked by pawn ${pawnToFind} at ${attackingPawnRow},${attackingPawnCol}`);
-                    return true; // Square IS attacked by a pawn
-                }
+          if (isInBounds(attackingPawnRow, attackingPawnCol)) {
+            const piece = boardState[attackingPawnRow][attackingPawnCol];
+            if (piece === pawnToFind) {
+              // Found a pawn of the correct color in the correct attacking position
+              debugLog(
+                `Square ${row},${col} is attacked by pawn ${pawnToFind} at ${attackingPawnRow},${attackingPawnCol}`,
+              );
+              return true; // Square IS attacked by a pawn
             }
+          }
         }
         // --- End of CORRECTED Pawn Attack Check V2 ---
 
-
         // Check knight attacks
         const knightMoves = [
-            [-2, -1], [-2, 1], [-1, -2], [-1, 2],
-            [1, -2], [1, 2], [2, -1], [2, 1]
+          [-2, -1],
+          [-2, 1],
+          [-1, -2],
+          [-1, 2],
+          [1, -2],
+          [1, 2],
+          [2, -1],
+          [2, 1],
         ];
 
         for (const [dr, dc] of knightMoves) {
-            const r = row + dr;
-            const c = col + dc;
-            if (isInBounds(r, c)) {
-                const piece = boardState[r][c];
-                if (piece && piece.toLowerCase() === 'n' && getPieceColor(piece) === byColor) {
-                    debugLog(`Square ${row},${col} is attacked by knight at ${r},${c}`);
-                    return true;
-                }
+          const r = row + dr;
+          const c = col + dc;
+          if (isInBounds(r, c)) {
+            const piece = boardState[r][c];
+            if (piece && piece.toLowerCase() === "n" && getPieceColor(piece) === byColor) {
+              debugLog(`Square ${row},${col} is attacked by knight at ${r},${c}`);
+              return true;
             }
+          }
         }
 
         // Check diagonal attacks (bishop/queen)
-        const bishopDirections = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+        const bishopDirections = [
+          [-1, -1],
+          [-1, 1],
+          [1, -1],
+          [1, 1],
+        ];
         for (const [dr, dc] of bishopDirections) {
-            let r = row + dr;
-            let c = col + dc;
-            while (isInBounds(r, c)) {
-                const piece = boardState[r][c];
-                if (piece) {
-                    if (getPieceColor(piece) === byColor &&
-                        (piece.toLowerCase() === 'b' || piece.toLowerCase() === 'q')) {
-                        debugLog(`Square ${row},${col} is attacked by bishop/queen at ${r},${c}`);
-                        return true;
-                    }
-                    break; // Stop at first piece encountered in this direction
-                }
-                r += dr;
-                c += dc;
+          let r = row + dr;
+          let c = col + dc;
+          while (isInBounds(r, c)) {
+            const piece = boardState[r][c];
+            if (piece) {
+              if (getPieceColor(piece) === byColor && (piece.toLowerCase() === "b" || piece.toLowerCase() === "q")) {
+                debugLog(`Square ${row},${col} is attacked by bishop/queen at ${r},${c}`);
+                return true;
+              }
+              break; // Stop at first piece encountered in this direction
             }
+            r += dr;
+            c += dc;
+          }
         }
 
         // Check horizontal/vertical attacks (rook/queen)
-        const rookDirections = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        const rookDirections = [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ];
         for (const [dr, dc] of rookDirections) {
-            let r = row + dr;
-            let c = col + dc;
-            while (isInBounds(r, c)) {
-                const piece = boardState[r][c];
-                if (piece) {
-                    if (getPieceColor(piece) === byColor &&
-                        (piece.toLowerCase() === 'r' || piece.toLowerCase() === 'q')) {
-                        debugLog(`Square ${row},${col} is attacked by rook/queen at ${r},${c}`);
-                        return true;
-                    }
-                    break; // Stop at first piece encountered in this direction
-                }
-                r += dr;
-                c += dc;
+          let r = row + dr;
+          let c = col + dc;
+          while (isInBounds(r, c)) {
+            const piece = boardState[r][c];
+            if (piece) {
+              if (getPieceColor(piece) === byColor && (piece.toLowerCase() === "r" || piece.toLowerCase() === "q")) {
+                debugLog(`Square ${row},${col} is attacked by rook/queen at ${r},${c}`);
+                return true;
+              }
+              break; // Stop at first piece encountered in this direction
             }
+            r += dr;
+            c += dc;
+          }
         }
 
         // Check king attacks (for adjacent squares)
         const kingMoves = [
-            [-1, -1], [-1, 0], [-1, 1],
-            [0, -1],           [0, 1],
-            [1, -1], [1, 0], [1, 1]
+          [-1, -1],
+          [-1, 0],
+          [-1, 1],
+          [0, -1],
+          [0, 1],
+          [1, -1],
+          [1, 0],
+          [1, 1],
         ];
 
         for (const [dr, dc] of kingMoves) {
-            const r = row + dr;
-            const c = col + dc;
-            if (isInBounds(r, c)) {
-                const piece = boardState[r][c];
-                if (piece && piece.toLowerCase() === 'k' && getPieceColor(piece) === byColor) {
-                    debugLog(`Square ${row},${col} is attacked by king at ${r},${c}`);
-                    return true;
-                }
+          const r = row + dr;
+          const c = col + dc;
+          if (isInBounds(r, c)) {
+            const piece = boardState[r][c];
+            if (piece && piece.toLowerCase() === "k" && getPieceColor(piece) === byColor) {
+              debugLog(`Square ${row},${col} is attacked by king at ${r},${c}`);
+              return true;
             }
+          }
         }
 
         // If no attacks found
         return false;
-    }
+      }
 
       function isInCheck(playerColor, boardState) {
         debugLog(`Checking if ${playerColor} is in check`);
         const kingPosition = findKing(playerColor, boardState);
         if (!kingPosition) {
-          debugLog('No king found!');
+          debugLog("No king found!");
           return false;
         }
 
         const [kingRow, kingCol] = kingPosition;
         debugLog(`King found at row: ${kingRow}, col: ${kingCol}`);
-        
+
         const opponentColor = playerColor === "white" ? "black" : "white";
         const isAttacked = isSquareAttacked(kingRow, kingCol, opponentColor, boardState);
-        
-        debugLog(`King at ${kingRow},${kingCol} is${isAttacked ? '' : ' not'} in check`);
+
+        debugLog(`King at ${kingRow},${kingCol} is${isAttacked ? "" : " not"} in check`);
         return isAttacked;
       }
 
@@ -1424,9 +1482,9 @@
       function movePiece(fromRow, fromCol, toRow, toCol) {
         debugLog(`Attempting move from (${fromRow},${fromCol}) to (${toRow},${toCol})`);
         const piece = boardState[fromRow][fromCol];
-        
+
         if (!piece) {
-          debugLog('No piece at source position');
+          debugLog("No piece at source position");
           return false;
         }
 
@@ -1584,7 +1642,7 @@
         // Check for check or checkmate
         const inCheck = isInCheck(currentPlayer, boardState);
         debugLog(`Is ${currentPlayer} in check after move? ${inCheck}`);
-        
+
         if (isCheckmate(currentPlayer, boardState)) {
           debugLog(`CHECKMATE detected for ${currentPlayer}`);
           gameStatus = "checkmate";
@@ -1976,184 +2034,189 @@
       }
 
       // Make AI move with weighted randomness
-    function makeAIMove() {
+      function makeAIMove() {
         // Prevent AI move if game is over or it's not AI's turn or AI is already thinking
         if (aiThinking || (gameStatus !== "playing" && gameStatus !== "check") || currentPlayer !== aiColor) {
-            debugLog('AI move cancelled or not AI turn:', { aiThinking, gameStatus, currentPlayer, aiColor });
-            // Ensure thinking flag is false if cancelled here
-            if (gameStatus === "checkmate" || gameStatus === "draw") aiThinking = false;
-            return;
+          debugLog("AI move cancelled or not AI turn:", { aiThinking, gameStatus, currentPlayer, aiColor });
+          // Ensure thinking flag is false if cancelled here
+          if (gameStatus === "checkmate" || gameStatus === "draw") aiThinking = false;
+          return;
         }
 
-        debugLog('AI starting move evaluation');
+        debugLog("AI starting move evaluation");
         aiThinking = true;
         selectedPiece = null; // Ensure no piece selection interferes
         validMoves = []; // Clear any leftover valid moves display
 
         // Use setTimeout to simulate thinking time and prevent blocking the UI thread
         setTimeout(() => {
-            // Double-check game status hasn't changed while waiting and it's still AI's turn
-            if ((gameStatus !== "playing" && gameStatus !== "check") || currentPlayer !== aiColor) {
-                debugLog('AI move aborted, game ended or turn changed during thinking time.');
-                aiThinking = false;
-                renderBoard(); // Re-render to show final state if needed
-                return;
+          // Double-check game status hasn't changed while waiting and it's still AI's turn
+          if ((gameStatus !== "playing" && gameStatus !== "check") || currentPlayer !== aiColor) {
+            debugLog("AI move aborted, game ended or turn changed during thinking time.");
+            aiThinking = false;
+            renderBoard(); // Re-render to show final state if needed
+            return;
+          }
+
+          // Get all *strictly legal* moves (should filter moves into check)
+          const possibleMoves = getAllPossibleMoves(aiColor, boardState);
+          debugLog(`AI found ${possibleMoves.length} possible moves initially`);
+
+          // ***** NEW STALEMATE/CHECKMATE CHECK *****
+          if (possibleMoves.length === 0) {
+            if (isInCheck(aiColor, boardState)) {
+              // No legal moves AND in check = Checkmate
+              debugLog(`AI found 0 moves and is in check. CHECKMATE.`);
+              gameStatus = "checkmate";
+              // Optional: Update score if tracking vs AI
+              // gameScore = 0; // Player wins if AI is checkmated
+              // updateFarcadeScore();
+            } else {
+              // No legal moves AND NOT in check = Stalemate
+              debugLog(`AI found 0 moves and is NOT in check. STALEMATE.`);
+              gameStatus = "draw";
+              drawReason = "stalemate";
+              // Optional: Update score if tracking vs AI
+              // gameScore = 1; // Draw score
+              // updateFarcadeScore();
+            }
+            aiThinking = false;
+            renderBoard(); // Update UI to show Checkmate/Stalemate overlay
+            return; // Stop further processing for this turn
+          }
+          // ***** END OF NEW CHECK *****
+
+          // If we reach here, there are possible moves, proceed with evaluation...
+          const evaluatedMoves = possibleMoves.map((move) => {
+            // Create a temporary board state to simulate the move
+            const tempBoard = JSON.parse(JSON.stringify(boardState));
+            tempBoard[move.to[0]][move.to[1]] = move.piece;
+            tempBoard[move.from[0]][move.from[1]] = null;
+
+            // Although getAllPossibleMoves should filter checks, we double-check here
+            // to assign the -1000 score for the filtering step below.
+            if (isInCheck(aiColor, tempBoard)) {
+              debugLog(`Move (${move.from.join(",")}) to (${move.to.join(",")}) results in check - scoring -1000`);
+              return { ...move, score: -1000 };
             }
 
-            // Get all *strictly legal* moves (should filter moves into check)
-            const possibleMoves = getAllPossibleMoves(aiColor, boardState);
-            debugLog(`AI found ${possibleMoves.length} possible moves initially`);
+            // Evaluate the board *after* the potential move
+            // Score is relative to white. If AI is black, negate the score.
+            const boardScore = evaluateBoard(tempBoard);
+            const score = aiColor === "black" ? -boardScore : boardScore;
 
-            // ***** NEW STALEMATE/CHECKMATE CHECK *****
-            if (possibleMoves.length === 0) {
-                if (isInCheck(aiColor, boardState)) {
-                    // No legal moves AND in check = Checkmate
-                    debugLog(`AI found 0 moves and is in check. CHECKMATE.`);
-                    gameStatus = "checkmate";
-                    // Optional: Update score if tracking vs AI
-                    // gameScore = 0; // Player wins if AI is checkmated
-                    // updateFarcadeScore();
-                } else {
-                    // No legal moves AND NOT in check = Stalemate
-                    debugLog(`AI found 0 moves and is NOT in check. STALEMATE.`);
-                    gameStatus = "draw";
-                    drawReason = "stalemate";
-                    // Optional: Update score if tracking vs AI
-                    // gameScore = 1; // Draw score
-                    // updateFarcadeScore();
-                }
-                aiThinking = false;
-                renderBoard(); // Update UI to show Checkmate/Stalemate overlay
-                return; // Stop further processing for this turn
+            // Simple bonus for captures to encourage taking pieces
+            const isCapture = boardState[move.to[0]][move.to[1]] !== null;
+            const captureBonus = isCapture ? pieceValues[boardState[move.to[0]][move.to[1]].toLowerCase()] || 0.5 : 0; // Bonus based on captured piece value or default 0.5
+
+            return { ...move, score: score + captureBonus };
+          });
+
+          // Sort moves: Best score first
+          evaluatedMoves.sort((a, b) => b.score - a.score);
+          // Only log top 5 for brevity if many moves
+          // debugLog("AI evaluated moves (Top 5):", evaluatedMoves.slice(0, 5));
+
+          // Filter out any moves that somehow still resulted in check (score -1000)
+          // This relies on the isInCheck call within the map function above working correctly.
+          const filteredMoves = evaluatedMoves.filter((m) => m.score > -1000);
+          debugLog(`AI has ${filteredMoves.length} valid moves after filtering checks.`);
+
+          // This should not happen if the initial possibleMoves.length check is working
+          if (filteredMoves.length === 0) {
+            console.error(
+              "AI Error: No valid moves after filtering, but initial possibleMoves > 0. Check evaluation/filtering logic.",
+            );
+            aiThinking = false;
+            renderBoard(); // Re-render current state
+            return;
+          }
+
+          // --- Weighted Random Selection from Good Moves ---
+          let selectedMove;
+          // Consider the top ~40% of moves, max, for randomness
+          const goodMovesCount = Math.max(1, Math.floor(filteredMoves.length * 0.4));
+          const weights = [];
+          let totalWeight = 0;
+
+          // Assign exponentially decreasing weights to the top moves
+          for (let i = 0; i < goodMovesCount; i++) {
+            // Ensure index is within bounds of filteredMoves
+            if (i < filteredMoves.length) {
+              const weight = Math.pow(0.8, i); // Adjust 0.8 for more/less randomness
+              weights.push(weight);
+              totalWeight += weight;
+            } else {
+              break; // Stop if we run out of moves
             }
-            // ***** END OF NEW CHECK *****
+          }
 
-
-            // If we reach here, there are possible moves, proceed with evaluation...
-            const evaluatedMoves = possibleMoves.map((move) => {
-                // Create a temporary board state to simulate the move
-                const tempBoard = JSON.parse(JSON.stringify(boardState));
-                tempBoard[move.to[0]][move.to[1]] = move.piece;
-                tempBoard[move.from[0]][move.from[1]] = null;
-
-                // Although getAllPossibleMoves should filter checks, we double-check here
-                // to assign the -1000 score for the filtering step below.
-                if (isInCheck(aiColor, tempBoard)) {
-                    debugLog(`Move (${move.from.join(',')}) to (${move.to.join(',')}) results in check - scoring -1000`);
-                    return { ...move, score: -1000 };
-                }
-
-                // Evaluate the board *after* the potential move
-                // Score is relative to white. If AI is black, negate the score.
-                const boardScore = evaluateBoard(tempBoard);
-                const score = aiColor === "black" ? -boardScore : boardScore;
-
-                // Simple bonus for captures to encourage taking pieces
-                const isCapture = boardState[move.to[0]][move.to[1]] !== null;
-                const captureBonus = isCapture ? (pieceValues[boardState[move.to[0]][move.to[1]].toLowerCase()] || 0.5) : 0; // Bonus based on captured piece value or default 0.5
-
-                return { ...move, score: score + captureBonus };
-            });
-
-            // Sort moves: Best score first
-            evaluatedMoves.sort((a, b) => b.score - a.score);
-            // Only log top 5 for brevity if many moves
-            // debugLog("AI evaluated moves (Top 5):", evaluatedMoves.slice(0, 5));
-
-            // Filter out any moves that somehow still resulted in check (score -1000)
-            // This relies on the isInCheck call within the map function above working correctly.
-            const filteredMoves = evaluatedMoves.filter(m => m.score > -1000);
-            debugLog(`AI has ${filteredMoves.length} valid moves after filtering checks.`);
-
-            // This should not happen if the initial possibleMoves.length check is working
-            if (filteredMoves.length === 0) {
-                console.error("AI Error: No valid moves after filtering, but initial possibleMoves > 0. Check evaluation/filtering logic.");
-                aiThinking = false;
-                renderBoard(); // Re-render current state
-                return;
+          const randomValue = Math.random() * totalWeight;
+          let cumulativeWeight = 0;
+          for (let i = 0; i < goodMovesCount; i++) {
+            // Ensure index is within bounds of filteredMoves and weights
+            if (i < filteredMoves.length && i < weights.length) {
+              cumulativeWeight += weights[i];
+              if (randomValue <= cumulativeWeight) {
+                selectedMove = filteredMoves[i];
+                break;
+              }
+            } else {
+              break; // Stop if we run out of moves/weights
             }
+          }
 
-            // --- Weighted Random Selection from Good Moves ---
-            let selectedMove;
-            // Consider the top ~40% of moves, max, for randomness
-            const goodMovesCount = Math.max(1, Math.floor(filteredMoves.length * 0.4));
-            const weights = [];
-            let totalWeight = 0;
+          // Fallback: If random selection somehow fails, pick the absolute best filtered move
+          if (!selectedMove) {
+            debugLog("AI Warning: Weighted random selection failed, picking best move.");
+            selectedMove = filteredMoves[0]; // Pick the best one from the filtered list
+          }
+          // --- End of Selection Logic ---
 
-            // Assign exponentially decreasing weights to the top moves
-            for (let i = 0; i < goodMovesCount; i++) {
-                // Ensure index is within bounds of filteredMoves
-                if (i < filteredMoves.length) {
-                    const weight = Math.pow(0.8, i); // Adjust 0.8 for more/less randomness
-                    weights.push(weight);
-                    totalWeight += weight;
-                } else {
-                    break; // Stop if we run out of moves
-                }
-            }
+          // Ensure a move was actually selected
+          if (!selectedMove) {
+            console.error("AI Critical Error: Could not select a move despite having valid options.");
+            aiThinking = false;
+            return;
+          }
 
-            const randomValue = Math.random() * totalWeight;
-            let cumulativeWeight = 0;
-            for (let i = 0; i < goodMovesCount; i++) {
-                 // Ensure index is within bounds of filteredMoves and weights
-                 if (i < filteredMoves.length && i < weights.length) {
-                    cumulativeWeight += weights[i];
-                    if (randomValue <= cumulativeWeight) {
-                        selectedMove = filteredMoves[i];
-                        break;
-                    }
-                 } else {
-                    break; // Stop if we run out of moves/weights
-                 }
-            }
+          const [fromRow, fromCol] = selectedMove.from;
+          const [toRow, toCol] = selectedMove.to;
+          const pieceToMove = boardState[fromRow][fromCol]; // Get piece before simulation for sanity check
 
-            // Fallback: If random selection somehow fails, pick the absolute best filtered move
-            if (!selectedMove) {
-                debugLog("AI Warning: Weighted random selection failed, picking best move.");
-                selectedMove = filteredMoves[0]; // Pick the best one from the filtered list
-            }
-            // --- End of Selection Logic ---
+          // --- Final Sanity Check (Optional but recommended) ---
+          // Verify the chosen move doesn't put the AI in check *just before* executing it.
+          if (!pieceToMove) {
+            console.error(
+              `!!! AI Critical Error: Trying to move null piece from (${fromRow},${fromCol}) !!!`,
+              selectedMove,
+            );
+            aiThinking = false;
+            return;
+          }
+          if (wouldBeInCheck(fromRow, fromCol, toRow, toCol, pieceToMove, boardState)) {
+            console.error(
+              `!!! AI Critical Error: Chosen move from (${fromRow},${fromCol}) to (${toRow},${toCol}) results in check despite filtering !!!`,
+              selectedMove,
+            );
+            debugLog("All filtered moves were:", filteredMoves);
+            // If this happens, perhaps force pick the next best move if available? For now, just stop.
+            aiThinking = false;
+            return;
+          }
+          // --- End Sanity Check ---
 
+          debugLog("AI selected move:", selectedMove);
 
-            // Ensure a move was actually selected
-            if (!selectedMove) {
-                 console.error("AI Critical Error: Could not select a move despite having valid options.");
-                 aiThinking = false;
-                 return;
-            }
+          // Execute the chosen move
+          // movePiece handles board update, state changes, and calls renderBoard()
+          movePiece(fromRow, fromCol, toRow, toCol);
 
-            const [fromRow, fromCol] = selectedMove.from;
-            const [toRow, toCol] = selectedMove.to;
-            const pieceToMove = boardState[fromRow][fromCol]; // Get piece before simulation for sanity check
+          aiThinking = false; // AI is done thinking
 
-            // --- Final Sanity Check (Optional but recommended) ---
-            // Verify the chosen move doesn't put the AI in check *just before* executing it.
-            if (!pieceToMove) {
-                 console.error(`!!! AI Critical Error: Trying to move null piece from (${fromRow},${fromCol}) !!!`, selectedMove);
-                 aiThinking = false;
-                 return;
-            }
-            if (wouldBeInCheck(fromRow, fromCol, toRow, toCol, pieceToMove, boardState)) {
-                 console.error(`!!! AI Critical Error: Chosen move from (${fromRow},${fromCol}) to (${toRow},${toCol}) results in check despite filtering !!!`, selectedMove);
-                 debugLog("All filtered moves were:", filteredMoves);
-                 // If this happens, perhaps force pick the next best move if available? For now, just stop.
-                 aiThinking = false;
-                 return;
-            }
-            // --- End Sanity Check ---
-
-            debugLog('AI selected move:', selectedMove);
-
-            // Execute the chosen move
-            // movePiece handles board update, state changes, and calls renderBoard()
-            movePiece(fromRow, fromCol, toRow, toCol);
-
-            aiThinking = false; // AI is done thinking
-
-            // Note: renderBoard() and updateGameStatus() are called inside movePiece
-
+          // Note: renderBoard() and updateGameStatus() are called inside movePiece
         }, 500); // AI "thinking" delay in milliseconds
-    }
+      }
 
       // Reset the game to the initial state
       function resetGame() {
@@ -2342,54 +2405,54 @@
       let isPieceBeingDragged = false;
 
       boardElement.addEventListener("touchstart", (e) => {
-        debugLog('Touch start event triggered');
+        debugLog("Touch start event triggered");
         if (gameStatus === "checkmate" || aiThinking) {
-          debugLog('Touch ignored - game over or AI thinking');
+          debugLog("Touch ignored - game over or AI thinking");
           return;
         }
 
         const touch = e.touches[0];
         const element = document.elementFromPoint(touch.clientX, touch.clientY);
-        debugLog('Touch target:', element?.className);
-        
-        if (!element || !element.classList.contains('piece')) return;
-        
+        debugLog("Touch target:", element?.className);
+
+        if (!element || !element.classList.contains("piece")) return;
+
         const square = element.parentElement;
         const row = parseInt(square.dataset.row);
         const col = parseInt(square.dataset.col);
         const piece = boardState[row][col];
-        
+
         if (!piece || getPieceColor(piece) !== currentPlayer) return;
-        
+
         e.preventDefault();
         isPieceBeingDragged = true;
-        
+
         // Use the same selection system as click handling
         selectedPiece = { row, col, piece };
         validMoves = getValidMoves(row, col, piece, boardState, enPassantTarget).filter(([toRow, toCol]) => {
           return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
         });
 
-        debugLog('Valid moves for selected piece:', validMoves);
+        debugLog("Valid moves for selected piece:", validMoves);
 
         // Create ghost piece
         activeGhost = element.cloneNode(true);
-        activeGhost.classList.add('ghost-piece');
+        activeGhost.classList.add("ghost-piece");
         activeGhost.style.left = `${touch.clientX}px`;
         activeGhost.style.top = `${touch.clientY}px`;
         document.body.appendChild(activeGhost);
 
         // Add dragging state to original piece
-        element.classList.add('dragging');
+        element.classList.add("dragging");
 
         // Highlight valid moves
         validMoves.forEach(([r, c]) => {
           const targetSquare = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
           if (targetSquare) {
             if (boardState[r][c] && getPieceColor(boardState[r][c]) !== currentPlayer) {
-              targetSquare.classList.add('capture-highlight');
+              targetSquare.classList.add("capture-highlight");
             } else {
-              targetSquare.classList.add('valid-drop');
+              targetSquare.classList.add("valid-drop");
             }
           }
         });
@@ -2397,7 +2460,7 @@
 
       document.addEventListener("touchmove", (e) => {
         if (!activeGhost || !isPieceBeingDragged) return;
-        
+
         e.preventDefault();
         const touch = e.touches[0];
         activeGhost.style.left = `${touch.clientX}px`;
@@ -2406,23 +2469,23 @@
         // Update highlights based on current touch position
         const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
         if (targetElement) {
-          const square = targetElement.closest('.square');
+          const square = targetElement.closest(".square");
           if (square) {
             const row = parseInt(square.dataset.row);
             const col = parseInt(square.dataset.col);
-            
+
             // Remove all current highlights
-            document.querySelectorAll('.square').forEach(square => {
-              square.classList.remove('valid-drop', 'capture-highlight');
+            document.querySelectorAll(".square").forEach((square) => {
+              square.classList.remove("valid-drop", "capture-highlight");
             });
-            
+
             // Add appropriate highlight if it's a valid move
             if (validMoves.some(([r, c]) => r === row && c === col)) {
-              debugLog('Valid drop target found:', { row, col });
+              debugLog("Valid drop target found:", { row, col });
               if (boardState[row][col] && getPieceColor(boardState[row][col]) !== currentPlayer) {
-                square.classList.add('capture-highlight');
+                square.classList.add("capture-highlight");
               } else {
-                square.classList.add('valid-drop');
+                square.classList.add("valid-drop");
               }
             }
           }
@@ -2431,65 +2494,65 @@
 
       document.addEventListener("touchend", (e) => {
         if (!activeGhost || !isPieceBeingDragged || !selectedPiece) return;
-        
+
         e.preventDefault();
         isPieceBeingDragged = false;
-        
+
         // Clean up ghost piece
         document.body.removeChild(activeGhost);
         activeGhost = null;
 
         // Remove dragging state and highlights
-        document.querySelector('.piece.dragging')?.classList.remove('dragging');
-        document.querySelectorAll('.square').forEach(square => {
-          square.classList.remove('valid-drop', 'capture-highlight');
+        document.querySelector(".piece.dragging")?.classList.remove("dragging");
+        document.querySelectorAll(".square").forEach((square) => {
+          square.classList.remove("valid-drop", "capture-highlight");
         });
 
         const touch = e.changedTouches[0];
         let targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-        let square = targetElement?.closest('.square');
+        let square = targetElement?.closest(".square");
 
         if (square && gameStatus !== "checkmate" && !aiThinking) {
-            const toRow = parseInt(square.dataset.row);
-            const toCol = parseInt(square.dataset.col);
-            const { row: fromRow, col: fromCol } = selectedPiece;
-            
-            const isValid = validMoves.some(([r, c]) => r === toRow && c === toCol);
-            debugLog('Attempting move:', { fromRow, fromCol, toRow, toCol, isValid });
+          const toRow = parseInt(square.dataset.row);
+          const toCol = parseInt(square.dataset.col);
+          const { row: fromRow, col: fromCol } = selectedPiece;
 
-            if (isValid) {
-                const isCapture = boardState[toRow][toCol] !== null;
-                if (isCapture) {
-                    square.classList.add('capture-highlight');
-                }
+          const isValid = validMoves.some(([r, c]) => r === toRow && c === toCol);
+          debugLog("Attempting move:", { fromRow, fromCol, toRow, toCol, isValid });
 
-                const moveSucceeded = movePiece(fromRow, fromCol, toRow, toCol);
-                debugLog('Move result:', moveSucceeded);
-                
-                if (moveSucceeded) {
-                    // Clear selection and valid moves immediately
-                    selectedPiece = null;
-                    validMoves = [];
-                    renderBoard();
-
-                    // Remove capture highlight after animation
-                    if (isCapture) {
-                        setTimeout(() => {
-                            square.classList.remove('capture-highlight');
-                        }, 300);
-                    }
-
-                    // If it's an AI game and it's AI's turn, schedule the AI move
-                    if (gameMode === 'ai' && currentPlayer === aiColor && gameStatus !== 'checkmate') {
-                        debugLog('Scheduling AI move...');
-                        setTimeout(() => {
-                            if (gameStatus !== 'checkmate') {
-                                makeAIMove();
-                            }
-                        }, 500);
-                    }
-                }
+          if (isValid) {
+            const isCapture = boardState[toRow][toCol] !== null;
+            if (isCapture) {
+              square.classList.add("capture-highlight");
             }
+
+            const moveSucceeded = movePiece(fromRow, fromCol, toRow, toCol);
+            debugLog("Move result:", moveSucceeded);
+
+            if (moveSucceeded) {
+              // Clear selection and valid moves immediately
+              selectedPiece = null;
+              validMoves = [];
+              renderBoard();
+
+              // Remove capture highlight after animation
+              if (isCapture) {
+                setTimeout(() => {
+                  square.classList.remove("capture-highlight");
+                }, 300);
+              }
+
+              // If it's an AI game and it's AI's turn, schedule the AI move
+              if (gameMode === "ai" && currentPlayer === aiColor && gameStatus !== "checkmate") {
+                debugLog("Scheduling AI move...");
+                setTimeout(() => {
+                  if (gameStatus !== "checkmate") {
+                    makeAIMove();
+                  }
+                }, 500);
+              }
+            }
+          }
         }
 
         // Clear selection state
