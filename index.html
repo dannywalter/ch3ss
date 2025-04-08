@@ -872,8 +872,8 @@
       let aiThinking = false; // Flag to prevent interactions while AI is thinking
 
       // Farcade SDK variables
-      // let isMuted = false; // Track if sound is muted
-      // let gameScore = 0; // Track player's score
+      let isMuted = false; // Track if sound is muted
+      let gameScore = 0; // Track player's score
 
       // Track last move for highlighting
       let lastMove = {
@@ -1795,7 +1795,7 @@
           }
 
           // Send the score to Farcade SDK
-          //updateFarcadeScore();
+          updateFarcadeScore();
 
           // Trigger haptic feedback for game over
           triggerHapticFeedback();
@@ -2069,16 +2069,16 @@
               debugLog(`AI found 0 moves and is in check. CHECKMATE.`);
               gameStatus = "checkmate";
               // Optional: Update score if tracking vs AI
-              // gameScore = 0; // Player wins if AI is checkmated
-              // updateFarcadeScore();
+              gameScore = 0; // Player wins if AI is checkmated
+              updateFarcadeScore();
             } else {
               // No legal moves AND NOT in check = Stalemate
               debugLog(`AI found 0 moves and is NOT in check. STALEMATE.`);
               gameStatus = "draw";
               drawReason = "stalemate";
               // Optional: Update score if tracking vs AI
-              // gameScore = 1; // Draw score
-              // updateFarcadeScore();
+              gameScore = 1; // Draw score
+              updateFarcadeScore();
             }
             aiThinking = false;
             renderBoard(); // Update UI to show Checkmate/Stalemate overlay
@@ -2359,7 +2359,7 @@
         aiColorWhiteButton.classList.remove("active");
       }
 
-      /*       // Farcade SDK Integration
+             // Farcade SDK Integration
 
       // Initialize SDK when the game is fully loaded and ready to play
       window.addEventListener("DOMContentLoaded", () => {
@@ -2391,7 +2391,7 @@
             score: gameScore,
           });
         }
-      } */
+      }
 
       // Function to trigger haptic feedback
       function triggerHapticFeedback() {
