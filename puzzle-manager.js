@@ -1,6 +1,4 @@
 // Puzzle Management System for CH3SS
-const { ZstdCodec } = require('zstd-codec');
-
 // CDN configuration
 const CDN_BASE_URL = 'https://dannywalter.github.io/ch3ss-puzzles/puzzles';
 const MODES = {
@@ -9,32 +7,6 @@ const MODES = {
     'spice': 'spice',
     'boss': 'boss'
 };
-
-// Fetch with retry and timeout
-async function fetchWithRetry(url, retries = 3, timeout = 5000) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    for (let i = 0; i < retries; i++) {
-        try {
-            const response = await fetch(url, {
-                signal: controller.signal,
-                headers: {
-                    'Accept-Encoding': 'gzip',
-                    'Cache-Control': 'max-age=3600'
-                },
-                mode: 'cors'
-            });
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response;
-        } catch (error) {
-            if (i === retries - 1) throw error;
-            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i))); // Exponential backoff
-        }
-    }
-}
 
 class PuzzleManager {
     constructor() {
@@ -56,15 +28,19 @@ class PuzzleManager {
         try {
             // Initialize zstd
             this.zstdInit = new Promise((resolve, reject) => {
-                ZstdCodec.run(zstd => {
-                    this.zstd = zstd;
-                    resolve();
-                });
+                if (window.ZstdCodec) {
+                    window.ZstdCodec.run(zstd => {
+                        this.zstd = zstd;
+                        resolve();
+                    });
+                } else {
+                    reject(new Error('ZstdCodec not found'));
+                }
             });
             await this.zstdInit;
 
             // Fetch metadata and start prefetching tutorial puzzles
-            const response = await fetchWithRetry(`${CDN_BASE_URL}/metadata.json`);
+            const response = await this.fetchWithRetry(`${CDN_BASE_URL}/metadata.json`);
             const metadata = await response.json();
             console.log('Puzzle system initialized with metadata:', metadata);
             
@@ -75,6 +51,32 @@ class PuzzleManager {
         } catch (error) {
             console.error('Failed to initialize puzzle system:', error);
             return false;
+        }
+    }
+
+    // Fetch with retry and timeout
+    async fetchWithRetry(url, retries = 3, timeout = 5000) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept-Encoding': 'gzip',
+                        'Cache-Control': 'max-age=3600'
+                    },
+                    mode: 'cors'
+                });
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response;
+            } catch (error) {
+                if (i === retries - 1) throw error;
+                await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i))); // Exponential backoff
+            }
         }
     }
 
@@ -103,7 +105,7 @@ class PuzzleManager {
         }
         
         try {
-            const response = await fetchWithRetry(chunkUrl);
+            const response = await this.fetchWithRetry(chunkUrl);
             const compressedData = await response.arrayBuffer();
             const decompressed = await this.decompress(new Uint8Array(compressedData));
             const puzzles = JSON.parse(decompressed);
@@ -288,4 +290,4 @@ class PuzzleManager {
     }
 }
 
-module.exports = PuzzleManager;
+window.PuzzleManager = PuzzleManager;

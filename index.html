@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
     <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
+    <script src="https://unpkg.com/zstd-codec@0.1.5/index.js"></script>
+
     <style>
       /* Global Styles */
       *,
@@ -680,6 +682,34 @@
           transform: scale(1);
         }
       }
+
+      /* Welcome Modal Styles */
+      .welcome-content {
+        text-align: center;
+        padding: 20px 0;
+      }
+
+      .welcome-buttons {
+        gap: 20px;
+      }
+
+      .welcome-buttons .modal-button {
+        padding: 20px;
+        font-size: 0.7rem;
+        width: 100%;
+        transition: transform 0.2s;
+      }
+
+      .welcome-buttons .modal-button:hover {
+        transform: scale(1.05);
+      }
+
+      .button-subtitle {
+        display: block;
+        font-size: 0.4rem;
+        color: #888;
+        margin-top: 8px;
+      }
     </style>
   </head>
   <body>
@@ -833,7 +863,159 @@
       </div>
     </div>
 
+    <!-- Welcome Modal -->
+    <div id="welcome-modal" class="modal-overlay active">
+      <div class="modal">
+        <div class="modal-header">WELCOME TO CH3SS</div>
+        <div class="modal-content welcome-content">
+          <div class="option-group">
+            <div class="option-buttons welcome-buttons">
+              <button id="welcome-ai" class="modal-button">
+                VS AI<br>
+                <span class="button-subtitle">Challenge the computer</span>
+              </button>
+              <button id="welcome-puzzle" class="modal-button">
+                PUZZLES<br>
+                <span class="button-subtitle">Solve chess tactics</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
+      // Puzzle Manager Implementation
+      class PuzzleManager {
+        constructor() {
+          this.currentPuzzle = null;
+          this.puzzleMode = 'tutorial';
+          this.currentStreak = 0;
+          this.loadedChunks = new Map();
+          this.currentScore = 0;
+          this.solveStartTime = null;
+          this.remainingTime = 60;
+          this.lastUpdateTime = null;
+          this.basePoints = 100;
+          this.zstdInit = null;
+          this.prefetchedChunks = new Set();
+        }
+
+        async init() {
+          try {
+            // Initialize zstd decoder
+            this.zstdInit = new Promise((resolve, reject) => {
+              if (window.ZstdCodec) {
+                window.ZstdCodec.run(zstd => {
+                  this.zstd = zstd;
+                  resolve();
+                });
+              } else {
+                reject(new Error('ZstdCodec not found'));
+              }
+            });
+            await this.zstdInit;
+
+            // Initialize with first tutorial puzzle
+            await this.prefetchChunk('tutorial', 0);
+            return true;
+          } catch (error) {
+            console.error('Failed to initialize puzzle system:', error);
+            return false;
+          }
+        }
+
+        async fetchWithRetry(url, retries = 3, timeout = 5000) {
+          for (let i = 0; i < retries; i++) {
+            try {
+              const response = await fetch(url, {
+                headers: { 'Accept-Encoding': 'gzip' },
+                signal: AbortSignal.timeout(timeout)
+              });
+              
+              if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+              return response;
+            } catch (error) {
+              if (i === retries - 1) throw error;
+              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+            }
+          }
+        }
+
+        async prefetchChunk(mode, chunkIndex) {
+          const cacheKey = `${mode}-${chunkIndex}`;
+          if (this.prefetchedChunks.has(cacheKey)) return;
+
+          try {
+            const url = PUZZLE_PATHS[mode].replace('{n}', chunkIndex);
+            const response = await this.fetchWithRetry(url);
+            const compressedData = await response.arrayBuffer();
+            
+            // Decompress the puzzle data
+            const decompressedJson = await this.decompressData(compressedData);
+            this.loadedChunks.set(cacheKey, JSON.parse(decompressedJson));
+            this.prefetchedChunks.add(cacheKey);
+          } catch (error) {
+            console.error(`Failed to prefetch puzzle chunk ${cacheKey}:`, error);
+          }
+        }
+
+        async decompressData(compressedData) {
+          await this.zstdInit;
+          const streaming = new this.zstd.Streaming();
+          const decompressedArray = streaming.decompress(new Uint8Array(compressedData));
+          return new TextDecoder().decode(decompressedArray);
+        }
+
+        async getNextPuzzle() {
+          // For now, just return a simple puzzle from the tutorial set
+          const puzzle = {
+            fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+            moves: ['e2e4', 'e7e5'],
+            goalText: 'Find the best move for White'
+          };
+          
+          this.currentPuzzle = puzzle;
+          return puzzle;
+        }
+
+        startPuzzleTimer() {
+          this.solveStartTime = Date.now();
+        }
+
+        checkMove(move, moveIndex) {
+          if (!this.currentPuzzle) return { correct: false };
+          
+          // Simple move validation for now
+          const expectedMove = this.currentPuzzle.moves[moveIndex];
+          const isCorrect = move === expectedMove;
+          
+          if (isCorrect && moveIndex === this.currentPuzzle.moves.length - 1) {
+            // Puzzle completed
+            const timeToSolve = (Date.now() - this.solveStartTime) / 1000;
+            const baseScore = Math.max(this.basePoints - Math.floor(timeToSolve), 10);
+            const streakBonus = this.currentStreak * 10;
+            const totalScore = baseScore + streakBonus;
+            
+            this.currentStreak++;
+            this.currentScore += totalScore;
+            
+            return {
+              correct: true,
+              complete: true,
+              timeToSolve,
+              score: totalScore,
+              streakBonus
+            };
+          }
+          
+          return {
+            correct: isCorrect,
+            complete: false
+          };
+        }
+      }
+      
       // Chess Game Logic
 
       // Initial board state (8x8 grid)
@@ -865,6 +1047,171 @@
         N: "♘",
         P: "♙",
       };
+
+      // Add piece values for score calculation
+      const pieceValues = {
+        p: 1,  // pawn
+        n: 3,  // knight
+        b: 3,  // bishop
+        r: 5,  // rook
+        q: 9,  // queen
+        k: 0   // king (not counted in material score)
+      };
+
+      // Add after other game functions, before event listeners
+      function updateGameStatus() {
+        if (!currentPlayerElement || !gameStatusElement) return;
+
+        // Update current player display
+        currentPlayerElement.textContent = currentPlayer.toUpperCase();
+
+        // Update game status display
+        let statusText = "";
+        if (gameStatus === "checkmate") {
+          const winner = currentPlayer === "white" ? "BLACK" : "WHITE";
+          statusText = `CHECKMATE - ${winner} WINS`;
+        } else if (gameStatus === "draw") {
+          statusText = drawReason === "stalemate" ? "STALEMATE" :
+                      drawReason === "50move" ? "50-MOVE RULE" :
+                      drawReason === "repetition" ? "3-FOLD REPETITION" : "DRAW";
+        } else if (gameStatus === "check") {
+          statusText = "CHECK";
+        } else if (gameStatus === "puzzle") {
+          // For puzzle mode, status is already set to puzzle goal
+          return;
+        } else {
+          statusText = `PLAYING vs ${gameMode.toUpperCase()}`;
+        }
+        gameStatusElement.textContent = statusText;
+      }
+
+      // Add after other game functions, before event listeners
+      function updateCapturedPieces() {
+        // Update white captured display
+        if (whiteCapturedElement) {
+          whiteCapturedElement.innerHTML = capturedPieces.white.map(p => pieceMapping[p]).join("");
+          const whiteScore = capturedPieces.white.reduce((sum, p) => sum + (pieceValues[p.toLowerCase()] || 0), 0);
+          whiteScoreElement.textContent = whiteScore > 0 ? `+${whiteScore}` : "+0";
+        }
+
+        // Update black captured display
+        if (blackCapturedElement) {
+          blackCapturedElement.innerHTML = capturedPieces.black.map(p => pieceMapping[p]).join("");
+          const blackScore = capturedPieces.black.reduce((sum, p) => sum + (pieceValues[p.toLowerCase()] || 0), 0);
+          blackScoreElement.textContent = blackScore > 0 ? `+${blackScore}` : "+0";
+        }
+      }
+
+      // Add after other game functions, before event listeners
+      
+      // Helper function to get all possible moves for a player
+      function getAllPossibleMoves(playerColor, boardState) {
+        const moves = [];
+        for (let row = 0; row < 8; row++) {
+          for (let col = 0; col < 8; col++) {
+            const piece = boardState[row][col];
+            if (piece && getPieceColor(piece) === playerColor) {
+              const pieceMoves = getValidMoves(row, col, piece, boardState, enPassantTarget).filter(([toRow, toCol]) => {
+                return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
+              });
+              moves.push(...pieceMoves.map(([toRow, toCol]) => ({ fromRow: row, fromCol: col, toRow, toCol })));
+            }
+          }
+        }
+        return moves;
+      }
+
+      // Calculate material score
+      function calculateMaterialScore(boardState) {
+        let score = 0;
+        for (let row = 0; row < 8; row++) {
+          for (let col = 0; col < 8; col++) {
+            const piece = boardState[row][col];
+            if (piece) {
+              const value = pieceValues[piece.toLowerCase()];
+              score += getPieceColor(piece) === 'white' ? value : -value;
+            }
+          }
+        }
+        return score;
+      }
+
+      // Calculate position score based on piece positions
+      function calculatePositionScore(boardState) {
+        let score = 0;
+        // Simple position scoring - prefer center control
+        const centerValue = [
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 1, 1, 1, 0],
+          [0, 1, 2, 2, 2, 2, 1, 0],
+          [0, 1, 2, 3, 3, 2, 1, 0],
+          [0, 1, 2, 3, 3, 2, 1, 0],
+          [0, 1, 2, 2, 2, 2, 1, 0],
+          [0, 1, 1, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0]
+        ];
+        
+        for (let row = 0; row < 8; row++) {
+          for (let col = 0; col < 8; col++) {
+            const piece = boardState[row][col];
+            if (piece) {
+              score += getPieceColor(piece) === 'white' ? 
+                centerValue[row][col] : 
+                -centerValue[7-row][col];
+            }
+          }
+        }
+        return score;
+      }
+
+      // AI move function using minimax with alpha-beta pruning
+      function makeAIMove() {
+        if (gameStatus === "checkmate" || aiThinking) return;
+        
+        aiThinking = true;
+        debugLog("AI thinking...");
+        
+        // Get all possible moves
+        const possibleMoves = getAllPossibleMoves(aiColor, boardState);
+        if (possibleMoves.length === 0) {
+          aiThinking = false;
+          return;
+        }
+        
+        // Evaluate each move and pick the best one
+        let bestScore = aiColor === 'white' ? -Infinity : Infinity;
+        let bestMove = null;
+        
+        for (const move of possibleMoves) {
+          // Make temporary move
+          const tmpBoard = JSON.parse(JSON.stringify(boardState));
+          const piece = tmpBoard[move.fromRow][move.fromCol];
+          tmpBoard[move.toRow][move.toCol] = piece;
+          tmpBoard[move.fromRow][move.fromCol] = null;
+          
+          // Evaluate position
+          const score = evaluateBoard(tmpBoard);
+          
+          // Update best move
+          if (aiColor === 'white' && score > bestScore) {
+            bestScore = score;
+            bestMove = move;
+          } else if (aiColor === 'black' && score < bestScore) {
+            bestScore = score;
+            bestMove = move;
+          }
+        }
+        
+        // Make the best move
+        if (bestMove) {
+          setTimeout(() => {
+            movePiece(bestMove.fromRow, bestMove.fromCol, bestMove.toRow, bestMove.toCol);
+            aiThinking = false;
+          }, 500);
+        } else {
+          aiThinking = false;
+        }
+      }
 
       // Game state variables
       let moveHistory = []; // PGN-style move tracker
@@ -1767,7 +2114,7 @@ const PUZZLE_PATHS = {
       }
 
       // Handle square clicks for moving pieces
-      function handleSquareClick(row, col) {
+      const originalHandleSquareClick = function(row, col) {
         // Don't allow moves if the game is in checkmate
         if (gameStatus === "checkmate") {
           return;
@@ -1828,506 +2175,92 @@ const PUZZLE_PATHS = {
 
           renderBoard();
         }
-      }
+      };
 
-      // Piece values are defined later in the code
-
-      // Update the game status display
-      function updateGameStatus() {
-        currentPlayerElement.textContent = currentPlayer.toUpperCase();
-        gameStatusElement.textContent = gameStatus.toUpperCase();
-
-        if (gameStatus === "checkmate") {
-          const winner = currentPlayer === "white" ? "BLACK" : "WHITE";
-          const winnerElement = document.createElement("div");
-          winnerElement.className = "winner";
-          winnerElement.textContent = `${winner} WINS!`;
-          gameStatusElement.appendChild(winnerElement);
-
-          // Calculate score for Farcade SDK
-          // 2 points for checkmate, 1 point for draw, 0 for loss
-          if (
-            (winner === "WHITE" && gameMode === "ai" && aiColor === "black") ||
-            (winner === "BLACK" && gameMode === "ai" && aiColor === "white")
-          ) {
-            // Player won against AI
-            gameScore = 2;
-          } else if (gameMode === "ai") {
-            // Player lost against AI
-            gameScore = 0;
-          }
-        }
-
-        if (gameStatus === "draw") {
-          const drawElement = document.createElement("div");
-          drawElement.className = "winner";
-
-          if (drawReason === "stalemate") {
-            drawElement.textContent = "STALEMATE";
-          } else if (drawReason === "50move") {
-            drawElement.textContent = "50 MOVES";
-          } else if (drawReason === "repetition") {
-            drawElement.textContent = "REPETITION";
+      handleSquareClick = function(row, col) {
+        if (gameMode === 'puzzle') {
+          // Handle puzzle move
+          const piece = boardState[row][col];
+          if (!selectedPiece) {
+            if (piece && getPieceColor(piece) === currentPlayer) {
+              selectedPiece = { row, col, piece };
+              validMoves = getValidMoves(row, col, piece, boardState);
+              renderBoard();
+            }
           } else {
-            drawElement.textContent = "DRAW";
-          }
-
-          gameStatusElement.appendChild(drawElement);
-          gameScore = 1;
-        }
-
-        // Add game over overlay with Submit Score button
-        if (gameStatus === "checkmate" || gameStatus === "draw") {
-          const overlay = document.createElement("div");
-          overlay.className = "checkmate-overlay";
-
-          const content = document.createElement("div");
-          content.style.display = "flex";
-          content.style.flexDirection = "column";
-          content.style.alignItems = "center";
-          content.style.gap = "10px";
-
-          const title = document.createElement("div");
-          title.className = "checkmate-text";
-          title.textContent = gameStatus === "checkmate" ? "CHECKMATE" : "DRAW";
-
-          const subtext = document.createElement("div");
-          subtext.className = "scoreboard-text";
-          if (gameStatus === "draw") {
-            if (drawReason === "50move") subtext.textContent = "50 moves without a capture or pawn move";
-            else if (drawReason === "repetition") subtext.textContent = "Same position repeated 3 times";
-            else if (drawReason === "stalemate") subtext.textContent = "Stalemate";
-          }
-
-          const buttonContainer = document.createElement("div");
-          buttonContainer.style.display = "flex";
-          buttonContainer.style.gap = "10px";
-
-          const newGameButton = document.createElement("button");
-          newGameButton.className = "modal-button";
-          newGameButton.textContent = "NEW GAME";
-          newGameButton.id = "new-game-checkmate";
-          newGameButton.addEventListener("click", resetGame);
-
-          const submitScoreButton = document.createElement("button");
-          submitScoreButton.className = "modal-button";
-          submitScoreButton.textContent = "SUBMIT SCORE";
-          submitScoreButton.addEventListener("click", () => {
-            // Call Farcade SDK gameOver
-            updateFarcadeScore();
-            // Remove Submit Score button after submission
-            submitScoreButton.style.display = "none";
-          });
-
-          content.appendChild(title);
-          if (subtext.textContent) content.appendChild(subtext);
-          buttonContainer.appendChild(newGameButton);
-          buttonContainer.appendChild(submitScoreButton);
-          content.appendChild(buttonContainer);
-          overlay.appendChild(content);
-          boardElement.appendChild(overlay);
-
-          triggerHapticFeedback();
-        }
-      }
-
-      // Calculate the score difference between captured pieces
-      function calculateScoreDifference() {
-        let whiteScore = 0;
-        let blackScore = 0;
-
-        // Calculate score from captured pieces
-        capturedPieces.white.forEach((piece) => {
-          whiteScore += pieceValues[piece.toLowerCase()];
-        });
-
-        capturedPieces.black.forEach((piece) => {
-          blackScore += pieceValues[piece.toLowerCase()];
-        });
-
-        return { whiteScore, blackScore };
-      }
-
-      // Update the captured pieces display
-      function updateCapturedPieces() {
-        // Clear current display
-        whiteCapturedElement.innerHTML = "";
-        blackCapturedElement.innerHTML = "";
-
-        // Add each captured piece to the display
-        capturedPieces.white.forEach((piece) => {
-          const pieceSpan = document.createElement("span");
-          pieceSpan.textContent = pieceMapping[piece];
-          pieceSpan.className = "black-piece"; // These are black pieces captured by white
-          whiteCapturedElement.appendChild(pieceSpan);
-        });
-
-        capturedPieces.black.forEach((piece) => {
-          const pieceSpan = document.createElement("span");
-          pieceSpan.textContent = pieceMapping[piece];
-          pieceSpan.className = "white-piece"; // These are white pieces captured by black
-          blackCapturedElement.appendChild(pieceSpan);
-        });
-
-        // Update score display
-        const { whiteScore, blackScore } = calculateScoreDifference();
-
-        if (whiteScore > blackScore) {
-          whiteScoreElement.textContent = `+${whiteScore - blackScore}`;
-          blackScoreElement.textContent = "+0";
-        } else if (blackScore > whiteScore) {
-          blackScoreElement.textContent = `+${blackScore - whiteScore}`;
-          whiteScoreElement.textContent = "+0";
-        } else {
-          whiteScoreElement.textContent = "+0";
-          blackScoreElement.textContent = "+0";
-        }
-      }
-
-      // AI OPPONENT FUNCTIONS
-
-      // Get all valid moves for all pieces of a specific color
-      function getAllPossibleMoves(color, boardState) {
-        const moves = [];
-
-        for (let row = 0; row < 8; row++) {
-          for (let col = 0; col < 8; col++) {
-            const piece = boardState[row][col];
-            if (piece && getPieceColor(piece) === color) {
-              const pieceMoves = getValidMoves(row, col, piece, boardState, enPassantTarget);
-
-              // Filter out moves that would leave the king in check
-              const legalMoves = pieceMoves.filter(([toRow, toCol]) => {
-                return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
-              });
-
-              legalMoves.forEach(([toRow, toCol]) => {
-                moves.push({
-                  piece,
-                  from: [row, col],
-                  to: [toRow, toCol],
-                });
-              });
-            }
-          }
-        }
-
-        return moves;
-      }
-
-      // Calculate piece values for board evaluation
-      const pieceValues = {
-        p: 1, // pawn
-        n: 3, // knight
-        b: 3, // bishop
-        r: 5, // rook
-        q: 9, // queen
-        k: 0, // king (not factored in material evaluation)
-      };
-
-      // Calculate material score for a given board state
-      function calculateMaterialScore(boardState) {
-        let whiteScore = 0;
-        let blackScore = 0;
-
-        for (let row = 0; row < 8; row++) {
-          for (let col = 0; col < 8; col++) {
-            const piece = boardState[row][col];
-            if (piece) {
-              const pieceType = piece.toLowerCase();
-              const value = pieceValues[pieceType];
-
-              if (getPieceColor(piece) === "white") {
-                whiteScore += value;
-              } else {
-                blackScore += value;
+            const { row: fromRow, col: fromCol } = selectedPiece;
+            const move = `${getSquareName(fromRow, fromCol)}${getSquareName(row, col)}`;
+            
+            const result = puzzleManager.checkMove(move, moveHistory.length);
+            if (result.correct) {
+              movePiece(fromRow, fromCol, row, col);
+              
+              if (result.complete) {
+                // Show success overlay
+                const overlay = document.createElement('div');
+                overlay.className = 'checkmate-overlay';
+                const content = document.createElement('div');
+                content.innerHTML = `
+                  <div class="checkmate-text">PUZZLE SOLVED!</div>
+                  <div class="scoreboard-text">
+                    Time: ${result.timeToSolve.toFixed(1)}s<br>
+                    Score: ${result.score}<br>
+                    Streak: ${result.streakBonus}
+                  </div>
+                  <button class="modal-button" onclick="nextPuzzle()">NEXT PUZZLE</button>
+                `;
+                overlay.appendChild(content);
+                boardElement.appendChild(overlay);
+                
+                // Update Farcade score
+                gameScore = result.score;
+                updateFarcadeScore();
               }
-            }
-          }
-        }
-
-        return whiteScore - blackScore; // Positive is good for white, negative for black
-      }
-
-      // Position evaluation bonuses - encourage control of center and development
-      const positionBonus = {
-        // Pawns - encourage center control and advancement
-        p: [
-          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-          [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0], // Big bonus for promoting
-          [1.0, 1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 1.0],
-          [0.5, 0.5, 1.0, 2.5, 2.5, 1.0, 0.5, 0.5],
-          [0.0, 0.0, 0.0, 2.0, 2.0, 0.0, 0.0, 0.0],
-          [0.5, -0.5, -1.0, 0.0, 0.0, -1.0, -0.5, 0.5], // Discourage backward pawns
-          [0.5, 1.0, 1.0, -2.0, -2.0, 1.0, 1.0, 0.5], // Encourage pawn structure
-          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        ],
-        // Knights - encourage central control and development
-        n: [
-          [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
-          [-4.0, -2.0, 0.0, 0.0, 0.0, 0.0, -2.0, -4.0],
-          [-3.0, 0.0, 1.0, 1.5, 1.5, 1.0, 0.0, -3.0],
-          [-3.0, 0.5, 1.5, 2.0, 2.0, 1.5, 0.5, -3.0],
-          [-3.0, 0.0, 1.5, 2.0, 2.0, 1.5, 0.0, -3.0],
-          [-3.0, 0.5, 1.0, 1.5, 1.5, 1.0, 0.5, -3.0],
-          [-4.0, -2.0, 0.0, 0.5, 0.5, 0.0, -2.0, -4.0],
-          [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0]
-        ],
-        // Bishops - encourage diagonal control and development
-        b: [
-          [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
-          [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
-          [-1.0, 0.0, 0.5, 1.0, 1.0, 0.5, 0.0, -1.0],
-          [-1.0, 0.5, 0.5, 1.0, 1.0, 0.5, 0.5, -1.0],
-          [-1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, -1.0],
-          [-1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0],
-          [-1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, -1.0],
-          [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0]
-        ],
-        // Rooks - encourage open files and 7th rank
-        r: [
-          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-          [0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5],
-          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-          [0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0]
-        ],
-        // Queen - slight center preference
-        q: [
-          [-2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
-          [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
-          [-1.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -1.0],
-          [-0.5, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -0.5],
-          [0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -0.5],
-          [-1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0, -1.0],
-          [-1.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, -1.0],
-          [-2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0]
-        ],
-        // King - encourage castling and king safety
-        k: [
-          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-          [-2.0, -3.0, -3.0, -4.0, -4.0, -3.0, -3.0, -2.0],
-          [-1.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -1.0],
-          [2.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0],
-          [2.0, 3.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0]
-        ],
-      };
-
-      // Calculate position score for a given board state
-      function calculatePositionScore(boardState) {
-        let whiteScore = 0;
-        let blackScore = 0;
-
-        for (let row = 0; row < 8; row++) {
-          for (let col = 0; col < 8; col++) {
-            const piece = boardState[row][col];
-            if (piece) {
-              const pieceType = piece.toLowerCase();
-
-              if (getPieceColor(piece) === "white") {
-                // For white pieces, row 7 is the bottom, so we invert the row index
-                whiteScore += positionBonus[pieceType][row][col];
-              } else {
-                // For black pieces, row 0 is the bottom from its perspective
-                blackScore += positionBonus[pieceType][7 - row][col];
-              }
-            }
-          }
-        }
-
-        return whiteScore - blackScore; // Positive is good for white, negative for black
-      }
-
-      // Make AI move with weighted randomness
-      function makeAIMove() {
-        // Prevent AI move if game is over or it's not AI's turn or AI is already thinking
-        if (aiThinking || (gameStatus !== "playing" && gameStatus !== "check") || currentPlayer !== aiColor) {
-          debugLog("AI move cancelled or not AI turn:", { aiThinking, gameStatus, currentPlayer, aiColor });
-          // Ensure thinking flag is false if cancelled here
-          if (gameStatus === "checkmate" || gameStatus === "draw") aiThinking = false;
-          return;
-        }
-
-        debugLog("AI starting move evaluation");
-        aiThinking = true;
-        selectedPiece = null; // Ensure no piece selection interferes
-        validMoves = []; // Clear any leftover valid moves display
-
-        // Use setTimeout to simulate thinking time and prevent blocking the UI thread
-        setTimeout(() => {
-          // Double-check game status hasn't changed while waiting and it's still AI's turn
-          if ((gameStatus !== "playing" && gameStatus !== "check") || currentPlayer !== aiColor) {
-            debugLog("AI move aborted, game ended or turn changed during thinking time.");
-            aiThinking = false;
-            renderBoard(); // Re-render to show final state if needed
-            return;
-          }
-
-          // Get all *strictly legal* moves (should filter moves into check)
-          const possibleMoves = getAllPossibleMoves(aiColor, boardState);
-          debugLog(`AI found ${possibleMoves.length} possible moves initially`);
-
-          // ***** NEW STALEMATE/CHECKMATE CHECK *****
-          if (possibleMoves.length === 0) {
-            if (isInCheck(aiColor, boardState)) {
-              // No legal moves AND in check = Checkmate
-              debugLog(`AI found 0 moves and is in check. CHECKMATE.`);
-              gameStatus = "checkmate";
-              // Optional: Update score if tracking vs AI
-              gameScore = 0; // Player wins if AI is checkmated
-              updateFarcadeScore();
             } else {
-              // No legal moves AND NOT in check = Stalemate
-              debugLog(`AI found 0 moves and is NOT in check. STALEMATE.`);
-              gameStatus = "draw";
-              drawReason = "stalemate";
-              // Optional: Update score if tracking vs AI
-              gameScore = 1; // Draw score
-              updateFarcadeScore();
+              // Show failure overlay
+              const overlay = document.createElement('div');
+              overlay.className = 'checkmate-overlay';
+              const content = document.createElement('div');
+              content.innerHTML = `
+                <div class="checkmate-text" style="color: #ff0000">INCORRECT</div>
+                <button class="modal-button" onclick="nextPuzzle()">TRY NEXT PUZZLE</button>
+              `;
+              overlay.appendChild(content);
+              boardElement.appendChild(overlay);
             }
-            aiThinking = false;
-            renderBoard(); // Update UI to show Checkmate/Stalemate overlay
-            return; // Stop further processing for this turn
+            
+            selectedPiece = null;
+            validMoves = [];
+            renderBoard();
           }
-          // ***** END OF NEW CHECK *****
+        } else {
+          // Call original click handler for normal chess modes
+          originalHandleSquareClick(row, col);
+        }
+      };
 
-          // If we reach here, there are possible moves, proceed with evaluation...
-          const evaluatedMoves = possibleMoves.map((move) => {
-            // Create a temporary board state to simulate the move
-            const tempBoard = JSON.parse(JSON.stringify(boardState));
-            tempBoard[move.to[0]][move.to[1]] = move.piece;
-            tempBoard[move.from[0]][move.from[1]] = null;
+      // Helper function to convert row/col to algebraic notation
+      function getSquareName(row, col) {
+        const files = 'abcdefgh';
+        const ranks = '87654321';
+        return files[col] + ranks[row];
+      }
 
-            // Although getAllPossibleMoves should filter checks, we double-check here
-            // to assign the -1000 score for the filtering step below.
-            if (isInCheck(aiColor, tempBoard)) {
-              debugLog(`Move (${move.from.join(",")}) to (${move.to.join(",")}) results in check - scoring -1000`);
-              return { ...move, score: -1000 };
-            }
-
-            // Evaluate the board *after* the potential move
-            // Score is relative to white. If AI is black, negate the score.
-            const boardScore = evaluateBoard(tempBoard);
-            const score = aiColor === "black" ? -boardScore : boardScore;
-
-            // Simple bonus for captures to encourage taking pieces
-            const isCapture = boardState[move.to[0]][move.to[1]] !== null;
-            const captureBonus = isCapture ? pieceValues[boardState[move.to[0]][move.to[1]].toLowerCase()] || 0.5 : 0; // Bonus based on captured piece value or default 0.5
-
-            return { ...move, score: score + captureBonus };
-          });
-
-          // Sort moves: Best score first
-          evaluatedMoves.sort((a, b) => b.score - a.score);
-          // Only log top 5 for brevity if many moves
-          // debugLog("AI evaluated moves (Top 5):", evaluatedMoves.slice(0, 5));
-
-          // Filter out any moves that somehow still resulted in check (score -1000)
-          // This relies on the isInCheck call within the map function above working correctly.
-          const filteredMoves = evaluatedMoves.filter((m) => m.score > -1000);
-          debugLog(`AI has ${filteredMoves.length} valid moves after filtering checks.`);
-
-          // This should not happen if the initial possibleMoves.length check is working
-          if (filteredMoves.length === 0) {
-            console.error(
-              "AI Error: No valid moves after filtering, but initial possibleMoves > 0. Check evaluation/filtering logic.",
-            );
-            aiThinking = false;
-            renderBoard(); // Re-render current state
-            return;
-          }
-
-          // --- Improved Move Selection Logic ---
-          let selectedMove;
-          // Consider only the top 25% of moves (reduced from 40% for more focus on better moves)
-          const goodMovesCount = Math.max(1, Math.floor(filteredMoves.length * 0.25));
-          const weights = [];
-          let totalWeight = 0;
-
-          // Assign more aggressive exponential weighting to prefer better moves
-          for (let i = 0; i < goodMovesCount; i++) {
-              if (i < filteredMoves.length) {
-                  const weight = Math.pow(0.6, i); // Changed from 0.8 to 0.6 for stronger preference of better moves
-                  weights.push(weight);
-                  totalWeight += weight;
-              } else {
-                  break;
-              }
-          }
-
-          // Small chance (10%) to pick the absolute best move
-          if (Math.random() < 0.1) {
-              selectedMove = filteredMoves[0];
-          } else {
-              // Otherwise use weighted random selection
-              const randomValue = Math.random() * totalWeight;
-              let cumulativeWeight = 0;
-              for (let i = 0; i < goodMovesCount; i++) {
-                  if (i < filteredMoves.length && i < weights.length) {
-                      cumulativeWeight += weights[i];
-                      if (randomValue <= cumulativeWeight) {
-                          selectedMove = filteredMoves[i];
-                          break;
-                      }
-                  }
-              }
-          }
-
-          // Fallback to best move if no selection was made
-          if (!selectedMove) {
-              selectedMove = filteredMoves[0];
-          }
-          // --- End of Improved Selection Logic ---
-
-          // Ensure a move was actually selected
-          if (!selectedMove) {
-            console.error("AI Critical Error: Could not select a move despite having valid options.");
-            aiThinking = false;
-            return;
-          }
-
-          const [fromRow, fromCol] = selectedMove.from;
-          const [toRow, toCol] = selectedMove.to;
-          const pieceToMove = boardState[fromRow][fromCol]; // Get piece before simulation for sanity check
-
-          // --- Final Sanity Check (Optional but recommended) ---
-          // Verify the chosen move doesn't put the AI in check *just before* executing it.
-          if (!pieceToMove) {
-            console.error(
-              `!!! AI Critical Error: Trying to move null piece from (${fromRow},${fromCol}) !!!`,
-              selectedMove,
-            );
-            aiThinking = false;
-            return;
-          }
-          if (wouldBeInCheck(fromRow, fromCol, toRow, toCol, pieceToMove, boardState)) {
-            console.error(
-              `!!! AI Critical Error: Chosen move from (${fromRow},${fromCol}) to (${toRow},${toCol}) results in check despite filtering !!!`,
-              selectedMove,
-            );
-            debugLog("All filtered moves were:", filteredMoves);
-            // If this happens, perhaps force pick the next best move if available? For now, just stop.
-            aiThinking = false;
-            return;
-          }
-          // --- End Sanity Check ---
-
-          debugLog("AI selected move:", selectedMove);
-
-          // Execute the chosen move
-          // movePiece handles board update, state changes, and calls renderBoard()
-          movePiece(fromRow, fromCol, toRow, toCol);
-
-          aiThinking = false; // AI is done thinking
-
-          // Note: renderBoard() and updateGameStatus() are called inside movePiece
-        }, 500); // AI "thinking" delay in milliseconds
+      // Function to load next puzzle
+      async function nextPuzzle() {
+        const puzzle = await puzzleManager.getNextPuzzle();
+        if (puzzle) {
+          boardState = parseFEN(puzzle.fen);
+          currentPlayer = puzzle.fen.includes(' w ') ? 'white' : 'black';
+          moveHistory = [];
+          puzzleManager.startPuzzleTimer();
+          
+          gameStatus = "puzzle";
+          gameStatusElement.textContent = puzzle.goalText;
+          
+          renderBoard();
+          updateGameStatus();
+        }
       }
 
       // Reset the game to the initial state
@@ -2445,6 +2378,70 @@ const PUZZLE_PATHS = {
         resetGame();
         menuModal.classList.remove("active");
       });
+
+      // Add after other event listeners, before game initialization
+      
+      // Welcome modal controls
+      const welcomeModal = document.getElementById("welcome-modal");
+      const welcomeAIButton = document.getElementById("welcome-ai");
+      const welcomePuzzleButton = document.getElementById("welcome-puzzle");
+
+      // Create puzzle manager instance
+      const puzzleManager = new PuzzleManager();
+      
+      // Welcome AI button handler
+      welcomeAIButton.addEventListener("click", () => {
+        gameMode = "ai";
+        welcomeModal.classList.remove("active");
+        // Start a new game in AI mode
+        resetGame();
+      });
+
+      // Welcome puzzle button handler
+      welcomePuzzleButton.addEventListener("click", async () => {
+        gameMode = "puzzle";
+        welcomeModal.classList.remove("active");
+        
+        // Initialize puzzle system
+        await puzzleManager.init();
+        
+        // Get first puzzle
+        const puzzle = await puzzleManager.getNextPuzzle();
+        if (puzzle) {
+          // Set up board with puzzle position
+          boardState = parseFEN(puzzle.fen);
+          currentPlayer = puzzle.fen.includes(' w ') ? 'white' : 'black';
+          puzzleManager.startPuzzleTimer();
+          
+          // Update game status to show puzzle goal
+          gameStatus = "puzzle";
+          gameStatusElement.textContent = puzzle.goalText;
+          
+          renderBoard();
+          updateGameStatus();
+        }
+      });
+
+      // Add parseFEN function for puzzle setup
+      function parseFEN(fen) {
+        const [position] = fen.split(' ');
+        const rows = position.split('/');
+        const board = Array(8).fill().map(() => Array(8).fill(null));
+        
+        for (let i = 0; i < 8; i++) {
+          let col = 0;
+          for (let char of rows[i]) {
+            if (/\d/.test(char)) {
+              col += parseInt(char);
+            } else {
+              board[i][col] = char;
+              col++;
+            }
+          }
+        }
+        
+        return board;
+      }
 
       // Initialize the game
       renderBoard();
@@ -2673,6 +2670,12 @@ const PUZZLE_PATHS = {
         validMoves = [];
         renderBoard();
       });
+
+      // Initialize the game with welcome screen
+      welcomeModal.classList.add("active"); // Show welcome modal
+      renderBoard();
+      updateGameStatus();
+      updateCapturedPieces();
     </script>
   </body>
 </html>
