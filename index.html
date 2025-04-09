@@ -758,23 +758,34 @@
         <div class="modal-header">CH3SS MENU</div>
 
         <div class="modal-section">
-          <div class="modal-section-title">GAME OPTIONS</div>
+          <div class="modal-section-title">GAME MODE:</div>
           <div class="modal-content">
             <div class="option-group">
-              <div class="option-label">GAME MODE:</div>
               <div class="option-buttons">
-                <button id="mode-human" class="option-button active">HUMAN VS HUMAN</button>
-                <button id="mode-ai" class="option-button">HUMAN VS AI</button>
+                <button id="mode-human" class="option-button">VS HUMAN</button>
+                <button id="mode-ai" class="option-button active">VS AI</button>
+                <button id="mode-puzzle" class="option-button">PUZZLES</button>
               </div>
             </div>
 
-            <div id="ai-options" class="option-group" style="display: none">
+            <div id="ai-options" class="option-group">
               <div class="option-label">PLAY AS:</div>
               <div class="option-buttons">
                 <button id="ai-color-white" class="option-button active">WHITE (YOU PLAY FIRST)</button>
                 <button id="ai-color-black" class="option-button">BLACK (AI PLAYS FIRST)</button>
               </div>
             </div>
+
+            <div id="puzzle-options" class="option-group" style="display: none">
+              <div class="option-label">PUZZLE TYPE:</div>
+              <div class="option-buttons">
+                <button id="puzzle-tutorial" class="option-button active">TUTORIAL</button>
+                <button id="puzzle-core" class="option-button">CORE</button>
+                <button id="puzzle-spice" class="option-button">SPICE</button>
+                <button id="puzzle-boss" class="option-button">BOSS</button>
+              </div>
+            </div>
+
             <div class="spacer-small"></div>
             <button id="new-game-modal" class="modal-button">NEW GAME</button>
           </div>
