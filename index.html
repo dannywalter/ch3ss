@@ -1435,44 +1435,6 @@
           boardElement.appendChild(rowElement);
         }
 
-        // Draw/checkmate overlay
-        if (gameStatus === "checkmate" || gameStatus === "draw") {
-          const overlay = document.createElement("div");
-          overlay.className = "checkmate-overlay";
-
-          const content = document.createElement("div");
-          content.style.display = "flex";
-          content.style.flexDirection = "column";
-          content.style.alignItems = "center";
-          content.style.gap = "10px";
-
-          const title = document.createElement("div");
-          title.className = "checkmate-text";
-
-          const subtext = document.createElement("div");
-          subtext.className = "scoreboard-text";
-
-          if (gameStatus === "checkmate") {
-            title.textContent = "CHECKMATE";
-          } else {
-            title.textContent = drawReason === "stalemate" ? "STALEMATE" : "DRAW";
-            if (drawReason === "50move") subtext.textContent = "50 moves without a capture or pawn move";
-            else if (drawReason === "repetition") subtext.textContent = "Same position repeated 3 times";
-          }
-
-          const newGameButton = document.createElement("button");
-          newGameButton.className = "button";
-          newGameButton.textContent = "NEW GAME";
-          newGameButton.id = "new-game-checkmate";
-          newGameButton.addEventListener("click", resetGame);
-
-          content.appendChild(title);
-          if (subtext.textContent) content.appendChild(subtext);
-          content.appendChild(newGameButton);
-          overlay.appendChild(content);
-          boardElement.appendChild(overlay);
-        }
-
         updateGameStatus();
         updateCapturedPieces();
       }
@@ -1793,12 +1755,6 @@
             // Player lost against AI
             gameScore = 0;
           }
-
-          // Send the score to Farcade SDK
-          updateFarcadeScore();
-
-          // Trigger haptic feedback for game over
-          triggerHapticFeedback();
         }
 
         if (gameStatus === "draw") {
@@ -1816,8 +1772,60 @@
           }
 
           gameStatusElement.appendChild(drawElement);
-
           gameScore = 1;
+        }
+
+        // Add game over overlay with Submit Score button
+        if (gameStatus === "checkmate" || gameStatus === "draw") {
+          const overlay = document.createElement("div");
+          overlay.className = "checkmate-overlay";
+
+          const content = document.createElement("div");
+          content.style.display = "flex";
+          content.style.flexDirection = "column";
+          content.style.alignItems = "center";
+          content.style.gap = "10px";
+
+          const title = document.createElement("div");
+          title.className = "checkmate-text";
+          title.textContent = gameStatus === "checkmate" ? "CHECKMATE" : "DRAW";
+
+          const subtext = document.createElement("div");
+          subtext.className = "scoreboard-text";
+          if (gameStatus === "draw") {
+            if (drawReason === "50move") subtext.textContent = "50 moves without a capture or pawn move";
+            else if (drawReason === "repetition") subtext.textContent = "Same position repeated 3 times";
+            else if (drawReason === "stalemate") subtext.textContent = "Stalemate";
+          }
+
+          const buttonContainer = document.createElement("div");
+          buttonContainer.style.display = "flex";
+          buttonContainer.style.gap = "10px";
+
+          const newGameButton = document.createElement("button");
+          newGameButton.className = "modal-button";
+          newGameButton.textContent = "NEW GAME";
+          newGameButton.id = "new-game-checkmate";
+          newGameButton.addEventListener("click", resetGame);
+
+          const submitScoreButton = document.createElement("button");
+          submitScoreButton.className = "modal-button";
+          submitScoreButton.textContent = "SUBMIT SCORE";
+          submitScoreButton.addEventListener("click", () => {
+            // Call Farcade SDK gameOver
+            updateFarcadeScore();
+            // Remove Submit Score button after submission
+            submitScoreButton.style.display = "none";
+          });
+
+          content.appendChild(title);
+          if (subtext.textContent) content.appendChild(subtext);
+          buttonContainer.appendChild(newGameButton);
+          buttonContainer.appendChild(submitScoreButton);
+          content.appendChild(buttonContainer);
+          overlay.appendChild(content);
+          boardElement.appendChild(overlay);
+
           triggerHapticFeedback();
         }
       }
@@ -2231,6 +2239,7 @@
         gameScore = 0; // Reset the Farcade score
         moveHistory = [];
         halfMoveClock = 0; // Reset the 50-move rule counter
+        positionCounts = {}; // Reset the position counts for repetition detection
 
         // Clear PGN display
         const pgnOutput = document.getElementById("pgn-output");
