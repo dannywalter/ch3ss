@@ -9,6 +9,9 @@ jest.mock('path', () => ({
     join: (...args) => args.join('/'),
 }));
 
+// Mock fetch globally
+global.fetch = jest.fn();
+
 describe('PuzzleManager', () => {
     let manager;
 
@@ -16,6 +19,28 @@ describe('PuzzleManager', () => {
         // Reset all mocks
         jest.clearAllMocks();
         
+        // Mock fetch responses
+        global.fetch.mockImplementation((url) => {
+            if (url.includes('metadata.json')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({
+                        counts: {
+                            tutorial: 100,
+                            coreLoop: 200,
+                            spice: 150,
+                            boss: 50
+                        }
+                    })
+                });
+            }
+            // Mock puzzle chunk responses
+            return Promise.resolve({
+                ok: true,
+                arrayBuffer: () => Promise.resolve(Buffer.from('mock-compressed-data'))
+            });
+        });
+
         // Mock filesystem
         fs.readFileSync.mockImplementation((path) => {
             if (path.includes('metadata.json')) {
@@ -28,8 +53,7 @@ describe('PuzzleManager', () => {
         fs.readdirSync.mockReturnValue(['chunk-0.json.gz', 'chunk-1.json.gz']);
 
         manager = new PuzzleManager();
-        await manager.init();
-
+        
         // Mock decompress to return valid puzzle data
         manager.decompress = async () => JSON.stringify([{
             FEN: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -37,6 +61,8 @@ describe('PuzzleManager', () => {
             Rating: '1500',
             Themes: 'mateIn1 middlegame'
         }]);
+
+        await manager.init();
     });
 
     test('initial game state', () => {

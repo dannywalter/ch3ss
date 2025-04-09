@@ -1,21 +1,54 @@
 // Puzzle Management System for CH3SS
-const fs = require('fs');
-const path = require('path');
 const { ZstdCodec } = require('zstd-codec');
+
+// CDN configuration
+const CDN_BASE_URL = 'https://dannywalter.github.io/ch3ss-puzzles/puzzles';
+const MODES = {
+    'tutorial': 'tutorial',
+    'core-loop': 'coreLoop',
+    'spice': 'spice',
+    'boss': 'boss'
+};
+
+// Fetch with retry and timeout
+async function fetchWithRetry(url, retries = 3, timeout = 5000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, {
+                signal: controller.signal,
+                headers: {
+                    'Accept-Encoding': 'gzip',
+                    'Cache-Control': 'max-age=3600'
+                },
+                mode: 'cors'
+            });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response;
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i))); // Exponential backoff
+        }
+    }
+}
 
 class PuzzleManager {
     constructor() {
         this.currentPuzzle = null;
-        this.puzzleMode = 'tutorial'; // tutorial, core-loop, spice, boss
+        this.puzzleMode = 'tutorial';
         this.currentStreak = 0;
-        this.puzzlesPath = path.join(__dirname, 'puzzles');
-        this.loadedChunks = {};
+        this.loadedChunks = new Map(); // Use Map for better cache management
         this.currentScore = 0;
         this.solveStartTime = null;
-        this.remainingTime = 60; // 60 seconds total game time
+        this.remainingTime = 60;
         this.lastUpdateTime = null;
         this.basePoints = 100;
         this.zstdInit = null;
+        this.prefetchedChunks = new Set(); // Track prefetched chunks
     }
 
     // Initialize puzzle system
@@ -30,10 +63,14 @@ class PuzzleManager {
             });
             await this.zstdInit;
 
-            const metadata = JSON.parse(
-                fs.readFileSync(path.join(this.puzzlesPath, 'metadata.json'), 'utf8')
-            );
+            // Fetch metadata and start prefetching tutorial puzzles
+            const response = await fetchWithRetry(`${CDN_BASE_URL}/metadata.json`);
+            const metadata = await response.json();
             console.log('Puzzle system initialized with metadata:', metadata);
+            
+            // Prefetch first tutorial chunk
+            this.prefetchChunk('tutorial', 0);
+            
             return true;
         } catch (error) {
             console.error('Failed to initialize puzzle system:', error);
@@ -41,23 +78,50 @@ class PuzzleManager {
         }
     }
 
-    // Load a puzzle chunk
-    async loadPuzzleChunk(mode, chunkIndex) {
-        // Convert mode names to match file naming convention
-        const modeMap = {
-            'tutorial': 'tutorial',
-            'core-loop': 'coreLoop',
-            'spice': 'spice',
-            'boss': 'boss'
-        };
-        
-        const formattedMode = modeMap[mode];
-        const chunkPath = path.join(this.puzzlesPath, mode, `${formattedMode}-${chunkIndex}.json.gz`);
+    // Prefetch a puzzle chunk
+    async prefetchChunk(mode, chunkIndex) {
+        const cacheKey = `${mode}-${chunkIndex}`;
+        if (this.prefetchedChunks.has(cacheKey)) return;
         
         try {
-            const compressedData = fs.readFileSync(chunkPath);
-            const decompressed = await this.decompress(compressedData);
-            return JSON.parse(decompressed);
+            await this.loadPuzzleChunk(mode, chunkIndex);
+            this.prefetchedChunks.add(cacheKey);
+        } catch (error) {
+            console.warn(`Failed to prefetch chunk ${cacheKey}:`, error);
+        }
+    }
+
+    // Load a puzzle chunk with caching
+    async loadPuzzleChunk(mode, chunkIndex) {
+        const formattedMode = MODES[mode];
+        const chunkUrl = `${CDN_BASE_URL}/${mode}/${formattedMode}-${chunkIndex}.json.gz`;
+        
+        // Check memory cache first
+        const cacheKey = `${mode}-${chunkIndex}`;
+        if (this.loadedChunks.has(cacheKey)) {
+            return this.loadedChunks.get(cacheKey);
+        }
+        
+        try {
+            const response = await fetchWithRetry(chunkUrl);
+            const compressedData = await response.arrayBuffer();
+            const decompressed = await this.decompress(new Uint8Array(compressedData));
+            const puzzles = JSON.parse(decompressed);
+            
+            // Cache the chunk
+            this.loadedChunks.set(cacheKey, puzzles);
+            
+            // Implement LRU cache - keep only last 5 chunks
+            if (this.loadedChunks.size > 5) {
+                const firstKey = this.loadedChunks.keys().next().value;
+                this.loadedChunks.delete(firstKey);
+            }
+            
+            // Prefetch next chunk if this one was successfully loaded
+            const nextChunkIndex = chunkIndex + 1;
+            this.prefetchChunk(mode, nextChunkIndex);
+            
+            return puzzles;
         } catch (error) {
             console.error(`Failed to load puzzle chunk ${formattedMode}-${chunkIndex}:`, error);
             return null;
@@ -90,9 +154,6 @@ class PuzzleManager {
 
     // Get next puzzle based on current mode and streak
     async getNextPuzzle() {
-        const modeDir = path.join(this.puzzlesPath, this.puzzleMode);
-        const files = fs.readdirSync(modeDir).filter(f => f.endsWith('.json.gz'));
-        
         // Dynamic difficulty progression
         let targetChunkIndex = 0;
         
@@ -100,18 +161,20 @@ class PuzzleManager {
             this.puzzleMode = 'tutorial'; // mate-in-1 puzzles
         } else if (this.currentStreak < 8) {
             this.puzzleMode = 'core-loop'; // mate-in-2 puzzles
+            targetChunkIndex = Math.floor((this.currentStreak - 3) / 2);
         } else {
             // After 8 correct solves, every 5th puzzle (remainder 4) should be spice
             const puzzleNumber = this.currentStreak - 8;
             if (puzzleNumber % 5 === 4) {
                 this.puzzleMode = 'spice';
-                targetChunkIndex = Math.min(Math.floor(puzzleNumber / 10), files.length - 1);
+                targetChunkIndex = Math.floor(puzzleNumber / 10);
             } else {
                 this.puzzleMode = 'core-loop';
-                targetChunkIndex = Math.min(Math.floor(puzzleNumber / 5), files.length - 1);
+                targetChunkIndex = Math.floor(puzzleNumber / 5);
             }
         }
 
+        // Fetch the chunk from CDN with caching
         const chunk = await this.loadPuzzleChunk(this.puzzleMode, targetChunkIndex);
         if (!chunk) return null;
 
