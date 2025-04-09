@@ -924,6 +924,15 @@
       const whiteScoreElement = document.getElementById("white-score");
       const blackScoreElement = document.getElementById("black-score");
 
+      // Serve puzzles from CDN
+const CDN_BASE_URL = 'https://dannywalter.github.io/ch3ss-puzzles/puzzles';
+
+const PUZZLE_PATHS = {
+    tutorial: `${CDN_BASE_URL}/tutorial/tutorial-{n}.json.gz`,
+    coreLoop: `${CDN_BASE_URL}/core-loop/coreLoop-{n}.json.gz`,
+    spice: `${CDN_BASE_URL}/spice/spice-{n}.json.gz`,
+    boss: `${CDN_BASE_URL}/boss/boss-{n}.json.gz`
+};
       // Helper Functions
 
       // Returns the color of a piece ('white', 'black', or null if empty)
