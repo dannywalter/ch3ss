@@ -1953,30 +1953,69 @@
         // Pawns - encourage center control and advancement
         p: [
           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-          [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-          [0.1, 0.1, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1],
-          [0.0, 0.0, 0.1, 0.2, 0.2, 0.1, 0.0, 0.0],
-          [0.0, 0.0, 0.0, 0.1, 0.1, 0.0, 0.0, 0.0],
-          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+          [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0], // Big bonus for promoting
+          [1.0, 1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 1.0],
+          [0.5, 0.5, 1.0, 2.5, 2.5, 1.0, 0.5, 0.5],
+          [0.0, 0.0, 0.0, 2.0, 2.0, 0.0, 0.0, 0.0],
+          [0.5, -0.5, -1.0, 0.0, 0.0, -1.0, -0.5, 0.5], // Discourage backward pawns
+          [0.5, 1.0, 1.0, -2.0, -2.0, 1.0, 1.0, 0.5], // Encourage pawn structure
+          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         ],
-        // Knights - encourage central positions
+        // Knights - encourage central control and development
         n: [
-          [0.0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0],
-          [0.1, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1],
-          [0.1, 0.3, 0.4, 0.4, 0.4, 0.4, 0.3, 0.1],
-          [0.1, 0.3, 0.4, 0.4, 0.4, 0.4, 0.3, 0.1],
-          [0.1, 0.3, 0.4, 0.4, 0.4, 0.4, 0.3, 0.1],
-          [0.1, 0.3, 0.4, 0.4, 0.4, 0.4, 0.3, 0.1],
-          [0.1, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1],
-          [0.0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0],
+          [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
+          [-4.0, -2.0, 0.0, 0.0, 0.0, 0.0, -2.0, -4.0],
+          [-3.0, 0.0, 1.0, 1.5, 1.5, 1.0, 0.0, -3.0],
+          [-3.0, 0.5, 1.5, 2.0, 2.0, 1.5, 0.5, -3.0],
+          [-3.0, 0.0, 1.5, 2.0, 2.0, 1.5, 0.0, -3.0],
+          [-3.0, 0.5, 1.0, 1.5, 1.5, 1.0, 0.5, -3.0],
+          [-4.0, -2.0, 0.0, 0.5, 0.5, 0.0, -2.0, -4.0],
+          [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0]
         ],
-        // Other pieces don't have position bonuses for simplicity
-        b: Array(8).fill(Array(8).fill(0)),
-        r: Array(8).fill(Array(8).fill(0)),
-        q: Array(8).fill(Array(8).fill(0)),
-        k: Array(8).fill(Array(8).fill(0)),
+        // Bishops - encourage diagonal control and development
+        b: [
+          [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
+          [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
+          [-1.0, 0.0, 0.5, 1.0, 1.0, 0.5, 0.0, -1.0],
+          [-1.0, 0.5, 0.5, 1.0, 1.0, 0.5, 0.5, -1.0],
+          [-1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, -1.0],
+          [-1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0],
+          [-1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, -1.0],
+          [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0]
+        ],
+        // Rooks - encourage open files and 7th rank
+        r: [
+          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+          [0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5],
+          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
+          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
+          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
+          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
+          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
+          [0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0]
+        ],
+        // Queen - slight center preference
+        q: [
+          [-2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
+          [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
+          [-1.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -1.0],
+          [-0.5, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -0.5],
+          [0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -0.5],
+          [-1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0, -1.0],
+          [-1.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, -1.0],
+          [-2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0]
+        ],
+        // King - encourage castling and king safety
+        k: [
+          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+          [-2.0, -3.0, -3.0, -4.0, -4.0, -3.0, -3.0, -2.0],
+          [-1.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -1.0],
+          [2.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0],
+          [2.0, 3.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0]
+        ],
       };
 
       // Calculate position score for a given board state
@@ -2140,46 +2179,47 @@
             return;
           }
 
-          // --- Weighted Random Selection from Good Moves ---
+          // --- Improved Move Selection Logic ---
           let selectedMove;
-          // Consider the top ~40% of moves, max, for randomness
-          const goodMovesCount = Math.max(1, Math.floor(filteredMoves.length * 0.4));
+          // Consider only the top 25% of moves (reduced from 40% for more focus on better moves)
+          const goodMovesCount = Math.max(1, Math.floor(filteredMoves.length * 0.25));
           const weights = [];
           let totalWeight = 0;
 
-          // Assign exponentially decreasing weights to the top moves
+          // Assign more aggressive exponential weighting to prefer better moves
           for (let i = 0; i < goodMovesCount; i++) {
-            // Ensure index is within bounds of filteredMoves
-            if (i < filteredMoves.length) {
-              const weight = Math.pow(0.8, i); // Adjust 0.8 for more/less randomness
-              weights.push(weight);
-              totalWeight += weight;
-            } else {
-              break; // Stop if we run out of moves
-            }
-          }
-
-          const randomValue = Math.random() * totalWeight;
-          let cumulativeWeight = 0;
-          for (let i = 0; i < goodMovesCount; i++) {
-            // Ensure index is within bounds of filteredMoves and weights
-            if (i < filteredMoves.length && i < weights.length) {
-              cumulativeWeight += weights[i];
-              if (randomValue <= cumulativeWeight) {
-                selectedMove = filteredMoves[i];
-                break;
+              if (i < filteredMoves.length) {
+                  const weight = Math.pow(0.6, i); // Changed from 0.8 to 0.6 for stronger preference of better moves
+                  weights.push(weight);
+                  totalWeight += weight;
+              } else {
+                  break;
               }
-            } else {
-              break; // Stop if we run out of moves/weights
-            }
           }
 
-          // Fallback: If random selection somehow fails, pick the absolute best filtered move
-          if (!selectedMove) {
-            debugLog("AI Warning: Weighted random selection failed, picking best move.");
-            selectedMove = filteredMoves[0]; // Pick the best one from the filtered list
+          // Small chance (10%) to pick the absolute best move
+          if (Math.random() < 0.1) {
+              selectedMove = filteredMoves[0];
+          } else {
+              // Otherwise use weighted random selection
+              const randomValue = Math.random() * totalWeight;
+              let cumulativeWeight = 0;
+              for (let i = 0; i < goodMovesCount; i++) {
+                  if (i < filteredMoves.length && i < weights.length) {
+                      cumulativeWeight += weights[i];
+                      if (randomValue <= cumulativeWeight) {
+                          selectedMove = filteredMoves[i];
+                          break;
+                      }
+                  }
+              }
           }
-          // --- End of Selection Logic ---
+
+          // Fallback to best move if no selection was made
+          if (!selectedMove) {
+              selectedMove = filteredMoves[0];
+          }
+          // --- End of Improved Selection Logic ---
 
           // Ensure a move was actually selected
           if (!selectedMove) {
