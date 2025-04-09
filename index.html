@@ -1439,6 +1439,87 @@
         updateCapturedPieces();
       }
 
+      // Function to evaluate safety of a move by checking attacks and defenders
+      function evaluateSquareSafety(toRow, toCol, piece, boardState) {
+        const pieceColor = getPieceColor(piece);
+        const opponentColor = pieceColor === "white" ? "black" : "white";
+        
+        // Large penalty for moving to a square attacked by a lower value piece
+        const pieceValue = pieceValues[piece.toLowerCase()];
+        let safetyScore = 0;
+        
+        // If square is attacked by opponent
+        if (isSquareAttacked(toRow, toCol, opponentColor, boardState)) {
+          // Get all opponent pieces that attack this square
+          for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+              const attackingPiece = boardState[row][col];
+              if (attackingPiece && getPieceColor(attackingPiece) === opponentColor) {
+                const moves = getValidMoves(row, col, attackingPiece, boardState);
+                if (moves.some(([r, c]) => r === toRow && c === toCol)) {
+                  const attackerValue = pieceValues[attackingPiece.toLowerCase()];
+                  if (attackerValue < pieceValue) {
+                    // Bigger penalty for being attacked by cheaper piece
+                    safetyScore -= (pieceValue - attackerValue) * 2;
+                  } else {
+                    // Smaller penalty for being attacked by more expensive piece
+                    safetyScore -= 1;
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        return safetyScore;
+      }
+
+      // Evaluate the current board state
+      function evaluateBoard(boardState) {
+        // Material score - main component of evaluation
+        const materialScore = calculateMaterialScore(boardState);
+
+        // Position score - small bonus for positional advantages
+        const positionScore = calculatePositionScore(boardState);
+
+        // Piece safety score - penalize pieces under attack
+        let safetyScore = 0;
+        for (let row = 0; row < 8; row++) {
+          for (let col = 0; col < 8; col++) {
+            const piece = boardState[row][col];
+            if (piece) {
+              safetyScore += evaluateSquareSafety(row, col, piece, boardState);
+            }
+          }
+        }
+
+        // Check and checkmate detection
+        let checkScore = 0;
+
+        // Check if white is in check or checkmate
+        if (isInCheck("white", boardState)) {
+          const whiteMoves = getAllPossibleMoves("white", boardState);
+          if (whiteMoves.length === 0) {
+            checkScore = -100; // White is checkmated
+          } else {
+            checkScore = -2; // White is in check
+          }
+        }
+
+        // Check if black is in check or checkmate
+        if (isInCheck("black", boardState)) {
+          const blackMoves = getAllPossibleMoves("black", boardState);
+          if (blackMoves.length === 0) {
+            checkScore = 100; // Black is checkmated
+          } else {
+            checkScore = 2; // Black is in check
+          }
+        }
+
+        // Combine scores with appropriate weights
+        return materialScore * 10 + positionScore * 3 + safetyScore * 5 + checkScore;
+      }
+
       // Function to move a piece from one square to another
       // This is used by both human player moves and AI moves
       function movePiece(fromRow, fromCol, toRow, toCol) {
@@ -2041,43 +2122,6 @@
         }
 
         return whiteScore - blackScore; // Positive is good for white, negative for black
-      }
-
-      // Evaluate the current board state
-      function evaluateBoard(boardState) {
-        // Material score - main component of evaluation
-        const materialScore = calculateMaterialScore(boardState);
-
-        // Position score - small bonus for positional advantages
-        const positionScore = calculatePositionScore(boardState);
-
-        // Check and checkmate detection
-        let checkScore = 0;
-
-        // Check if white is in check or checkmate
-        if (isInCheck("white", boardState)) {
-          // Check if white has any legal moves
-          const whiteMoves = getAllPossibleMoves("white", boardState);
-          if (whiteMoves.length === 0) {
-            checkScore = -100; // White is checkmated
-          } else {
-            checkScore = -2; // White is in check
-          }
-        }
-
-        // Check if black is in check or checkmate
-        if (isInCheck("black", boardState)) {
-          // Check if black has any legal moves
-          const blackMoves = getAllPossibleMoves("black", boardState);
-          if (blackMoves.length === 0) {
-            checkScore = 100; // Black is checkmated
-          } else {
-            checkScore = 2; // Black is in check
-          }
-        }
-
-        // Combine scores with appropriate weights
-        return materialScore * 10 + positionScore * 3 + checkScore;
       }
 
       // Make AI move with weighted randomness
