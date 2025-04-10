@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
     <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
-    <script src="https://unpkg.com/zstd-codec@0.1.5/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 
     <style>
       /* Global Styles */
@@ -903,19 +903,6 @@
 
         async init() {
           try {
-            // Initialize zstd decoder
-            this.zstdInit = new Promise((resolve, reject) => {
-              if (window.ZstdCodec) {
-                window.ZstdCodec.run(zstd => {
-                  this.zstd = zstd;
-                  resolve();
-                });
-              } else {
-                reject(new Error('ZstdCodec not found'));
-              }
-            });
-            await this.zstdInit;
-
             // Initialize with first tutorial puzzle
             await this.prefetchChunk('tutorial', 0);
             return true;
@@ -951,32 +938,70 @@
             const response = await this.fetchWithRetry(url);
             const compressedData = await response.arrayBuffer();
             
-            // Decompress the puzzle data
-            const decompressedJson = await this.decompressData(compressedData);
-            this.loadedChunks.set(cacheKey, JSON.parse(decompressedJson));
+            // Use pako to decompress gzip data
+            const decompressed = pako.inflate(new Uint8Array(compressedData));
+            const decompressedText = new TextDecoder().decode(decompressed);
+            this.loadedChunks.set(cacheKey, JSON.parse(decompressedText));
             this.prefetchedChunks.add(cacheKey);
           } catch (error) {
             console.error(`Failed to prefetch puzzle chunk ${cacheKey}:`, error);
           }
         }
 
-        async decompressData(compressedData) {
-          await this.zstdInit;
-          const streaming = new this.zstd.Streaming();
-          const decompressedArray = streaming.decompress(new Uint8Array(compressedData));
-          return new TextDecoder().decode(decompressedArray);
-        }
-
         async getNextPuzzle() {
-          // For now, just return a simple puzzle from the tutorial set
-          const puzzle = {
-            fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-            moves: ['e2e4', 'e7e5'],
-            goalText: 'Find the best move for White'
-          };
-          
-          this.currentPuzzle = puzzle;
-          return puzzle;
+          try {
+            // Dynamic difficulty progression based on streak
+            if (this.currentStreak < 3) {
+              this.puzzleMode = 'tutorial'; // Mate in 1 puzzles for beginners
+            } else if (this.currentStreak < 8) {
+              this.puzzleMode = 'core-loop'; // Mate in 2 puzzles for intermediate
+            } else {
+              // After 8 correct solves, every 5th puzzle is a spice puzzle
+              const puzzleNumber = this.currentStreak - 8;
+              if (puzzleNumber % 5 === 4) {
+                this.puzzleMode = 'spice'; // Tactical motifs
+              } else {
+                this.puzzleMode = 'core-loop';
+              }
+            }
+
+            // Calculate chunk index based on streak
+            const chunkIndex = Math.floor(this.currentStreak / 10);
+            const cacheKey = `${this.puzzleMode}-${chunkIndex}`;
+            
+            // Load chunk if not already cached
+            if (!this.loadedChunks.has(cacheKey)) {
+              await this.prefetchChunk(this.puzzleMode, chunkIndex);
+            }
+
+            const chunk = this.loadedChunks.get(cacheKey);
+            if (!chunk || !chunk.length) {
+              throw new Error('No puzzles available in chunk');
+            }
+
+            // Select puzzle from chunk based on position in streak
+            const puzzleIndex = this.currentStreak % chunk.length;
+            const puzzle = chunk[puzzleIndex];
+
+            // Convert puzzle format
+            this.currentPuzzle = {
+              fen: puzzle.FEN,
+              moves: puzzle.Moves.split(' '),
+              rating: parseInt(puzzle.Rating),
+              themes: puzzle.Themes.split(' '),
+              goalText: this.getGoalText(puzzle)
+            };
+
+            return this.currentPuzzle;
+          } catch (error) {
+            console.error('Failed to get next puzzle:', error);
+            // Fallback to a simple puzzle if loading fails
+            return {
+              fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+              moves: ['e2e4', 'e7e5'],
+              goalText: 'Find the best move for White'
+            };
+          }
         }
 
         startPuzzleTimer() {
