@@ -897,7 +897,6 @@
           this.remainingTime = 60;
           this.lastUpdateTime = null;
           this.basePoints = 100;
-          this.zstdInit = null;
           this.prefetchedChunks = new Set();
         }
 
@@ -944,8 +943,61 @@
             this.loadedChunks.set(cacheKey, JSON.parse(decompressedText));
             this.prefetchedChunks.add(cacheKey);
           } catch (error) {
-            console.error(`Failed to prefetch puzzle chunk ${cacheKey}:`, error);
+            console.warn(`Failed to fetch puzzle chunk ${cacheKey}, using sample puzzles:`, error);
+            // Use sample puzzles if real ones can't be loaded
+            this.loadedChunks.set(cacheKey, this.getSamplePuzzles(mode));
+            this.prefetchedChunks.add(cacheKey);
           }
+        }
+
+        getSamplePuzzles(mode) {
+          const samples = {
+            'tutorial': [
+              {
+                FEN: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4',
+                Moves: 'h5f7',
+                Rating: '800',
+                Themes: 'mateIn1 shortGame opening',
+                goalText: 'White to move – Mate in 1'
+              },
+              {
+                FEN: '3r2k1/R7/8/8/8/8/8/6K1 w - - 0 1',
+                Moves: 'a7a8',
+                Rating: '800',
+                Themes: 'mateIn1 endGame',
+                goalText: 'White to move – Mate in 1'
+              }
+            ],
+            'core-loop': [
+              {
+                FEN: 'r1bqkb1r/ppp2ppp/2n5/3np3/2B5/3P4/PPP2PPP/RNBQK1NR w KQkq - 0 6',
+                Moves: 'c4f7',
+                Rating: '1200',
+                Themes: 'fork tactical middlegame',
+                goalText: 'White to move – Find the fork'
+              }
+            ],
+            'spice': [
+              {
+                FEN: '2r3k1/pp3pp1/2n4p/q7/3N4/P3Q2P/1P3PP1/2R3K1 w - - 0 1',
+                Moves: 'd4f5',
+                Rating: '1500',
+                Themes: 'fork tactical',
+                goalText: 'White to move – Find the fork'
+              }
+            ],
+            'boss': [
+              {
+                FEN: 'r1b2rk1/2q1b1pp/p2ppn2/1p6/3BP3/1B6/PPQ2PPP/2R2RK1 w - - 0 1',
+                Moves: 'd4e5',
+                Rating: '2000',
+                Themes: 'pin tactical',
+                goalText: 'White to move – Find the pin'
+              }
+            ]
+          };
+          
+          return samples[mode] || samples['tutorial'];
         }
 
         async getNextPuzzle() {
@@ -1002,6 +1054,22 @@
               goalText: 'Find the best move for White'
             };
           }
+        }
+
+        getGoalText(puzzle) {
+          const side = puzzle.FEN.includes(' w ') ? 'White' : 'Black';
+          const themes = puzzle.Themes.split(' ');
+
+          if (themes.includes('mateIn1')) return `${side} to move – Mate in 1`;
+          if (themes.includes('mateIn2')) return `${side} to move – Mate in 2`;
+          if (themes.includes('mateIn3')) return `${side} to move – Mate in 3`;
+
+          const tacticalMotifs = ['fork', 'pin', 'skewer', 'doubleCheck'];
+          const motif = themes.find(t => tacticalMotifs.includes(t));
+          
+          return motif
+            ? `${side} to move – Find the ${motif}`
+            : `${side} to move – Find the best tactic`;
         }
 
         startPuzzleTimer() {
@@ -1297,14 +1365,16 @@
       const blackScoreElement = document.getElementById("black-score");
 
       // Serve puzzles from CDN
-const CDN_BASE_URL = 'https://dannywalter.github.io/ch3ss-puzzles/puzzles';
+      const CDN_BASE_URL = 'https://dannywalter.github.io/ch3ss-puzzles/puzzles';
 
-const PUZZLE_PATHS = {
-    tutorial: `${CDN_BASE_URL}/tutorial/tutorial-{n}.json.gz`,
-    coreLoop: `${CDN_BASE_URL}/core-loop/coreLoop-{n}.json.gz`,
-    spice: `${CDN_BASE_URL}/spice/spice-{n}.json.gz`,
-    boss: `${CDN_BASE_URL}/boss/boss-{n}.json.gz`
-};
+      // Puzzle paths with correct CDN URLs
+      const PUZZLE_PATHS = {
+        tutorial: `${CDN_BASE_URL}/tutorial/tutorial-{n}.json.gz`,
+        'core-loop': `${CDN_BASE_URL}/core-loop/coreLoop-{n}.json.gz`,
+        spice: `${CDN_BASE_URL}/spice/spice-{n}.json.gz`,
+        boss: `${CDN_BASE_URL}/boss/boss-{n}.json.gz`
+      };
+
       // Helper Functions
 
       // Returns the color of a piece ('white', 'black', or null if empty)
