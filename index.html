@@ -953,19 +953,19 @@
         getSamplePuzzles(mode) {
           const samples = {
             'tutorial': [
-              {
-                FEN: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4',
-                Moves: 'h5f7',
-                Rating: '800',
-                Themes: 'mateIn1 shortGame opening',
-                goalText: 'White to move – Mate in 1'
-              },
-              {
+            {
                 FEN: '3r2k1/R7/8/8/8/8/8/6K1 w - - 0 1',
                 Moves: 'a7a8',
                 Rating: '800',
                 Themes: 'mateIn1 endGame',
                 goalText: 'White to move – Mate in 1'
+              },
+              {
+                FEN: 'r6r/1pNk1ppp/2np4/b3p3/4P1b1/N1Q5/P4PPP/R3KB1R w KQ - 3 18',
+                Moves: 'c7a8 a5c3',
+                Rating: '800',
+                Themes: 'mateIn1 shortGame opening',
+                goalText: 'Black to move – Mate in 1'
               }
             ],
             'core-loop': [
@@ -1057,19 +1057,21 @@
         }
 
         getGoalText(puzzle) {
-          const side = puzzle.FEN.includes(' w ') ? 'White' : 'Black';
+          // For Lichess puzzles, we need to swap the side after the opponent's setup move
+          const initialSide = puzzle.FEN.includes(' w ') ? 'White' : 'Black';
+          const sideToMove = initialSide === 'White' ? 'Black' : 'White'; // After setup move, other side moves
           const themes = puzzle.Themes.split(' ');
 
-          if (themes.includes('mateIn1')) return `${side} to move – Mate in 1`;
-          if (themes.includes('mateIn2')) return `${side} to move – Mate in 2`;
-          if (themes.includes('mateIn3')) return `${side} to move – Mate in 3`;
+          if (themes.includes('mateIn1')) return `${sideToMove} to move – Mate in 1`;
+          if (themes.includes('mateIn2')) return `${sideToMove} to move – Mate in 2`;
+          if (themes.includes('mateIn3')) return `${sideToMove} to move – Mate in 3`;
 
           const tacticalMotifs = ['fork', 'pin', 'skewer', 'doubleCheck'];
           const motif = themes.find(t => tacticalMotifs.includes(t));
           
           return motif
-            ? `${side} to move – Find the ${motif}`
-            : `${side} to move – Find the best tactic`;
+            ? `${sideToMove} to move – Find the ${motif}`
+            : `${sideToMove} to move – Find the best tactic`;
         }
 
         startPuzzleTimer() {
@@ -1079,7 +1081,10 @@
         checkMove(move, moveIndex) {
           if (!this.currentPuzzle) return { correct: false };
           
-          // Simple move validation for now
+          // Skip validation of the first move since it's the opponent's setup move
+          if (moveIndex === 0) return { correct: true, complete: false };
+          
+          // For player moves, compare against solution moves starting from index 1
           const expectedMove = this.currentPuzzle.moves[moveIndex];
           const isCorrect = move === expectedMove;
           
@@ -1100,6 +1105,10 @@
               score: totalScore,
               streakBonus
             };
+          }
+          
+          if (!isCorrect) {
+            this.currentStreak = 0;
           }
           
           return {
@@ -1163,6 +1172,7 @@
         if (gameStatus === "checkmate") {
           const winner = currentPlayer === "white" ? "BLACK" : "WHITE";
           statusText = `CHECKMATE - ${winner} WINS`;
+          handleCheckmate();
         } else if (gameStatus === "draw") {
           statusText = drawReason === "stalemate" ? "STALEMATE" :
                       drawReason === "50move" ? "50-MOVE RULE" :
@@ -2286,8 +2296,10 @@
             const { row: fromRow, col: fromCol } = selectedPiece;
             const move = `${getSquareName(fromRow, fromCol)}${getSquareName(row, col)}`;
             
-            const result = puzzleManager.checkMove(move, moveHistory.length);
-            if (result.correct) {
+            // The moveIndex should be 1 less than moveHistory.length since first move was opponent's
+            const result = puzzleManager.checkMove(move, moveHistory.length - 1);
+            if (result && result.correct) {
+              // Make the move if it's correct
               movePiece(fromRow, fromCol, row, col);
               
               if (result.complete) {
@@ -2312,7 +2324,7 @@
                 updateFarcadeScore();
               }
             } else {
-              // Show failure overlay
+              // Show immediate failure overlay without making the move
               const overlay = document.createElement('div');
               overlay.className = 'checkmate-overlay';
               const content = document.createElement('div');
@@ -2322,6 +2334,7 @@
               `;
               overlay.appendChild(content);
               boardElement.appendChild(overlay);
+              triggerHapticFeedback(); // Add haptic feedback for wrong move
             }
             
             selectedPiece = null;
@@ -2345,16 +2358,35 @@
       async function nextPuzzle() {
         const puzzle = await puzzleManager.getNextPuzzle();
         if (puzzle) {
+          // Load initial position
           boardState = parseFEN(puzzle.fen);
-          currentPlayer = puzzle.fen.includes(' w ') ? 'white' : 'black';
           moveHistory = [];
-          puzzleManager.startPuzzleTimer();
+          currentPlayer = puzzle.fen.includes(' w ') ? 'white' : 'black';
           
-          gameStatus = "puzzle";
-          gameStatusElement.textContent = puzzle.goalText;
+          // Make the opponent's first move
+          const [opponentMove, ...solutionMoves] = puzzle.moves;
+          const [fromSquare, toSquare] = [opponentMove.slice(0,2), opponentMove.slice(2,4)];
+          const fromRow = '87654321'.indexOf(fromSquare[1]);
+          const fromCol = 'abcdefgh'.indexOf(fromSquare[0]);
+          const toRow = '87654321'.indexOf(toSquare[1]);
+          const toCol = 'abcdefgh'.indexOf(toSquare[0]);
           
-          renderBoard();
-          updateGameStatus();
+          // Make the opponent's move and switch sides
+          const moveResult = movePiece(fromRow, fromCol, toRow, toCol);
+          if (moveResult) {
+            // Clear move history (since movePiece adds to it) and add only the opponent's move
+            moveHistory = [opponentMove];
+            
+            // Start the timer for the player's solution
+            puzzleManager.startPuzzleTimer();
+            
+            // Set game status and update display
+            gameStatus = "puzzle";
+            gameStatusElement.textContent = puzzle.goalText;
+            
+            renderBoard();
+            updateGameStatus();
+          }
         }
       }
 
@@ -2771,6 +2803,22 @@
       renderBoard();
       updateGameStatus();
       updateCapturedPieces();
+
+      // Function to handle checkmate and display overlay
+      function handleCheckmate() {
+        if (gameStatus === "checkmate") {
+          const winner = currentPlayer === "white" ? "BLACK" : "WHITE";
+          const overlay = document.createElement("div");
+          overlay.className = "checkmate-overlay";
+          const content = document.createElement("div");
+          content.innerHTML = `
+            <div class="checkmate-text">CHECKMATE - ${winner} WINS</div>
+            <button class="modal-button" onclick="resetGame()">NEW GAME</button>
+          `;
+          overlay.appendChild(content);
+          boardElement.appendChild(overlay);
+        }
+      }
     </script>
   </body>
 </html>
