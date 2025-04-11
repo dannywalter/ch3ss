@@ -685,6 +685,116 @@
           transform: scale(1);
         }
       }
+
+      /* Achievement display styles */
+      .achievement-item {
+        background: rgba(0, 255, 255, 0.1);
+        border: 1px solid #00ffff80;
+        border-radius: 3px;
+        margin-bottom: 8px;
+        padding: 5px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .achievement-title {
+        color: #00ffff;
+        font-size: 0.5rem;
+        font-weight: bold;
+        text-shadow: 0 0 5px #00ffff;
+      }
+      
+      .achievement-bonus {
+        color: #ff00ff;
+        font-size: 0.5rem;
+        position: absolute;
+        right: 5px;
+        top: 5px;
+      }
+      
+      .achievement-desc {
+        color: #dddddd;
+        font-size: 0.4rem;
+        margin-top: 3px;
+      }
+      
+      /* Score tracker styles */
+      .score-tracker {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid #ff00ff;
+        border-radius: 5px;
+        padding: 5px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 90;
+        pointer-events: none;
+        box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+      }
+      
+      .score-value {
+        color: #ff00ff;
+        font-size: 1rem;
+        text-shadow: 0 0 5px #ff00ff;
+      }
+      
+      .score-notification {
+        color: #00ffff;
+        font-size: 0.4rem;
+        height: 1rem;
+        min-width: 80px;
+        text-align: center;
+        animation: fadeUp 1s ease-out forwards;
+      }
+      
+      @keyframes fadeUp {
+        from {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+      }
+      
+      /* Difficulty selector */
+      .difficulty-selector {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-top: 10px;
+      }
+      
+      .difficulty-option {
+        display: flex;
+        align-items: center;
+        font-size: 0.45rem;
+        padding: 3px;
+        border: 1px solid #444;
+        border-radius: 3px;
+      }
+      
+      .difficulty-option.active {
+        border-color: #00ffff;
+        background: rgba(0, 255, 255, 0.1);
+      }
+      
+      .difficulty-option input {
+        margin-right: 5px;
+      }
+      
+      .difficulty-name {
+        flex: 1;
+      }
+      
+      .difficulty-multi {
+        color: #ff00ff;
+      }
     </style>
   </head>
   <body>
@@ -820,6 +930,30 @@
                 <button id="ai-color-black" class="option-button active">WHITE (YOU PLAY FIRST)</button>
                 <button id="ai-color-white" class="option-button">BLACK (AI PLAYS FIRST)</button>
               </div>
+              
+              <div class="option-label" style="margin-top: 10px;">DIFFICULTY:</div>
+              <div class="difficulty-selector">
+                <label class="difficulty-option" for="diff-easy">
+                  <input type="radio" id="diff-easy" name="ai-difficulty" value="easy">
+                  <span class="difficulty-name">Easy</span>
+                  <span class="difficulty-multi">x1.0</span>
+                </label>
+                <label class="difficulty-option active" for="diff-medium">
+                  <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" checked>
+                  <span class="difficulty-name">Medium</span>
+                  <span class="difficulty-multi">x1.5</span>
+                </label>
+                <label class="difficulty-option" for="diff-hard">
+                  <input type="radio" id="diff-hard" name="ai-difficulty" value="hard">
+                  <span class="difficulty-name">Hard</span>
+                  <span class="difficulty-multi">x2.0</span>
+                </label>
+                <label class="difficulty-option" for="diff-expert">
+                  <input type="radio" id="diff-expert" name="ai-difficulty" value="expert">
+                  <span class="difficulty-name">Expert</span>
+                  <span class="difficulty-multi">x3.0</span>
+                </label>
+              </div>
             </div>
             <div class="spacer-small"></div>
             <button id="new-game-modal" class="modal-button">NEW GAME</button>
@@ -868,6 +1002,98 @@
       </div>
     </div>
 
+    <!-- Scoring System Overlay -->
+    <div id="scoring-overlay" class="modal-overlay">
+      <div class="modal" style="max-width: 380px; max-height: 90vh;">
+        <div class="modal-header">CH3SS SCOREBOARD</div>
+        
+        <div class="modal-section">
+          <div class="modal-section-title">YOUR SCORE</div>
+          <div id="final-score-display" class="modal-content" style="text-align:center; font-size:1.5rem; color:#ff00ff; margin:10px 0; text-shadow: 0 0 10px #ff00ff;">
+            437
+          </div>
+          <div id="score-breakdown" class="modal-content" style="font-size:0.5rem;">
+            <table style="width:100%; border-collapse:collapse; margin:10px 0;">
+              <tr>
+                <td>Base (Win)</td>
+                <td style="text-align:right;">+100</td>
+              </tr>
+              <tr>
+                <td>Quick Win (28 moves)</td>
+                <td style="text-align:right;">+30</td>
+              </tr>
+              <tr>
+                <td>Captures (Pawn x3, Bishop x1, Rook x2, Queen x1)</td>
+                <td style="text-align:right;">+52</td>
+              </tr>
+              <tr>
+                <td>Win Streak Bonus (x1.2)</td>
+                <td style="text-align:right;">x1.2</td>
+              </tr>
+              <tr>
+                <td>Difficulty Multiplier (Hard)</td>
+                <td style="text-align:right;">x2</td>
+              </tr>
+              <tr style="border-top: 1px solid #ff00ff80; margin-top:5px; padding-top:5px; color:#ff00ff; font-weight:bold;">
+                <td>TOTAL SCORE</td>
+                <td style="text-align:right;">437</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        
+        <div class="modal-section">
+          <div class="modal-section-title">ACHIEVEMENTS</div>
+          <div id="achievements-list" class="modal-content">
+            <div class="achievement-item">
+              <span class="achievement-title">Speed Demon</span>
+              <span class="achievement-bonus">+200</span>
+              <div class="achievement-desc">Win 5 games within 30 moves</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-section">
+          <div class="modal-section-title">STATS</div>
+          <div id="player-stats" class="modal-content">
+            <table style="width:100%; border-collapse:collapse; font-size:0.45rem;">
+              <tr>
+                <td>Games Played</td>
+                <td style="text-align:right;">12</td>
+              </tr>
+              <tr>
+                <td>Wins / Draws / Losses</td>
+                <td style="text-align:right;">8 / 3 / 1</td>
+              </tr>
+              <tr>
+                <td>Current Win Streak</td>
+                <td style="text-align:right;">3</td>
+              </tr>
+              <tr>
+                <td>Highest Win Streak</td>
+                <td style="text-align:right;">5</td>
+              </tr>
+              <tr>
+                <td>Total Score</td>
+                <td style="text-align:right;">2,534</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        
+        <div class="modal-buttons">
+          <button id="close-scoring" class="modal-button">CLOSE</button>
+          <button id="share-score" class="modal-button">SHARE</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Real-time Score Display -->
+    <div id="current-score-display" class="score-tracker">
+      <div class="score-value">0</div>
+      <div id="score-notification" class="score-notification"></div>
+    </div>
+
     <script>
       // Chess Game Logic using chess.js
       
@@ -902,10 +1128,81 @@
       let gameMode = "ai"; // human, ai
       let aiColor = "black"; // AI will play as black by default
       let aiThinking = false; // Flag to prevent interactions while AI is thinking
+      let aiDifficulty = "medium"; // easy, medium, hard, expert
       
       // Farcade SDK variables
       let isMuted = false; // Track if sound is muted
-      let gameScore = 0; // Track player's score
+      
+      // Enhanced scoring system
+      let gameScore = 0; // Final calculated score
+      let scoringSystem = {
+        // Base points
+        base: {
+          win: 100,
+          draw: 30,
+          loss: 10
+        },
+        // Quick play bonuses
+        quickPlay: {
+          movesUnder20: 50,
+          movesUnder30: 30,
+          timeUnder5Min: 40
+        },
+        // Piece capture values
+        captures: {
+          p: 2,  // pawn
+          n: 6,  // knight
+          b: 6,  // bishop
+          r: 10, // rook
+          q: 20  // queen
+        },
+        // Streak bonuses
+        streaks: {
+          wins3: 1.2,
+          wins5: 1.5,
+          wins10: 2.0
+        },
+        // Difficulty multipliers
+        difficultyMultiplier: {
+          easy: 1.0,
+          medium: 1.5,
+          hard: 2.0,
+          expert: 3.0
+        },
+        // Achievements
+        achievements: {
+          unstoppable: { title: "Unstoppable", bonus: 250, description: "Win 10 consecutive games" },
+          queenProtector: { title: "Queen Protector", bonus: 100, description: "Win without losing your Queen" },
+          pawnSlayer: { title: "Pawn Slayer", bonus: 150, description: "Deliver checkmate using a Pawn" },
+          speedDemon: { title: "Speed Demon", bonus: 200, description: "Win 5 games within 30 moves" }
+        },
+        // Penalties
+        penalties: {
+          earlyLoss: -15,
+          timeout: -10
+        }
+      };
+      
+      // Player stats
+      let playerStats = {
+        gamesPlayed: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        currentWinStreak: 0,
+        highestWinStreak: 0,
+        quickWinsUnder30Moves: 0,
+        capturedPieces: { p: 0, n: 0, b: 0, r: 0, q: 0 },
+        capturedPieceValue: 0,
+        totalScore: 0,
+        achievements: [],
+        startTime: null,
+        consecutiveCaptures: 0,
+        lastCaptureMove: -1,
+        queenLost: false,
+        checkmateWithPawn: false,
+        moveHistory: []
+      };
       
       // Track captured pieces
       let capturedPieces = {
@@ -990,14 +1287,55 @@
         return moves.map(move => squareToCoords(move.to));
       }
       
-      // Update captured pieces based on move
+      // Update captured pieces based on move with scoring
       function updateCapturedPiecesFromMove(move) {
         if (move.captured) {
           const capturedPiece = move.color === 'w' ? move.captured.toLowerCase() : move.captured.toUpperCase();
+          
+          // Add to the UI captured pieces list
           if (move.color === 'w') {
             capturedPieces.white.push(capturedPiece);
           } else {
             capturedPieces.black.push(capturedPiece);
+          }
+          
+          // Only track player captures for scoring
+          const playerColor = aiColor === "black" ? "w" : "b";
+          
+          // Check if this is a player's capture (not AI)
+          if (move.color === playerColor) {
+            // Player made this capture, update stats
+            playerStats.capturedPieces[move.captured]++;
+            const captureValue = scoringSystem.captures[move.captured];
+            playerStats.capturedPieceValue += captureValue;
+            
+            // Check if this is consecutive capture
+            const currentMoveNumber = chess.history().length;
+            if (playerStats.lastCaptureMove === currentMoveNumber - 2) {
+              // Last move was also a capture, award combo points
+              playerStats.consecutiveCaptures++;
+              
+              // Award combo points (5 points for each additional capture in a row)
+              const comboPoints = 5;
+              playerStats.capturedPieceValue += comboPoints;
+              
+              // Show combo notification
+              showScoreNotification(`COMBO x${playerStats.consecutiveCaptures}`, comboPoints);
+            } else {
+              // Reset consecutive captures
+              playerStats.consecutiveCaptures = 1;
+            }
+            
+            // Update last capture move number
+            playerStats.lastCaptureMove = currentMoveNumber;
+            
+            // Show capture notification with points
+            showScoreNotification(`Captured ${move.captured.toUpperCase()}`, captureValue);
+          }
+          
+          // Check if player lost their queen (for achievement tracking)
+          if (move.captured === 'q' && move.color !== playerColor) {
+            playerStats.queenLost = true;
           }
         }
       }
@@ -1153,14 +1491,33 @@
           winnerElement.textContent = `${winner} WINS!`;
           gameStatusElement.appendChild(winnerElement);
           
-          // Calculate score for Farcade SDK
-          if ((winner === "WHITE" && gameMode === "ai" && aiColor === "black") || 
-              (winner === "BLACK" && gameMode === "ai" && aiColor === "white")) {
-            // Player won against AI
-            gameScore = 2;
-          } else if (gameMode === "ai") {
-            // Player lost against AI
-            gameScore = 0;
+          // Calculate player result for game over
+          if (gameMode === "ai") {
+            let gameResult;
+            
+            // Check if player won
+            if ((winner === "WHITE" && aiColor === "black") || 
+                (winner === "BLACK" && aiColor === "white")) {
+              gameResult = "win";
+              
+              // Check if the last move was a checkmate with a pawn
+              const history = chess.history({ verbose: true });
+              if (history.length > 0) {
+                const lastMove = history[history.length - 1];
+                if (lastMove.piece === 'p') {
+                  playerStats.checkmateWithPawn = true;
+                }
+              }
+            } else {
+              gameResult = "loss";
+            }
+            
+            // Calculate the score using our advanced scoring system
+            const scoreResult = calculateGameScore(gameResult);
+            gameScore = scoreResult.score;
+            
+            // Show the advanced scoring overlay with detailed breakdown
+            showScoringOverlay(scoreResult);
           }
           
           // Add game over overlay with Submit Score button
@@ -1172,7 +1529,15 @@
           drawElement.className = "winner";
           drawElement.textContent = "STALEMATE";
           gameStatusElement.appendChild(drawElement);
-          gameScore = 1;
+          
+          // Calculate draw score if in AI mode
+          if (gameMode === "ai") {
+            const scoreResult = calculateGameScore("draw");
+            gameScore = scoreResult.score;
+            showScoringOverlay(scoreResult);
+          } else {
+            gameScore = 0;
+          }
           
           showGameOverOverlay("DRAW", "STALEMATE");
           
@@ -1182,7 +1547,15 @@
           drawElement.className = "winner";
           drawElement.textContent = "REPETITION";
           gameStatusElement.appendChild(drawElement);
-          gameScore = 1;
+          
+          // Calculate draw score if in AI mode
+          if (gameMode === "ai") {
+            const scoreResult = calculateGameScore("draw");
+            gameScore = scoreResult.score;
+            showScoringOverlay(scoreResult);
+          } else {
+            gameScore = 0;
+          }
           
           showGameOverOverlay("DRAW", "Same position repeated 3 times");
           
@@ -1192,7 +1565,15 @@
           drawElement.className = "winner";
           drawElement.textContent = "INSUFFICIENT MATERIAL";
           gameStatusElement.appendChild(drawElement);
-          gameScore = 1;
+          
+          // Calculate draw score if in AI mode
+          if (gameMode === "ai") {
+            const scoreResult = calculateGameScore("draw");
+            gameScore = scoreResult.score;
+            showScoringOverlay(scoreResult);
+          } else {
+            gameScore = 0;
+          }
           
           showGameOverOverlay("DRAW", "Insufficient material to checkmate");
           
@@ -1202,7 +1583,15 @@
           drawElement.className = "winner";
           drawElement.textContent = "DRAW";
           gameStatusElement.appendChild(drawElement);
-          gameScore = 1;
+          
+          // Calculate draw score if in AI mode
+          if (gameMode === "ai") {
+            const scoreResult = calculateGameScore("draw");
+            gameScore = scoreResult.score;
+            showScoringOverlay(scoreResult);
+          } else {
+            gameScore = 0;
+          }
           
           showGameOverOverlay("DRAW", "50 moves without a capture or pawn move");
           
@@ -1488,6 +1877,21 @@
         gameScore = 0;
         capturedPieces = { white: [], black: [] };
         
+        // Reset game-specific player stats for a fresh game
+        playerStats.capturedPieces = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+        playerStats.capturedPieceValue = 0;
+        playerStats.startTime = Date.now();
+        playerStats.consecutiveCaptures = 0;
+        playerStats.lastCaptureMove = -1;
+        playerStats.queenLost = false;
+        playerStats.checkmateWithPawn = false;
+        
+        // Reset current score display
+        const scoreValue = document.querySelector('.score-value');
+        if (scoreValue) {
+          scoreValue.textContent = "0";
+        }
+        
         // Clear PGN display
         const pgnOutput = document.getElementById("pgn-output");
         if (pgnOutput) {
@@ -1520,8 +1924,16 @@
       // Update Farcade score
       function updateFarcadeScore() {
         if (window.FarcadeSDK) {
+          // Get current session score from the score tracker display
+          const scoreTrackerValue = document.querySelector('.score-value');
+          const totalSessionScore = parseInt(scoreTrackerValue?.textContent || "0");
+          
+          // Calculate final score based on game result
+          const finalScore = gameScore > 0 ? gameScore : totalSessionScore;
+          
+          // Submit the final score to Farcade
           window.FarcadeSDK.singlePlayer.actions.gameOver({
-            score: gameScore,
+            score: finalScore,
           });
         }
       }
@@ -1897,6 +2309,410 @@
       
       // Initialize welcome screen with current settings
       updateWelcomeScreen();
+
+      // Scoring System Functions
+      
+      // Start tracking game time
+      function startGameTimer() {
+        playerStats.startTime = Date.now();
+      }
+      
+      // Calculate time elapsed in minutes
+      function getGameTimeInMinutes() {
+        if (!playerStats.startTime) return 0;
+        const timeElapsed = (Date.now() - playerStats.startTime) / (1000 * 60); // Convert ms to minutes
+        return timeElapsed;
+      }
+      
+      // Show a score notification
+      function showScoreNotification(text, points) {
+        const scoreNotification = document.getElementById('score-notification');
+        const scoreValue = document.querySelector('.score-value');
+        
+        // Update current score display
+        let currentScore = parseInt(scoreValue.textContent) || 0;
+        currentScore += points;
+        scoreValue.textContent = currentScore;
+        
+        // Show notification
+        const prefix = points > 0 ? '+' : '';
+        scoreNotification.textContent = `${text} ${prefix}${points}`;
+        
+        // Reset animation
+        scoreNotification.style.animation = 'none';
+        scoreNotification.offsetHeight; // Trigger reflow
+        scoreNotification.style.animation = 'fadeUp 1s ease-out forwards';
+      }
+      
+      // Calculate and update score after a game
+      function calculateGameScore(gameResult) {
+        let score = 0;
+        let scoreBreakdown = [];
+        let achievementsEarned = [];
+        const totalMoves = chess.history().length;
+        const timeSpent = getGameTimeInMinutes();
+        
+        // Only calculate score for AI games
+        if (gameMode !== "ai") return { score: 0, breakdown: [] };
+        
+        // 1. Base points for game results
+        if (gameResult === "win") {
+          score += scoringSystem.base.win;
+          scoreBreakdown.push({
+            description: "Base (Win)",
+            points: scoringSystem.base.win
+          });
+          playerStats.wins++;
+          playerStats.currentWinStreak++;
+        } else if (gameResult === "draw") {
+          score += scoringSystem.base.draw;
+          scoreBreakdown.push({
+            description: "Base (Draw)",
+            points: scoringSystem.base.draw
+          });
+          playerStats.draws++;
+          playerStats.currentWinStreak = 0;
+        } else {
+          score += scoringSystem.base.loss;
+          scoreBreakdown.push({
+            description: "Base (Loss)",
+            points: scoringSystem.base.loss
+          });
+          playerStats.losses++;
+          playerStats.currentWinStreak = 0;
+          
+          // Apply early loss penalty if applicable
+          if (totalMoves < 15 && gameResult === "loss") {
+            score += scoringSystem.penalties.earlyLoss;
+            scoreBreakdown.push({
+              description: "Early Loss Penalty",
+              points: scoringSystem.penalties.earlyLoss
+            });
+          }
+        }
+        
+        // Update highest win streak
+        if (playerStats.currentWinStreak > playerStats.highestWinStreak) {
+          playerStats.highestWinStreak = playerStats.currentWinStreak;
+        }
+        
+        // 2. Bonuses for quick and efficient play
+        if (gameResult === "win") {
+          if (totalMoves < 20) {
+            score += scoringSystem.quickPlay.movesUnder20;
+            scoreBreakdown.push({
+              description: "Quick Win (under 20 moves)",
+              points: scoringSystem.quickPlay.movesUnder20
+            });
+            playerStats.quickWinsUnder30Moves++;
+          } else if (totalMoves < 30) {
+            score += scoringSystem.quickPlay.movesUnder30;
+            scoreBreakdown.push({
+              description: "Quick Win (under 30 moves)",
+              points: scoringSystem.quickPlay.movesUnder30
+            });
+            playerStats.quickWinsUnder30Moves++;
+          }
+          
+          if (timeSpent < 5) {
+            score += scoringSystem.quickPlay.timeUnder5Min;
+            scoreBreakdown.push({
+              description: "Quick Win (under 5 minutes)",
+              points: scoringSystem.quickPlay.timeUnder5Min
+            });
+          }
+        }
+        
+        // 3. Calculate capture rewards
+        const capturePoints = playerStats.capturedPieceValue;
+        if (capturePoints > 0) {
+          score += capturePoints;
+          
+          // Create a description of captures
+          const captureDesc = Object.entries(playerStats.capturedPieces)
+            .filter(([piece, count]) => count > 0)
+            .map(([piece, count]) => {
+              const pieceName = {
+                'p': 'Pawn',
+                'n': 'Knight',
+                'b': 'Bishop',
+                'r': 'Rook',
+                'q': 'Queen'
+              }[piece];
+              return `${pieceName}${count > 1 ? ` x${count}` : ''}`;
+            })
+            .join(", ");
+          
+          scoreBreakdown.push({
+            description: `Captures (${captureDesc})`,
+            points: capturePoints
+          });
+        }
+        
+        // 4. Apply streak multipliers
+        let streakMultiplier = 1;
+        if (playerStats.currentWinStreak >= 10) {
+          streakMultiplier = scoringSystem.streaks.wins10;
+          scoreBreakdown.push({
+            description: "10+ Win Streak",
+            multiplier: scoringSystem.streaks.wins10
+          });
+        } else if (playerStats.currentWinStreak >= 5) {
+          streakMultiplier = scoringSystem.streaks.wins5;
+          scoreBreakdown.push({
+            description: "5+ Win Streak",
+            multiplier: scoringSystem.streaks.wins5
+          });
+        } else if (playerStats.currentWinStreak >= 3) {
+          streakMultiplier = scoringSystem.streaks.wins3;
+          scoreBreakdown.push({
+            description: "3+ Win Streak",
+            multiplier: scoringSystem.streaks.wins3
+          });
+        }
+        
+        // 5. Apply difficulty multiplier
+        const diffMultiplier = scoringSystem.difficultyMultiplier[aiDifficulty];
+        scoreBreakdown.push({
+          description: `Difficulty (${aiDifficulty.charAt(0).toUpperCase() + aiDifficulty.slice(1)})`,
+          multiplier: diffMultiplier
+        });
+        
+        // Apply all multipliers
+        const baseScore = score;
+        score = Math.round(baseScore * streakMultiplier * diffMultiplier);
+        
+        // 6. Check for achievements
+        // Unstoppable - 10 consecutive wins
+        if (playerStats.currentWinStreak >= 10 && 
+            !playerStats.achievements.includes("unstoppable")) {
+          playerStats.achievements.push("unstoppable");
+          achievementsEarned.push({
+            id: "unstoppable",
+            ...scoringSystem.achievements.unstoppable
+          });
+          score += scoringSystem.achievements.unstoppable.bonus;
+        }
+        
+        // Queen Protector - Win without losing Queen
+        if (gameResult === "win" && !playerStats.queenLost &&
+            !playerStats.achievements.includes("queenProtector")) {
+          playerStats.achievements.push("queenProtector");
+          achievementsEarned.push({
+            id: "queenProtector",
+            ...scoringSystem.achievements.queenProtector
+          });
+          score += scoringSystem.achievements.queenProtector.bonus;
+        }
+        
+        // Pawn Slayer - Deliver checkmate with a pawn
+        if (gameResult === "win" && playerStats.checkmateWithPawn &&
+            !playerStats.achievements.includes("pawnSlayer")) {
+          playerStats.achievements.push("pawnSlayer");
+          achievementsEarned.push({
+            id: "pawnSlayer",
+            ...scoringSystem.achievements.pawnSlayer
+          });
+          score += scoringSystem.achievements.pawnSlayer.bonus;
+        }
+        
+        // Speed Demon - Win 5 games within 30 moves
+        if (playerStats.quickWinsUnder30Moves >= 5 &&
+            !playerStats.achievements.includes("speedDemon")) {
+          playerStats.achievements.push("speedDemon");
+          achievementsEarned.push({
+            id: "speedDemon",
+            ...scoringSystem.achievements.speedDemon
+          });
+          score += scoringSystem.achievements.speedDemon.bonus;
+        }
+        
+        // Update total score
+        playerStats.totalScore += score;
+        playerStats.gamesPlayed++;
+        
+        // Save stats to localStorage
+        savePlayerStats();
+        
+        return {
+          score,
+          breakdown: scoreBreakdown,
+          achievements: achievementsEarned
+        };
+      }
+      
+      // Save player stats to localStorage
+      function savePlayerStats() {
+        try {
+          localStorage.setItem('ch3ss_playerStats', JSON.stringify(playerStats));
+        } catch (e) {
+          console.error("Could not save player stats:", e);
+        }
+      }
+      
+      // Load player stats from localStorage
+      function loadPlayerStats() {
+        try {
+          const savedStats = localStorage.getItem('ch3ss_playerStats');
+          if (savedStats) {
+            const parsedStats = JSON.parse(savedStats);
+            // Only copy over the properties we care about to avoid structure changes
+            playerStats.gamesPlayed = parsedStats.gamesPlayed || 0;
+            playerStats.wins = parsedStats.wins || 0;
+            playerStats.draws = parsedStats.draws || 0;
+            playerStats.losses = parsedStats.losses || 0;
+            playerStats.currentWinStreak = parsedStats.currentWinStreak || 0;
+            playerStats.highestWinStreak = parsedStats.highestWinStreak || 0;
+            playerStats.quickWinsUnder30Moves = parsedStats.quickWinsUnder30Moves || 0;
+            playerStats.totalScore = parsedStats.totalScore || 0;
+            playerStats.achievements = parsedStats.achievements || [];
+          }
+        } catch (e) {
+          console.error("Could not load player stats:", e);
+        }
+      }
+      
+      // Show the scoring overlay with detailed score breakdown
+      function showScoringOverlay(scoreResult) {
+        const scoringOverlay = document.getElementById('scoring-overlay');
+        const finalScoreDisplay = document.getElementById('final-score-display');
+        const scoreBreakdown = document.getElementById('score-breakdown');
+        const achievementsList = document.getElementById('achievements-list');
+        const playerStatsElement = document.getElementById('player-stats');
+        
+        // Set final score
+        finalScoreDisplay.textContent = scoreResult.score;
+        
+        // Generate score breakdown HTML
+        let breakdownHtml = '<table style="width:100%; border-collapse:collapse; margin:10px 0;">';
+        
+        // Add score components (additions)
+        scoreResult.breakdown.filter(item => item.points !== undefined).forEach(item => {
+          breakdownHtml += `
+            <tr>
+              <td>${item.description}</td>
+              <td style="text-align:right;">${item.points >= 0 ? '+' : ''}${item.points}</td>
+            </tr>
+          `;
+        });
+        
+        // Add multipliers
+        scoreResult.breakdown.filter(item => item.multiplier !== undefined).forEach(item => {
+          breakdownHtml += `
+            <tr>
+              <td>${item.description}</td>
+              <td style="text-align:right;">x${item.multiplier}</td>
+            </tr>
+          `;
+        });
+        
+        // Add total
+        breakdownHtml += `
+          <tr style="border-top: 1px solid #ff00ff80; margin-top:5px; padding-top:5px; color:#ff00ff; font-weight:bold;">
+            <td>TOTAL SCORE</td>
+            <td style="text-align:right;">${scoreResult.score}</td>
+          </tr>
+        `;
+        
+        breakdownHtml += '</table>';
+        scoreBreakdown.innerHTML = breakdownHtml;
+        
+        // Generate achievements HTML
+        if (scoreResult.achievements && scoreResult.achievements.length > 0) {
+          let achievementsHtml = '';
+          scoreResult.achievements.forEach(achievement => {
+            achievementsHtml += `
+              <div class="achievement-item">
+                <span class="achievement-title">${achievement.title}</span>
+                <span class="achievement-bonus">+${achievement.bonus}</span>
+                <div class="achievement-desc">${achievement.description}</div>
+              </div>
+            `;
+          });
+          achievementsList.innerHTML = achievementsHtml;
+        } else {
+          achievementsList.innerHTML = '<div style="text-align:center; opacity:0.7; font-style:italic;">No new achievements</div>';
+        }
+        
+        // Update player stats
+        playerStatsElement.innerHTML = `
+          <table style="width:100%; border-collapse:collapse; font-size:0.45rem;">
+            <tr>
+              <td>Games Played</td>
+              <td style="text-align:right;">${playerStats.gamesPlayed}</td>
+            </tr>
+            <tr>
+              <td>Wins / Draws / Losses</td>
+              <td style="text-align:right;">${playerStats.wins} / ${playerStats.draws} / ${playerStats.losses}</td>
+            </tr>
+            <tr>
+              <td>Current Win Streak</td>
+              <td style="text-align:right;">${playerStats.currentWinStreak}</td>
+            </tr>
+            <tr>
+              <td>Highest Win Streak</td>
+              <td style="text-align:right;">${playerStats.highestWinStreak}</td>
+            </tr>
+            <tr>
+              <td>Total Score</td>
+              <td style="text-align:right;">${playerStats.totalScore.toLocaleString()}</td>
+            </tr>
+          </table>
+        `;
+        
+        // Set up buttons
+        const closeButton = document.getElementById('close-scoring');
+        closeButton.addEventListener('click', () => {
+          scoringOverlay.classList.remove('active');
+        });
+        
+        const shareButton = document.getElementById('share-score');
+        shareButton.addEventListener('click', () => {
+          const shareText = `I scored ${scoreResult.score} points in CH3SS! My total score is now ${playerStats.totalScore.toLocaleString()} with ${playerStats.wins} wins!`;
+          
+          if (navigator.share) {
+            navigator.share({
+              title: 'My CH3SS Score',
+              text: shareText,
+              url: window.location.href
+            })
+            .catch(err => {
+              console.error('Share failed:', err);
+              // Fallback: copy to clipboard
+              navigator.clipboard.writeText(shareText).then(() => {
+                alert('Score copied to clipboard!');
+              });
+            });
+          } else {
+            // Fallback: copy to clipboard
+            navigator.clipboard.writeText(shareText).then(() => {
+              alert('Score copied to clipboard!');
+            });
+          }
+        });
+        
+        // Show overlay
+        scoringOverlay.classList.add('active');
+      }
+
+      // Setup difficulty selector
+      const difficultySelector = document.querySelector(".difficulty-selector");
+      
+      // Setup difficulty radio buttons
+      document.querySelectorAll('input[name="ai-difficulty"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          aiDifficulty = radio.value;
+          
+          // Update visuals
+          document.querySelectorAll('.difficulty-option').forEach(option => {
+            if (option.contains(radio)) {
+              option.classList.add('active');
+            } else {
+              option.classList.remove('active');
+            }
+          });
+        });
+      });
     </script>
   </body>
 </html>
