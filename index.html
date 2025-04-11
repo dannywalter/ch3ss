@@ -1756,6 +1756,14 @@
           // Reset the game state
           resetGame();
         });
+        
+        // Handle toggle_mute event
+        window.FarcadeSDK.on("toggle_mute", (data) => {
+          // Set muted state based on data.isMuted
+          isMuted = data.isMuted;
+          // No actual sounds in the game, but track the mute state
+          console.log("Game " + (isMuted ? "muted" : "unmuted"));
+        });
       }
 
       // Farcade SDK Integration
