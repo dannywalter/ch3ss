@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
     <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
     <style>
       /* Global Styles */
       *,
@@ -823,22 +824,11 @@
     </div>
 
     <script>
-      // Chess Game Logic
-
-      // Initial board state (8x8 grid)
-      // Uppercase = White pieces, Lowercase = Black pieces
-      // R=Rook, N=Knight, B=Bishop, Q=Queen, K=King, P=Pawn
-      const initialBoardState = [
-        ["r", "n", "b", "q", "k", "b", "n", "r"],
-        ["p", "p", "p", "p", "p", "p", "p", "p"],
-        [null, null, null, null, null, null, null, null],
-        [null, null, null, null, null, null, null, null],
-        [null, null, null, null, null, null, null, null],
-        [null, null, null, null, null, null, null, null],
-        ["P", "P", "P", "P", "P", "P", "P", "P"],
-        ["R", "N", "B", "Q", "K", "B", "N", "R"],
-      ];
-
+      // Chess Game Logic using chess.js
+      
+      // Create a new chess instance
+      let chess = new Chess();
+      
       // Unicode mapping for chess pieces
       const pieceMapping = {
         k: "♚",
@@ -856,50 +846,28 @@
       };
 
       // Game state variables
-      let moveHistory = []; // PGN-style move tracker
-      let boardState = JSON.parse(JSON.stringify(initialBoardState));
       let selectedPiece = null;
-      let currentPlayer = "white";
-      let gameStatus = "playing"; // playing, check, checkmate, draw
-      let drawReason = null; // null, "stalemate", "50move", "repetition"
       let validMoves = [];
-      let enPassantTarget = null;
-      let touchStartSquare = null;
-
+      let lastMove = {
+        from: null,
+        to: null,
+      };
+      
       // AI variables
       let gameMode = "ai"; // human, ai
       let aiColor = "black"; // AI will play as black by default
       let aiThinking = false; // Flag to prevent interactions while AI is thinking
-
+      
       // Farcade SDK variables
       let isMuted = false; // Track if sound is muted
       let gameScore = 0; // Track player's score
-
-      // Track last move for highlighting
-      let lastMove = {
-        from: null, // [row, col]
-        to: null, // [row, col]
-      };
-
-      // Track 50-move rule only counts moves since the last pawn move or capture
-      let halfMoveClock = 0;
-
-      let positionCounts = {}; // For threefold repetition
-
+      
       // Track captured pieces
       let capturedPieces = {
         white: [], // Pieces captured by white player
         black: [], // Pieces captured by black player
       };
-
-      // Track castling rights
-      let castlingRights = {
-        whiteKingSide: true,
-        whiteQueenSide: true,
-        blackKingSide: true,
-        blackQueenSide: true,
-      };
-
+      
       // DOM Elements
       const boardElement = document.getElementById("board");
       const currentPlayerElement = document.getElementById("current-player");
@@ -914,1026 +882,390 @@
       const blackScoreElement = document.getElementById("black-score");
 
       // Helper Functions
-
+      
       // Returns the color of a piece ('white', 'black', or null if empty)
       function getPieceColor(piece) {
         if (!piece) return null;
         return piece === piece.toUpperCase() ? "white" : "black";
       }
-
-      // Check if a move is within the board boundaries
-      function isInBounds(row, col) {
-        return row >= 0 && row < 8 && col >= 0 && col < 8;
+      
+      // Get piece notation from chess.js piece object
+      function getPieceNotation(piece) {
+        if (!piece) return null;
+        return piece.color === 'w' ? piece.type.toUpperCase() : piece.type.toLowerCase();
       }
-
-      // Check for Repetition Draw
-      function getBoardKey(boardState, currentPlayer) {
-        return JSON.stringify(boardState) + "_" + currentPlayer;
+      
+      // Convert algebraic notation (e.g., "e4") to row/col coordinates
+      function squareToCoords(square) {
+        const col = square.charCodeAt(0) - 'a'.charCodeAt(0);
+        const row = 8 - parseInt(square.charAt(1));
+        return [row, col];
       }
-
-      // Get all valid moves for a pawn
-      function getPawnMoves(row, col, piece, boardState, enPassantTarget) {
-        const moves = [];
-        const direction = getPieceColor(piece) === "white" ? -1 : 1;
-        const startRow = getPieceColor(piece) === "white" ? 6 : 1;
-
-        // Move forward one square
-        if (isInBounds(row + direction, col) && boardState[row + direction][col] === null) {
-          moves.push([row + direction, col]);
-
-          // Move forward two squares from starting position
-          if (
-            row === startRow &&
-            isInBounds(row + 2 * direction, col) &&
-            boardState[row + 2 * direction][col] === null
-          ) {
-            moves.push([row + 2 * direction, col]);
-          }
-        }
-
-        // Capture diagonally
-        const captureDirections = [
-          [direction, -1],
-          [direction, 1],
-        ];
-        for (const [dr, dc] of captureDirections) {
-          const newRow = row + dr;
-          const newCol = col + dc;
-
-          if (isInBounds(newRow, newCol)) {
-            const targetPiece = boardState[newRow][newCol];
-            if (targetPiece && getPieceColor(targetPiece) !== getPieceColor(piece)) {
-              moves.push([newRow, newCol]);
-            }
-
-            // En passant capture
-            if (enPassantTarget && newRow === enPassantTarget[0] && newCol === enPassantTarget[1]) {
-              moves.push([newRow, newCol]);
-            }
-          }
-        }
-
-        return moves;
+      
+      // Convert row/col coordinates to algebraic notation
+      function coordsToSquare(row, col) {
+        const file = String.fromCharCode('a'.charCodeAt(0) + col);
+        const rank = 8 - row;
+        return file + rank;
       }
-
-      // Get all valid moves for a knight
-      function getKnightMoves(row, col, piece, boardState) {
-        const moves = [];
-        const directions = [
-          [-2, -1],
-          [-2, 1],
-          [-1, -2],
-          [-1, 2],
-          [1, -2],
-          [1, 2],
-          [2, -1],
-          [2, 1],
-        ];
-
-        for (const [dr, dc] of directions) {
-          const newRow = row + dr;
-          const newCol = col + dc;
-
-          if (isInBounds(newRow, newCol)) {
-            const targetPiece = boardState[newRow][newCol];
-            if (!targetPiece || getPieceColor(targetPiece) !== getPieceColor(piece)) {
-              moves.push([newRow, newCol]);
-            }
-          }
-        }
-
-        return moves;
-      }
-
-      // Get all valid moves for a bishop
-      function getBishopMoves(row, col, piece, boardState) {
-        const moves = [];
-        const directions = [
-          [-1, -1],
-          [-1, 1],
-          [1, -1],
-          [1, 1],
-        ];
-
-        for (const [dr, dc] of directions) {
-          let newRow = row + dr;
-          let newCol = col + dc;
-
-          while (isInBounds(newRow, newCol)) {
-            const targetPiece = boardState[newRow][newCol];
-
-            if (!targetPiece) {
-              moves.push([newRow, newCol]);
-            } else {
-              if (getPieceColor(targetPiece) !== getPieceColor(piece)) {
-                moves.push([newRow, newCol]);
-              }
-              break; // Stop after capture
-            }
-
-            newRow += dr;
-            newCol += dc;
-          }
-        }
-
-        return moves;
-      }
-
-      // Get all valid moves for a rook
-      function getRookMoves(row, col, piece, boardState) {
-        const moves = [];
-        const directions = [
-          [-1, 0],
-          [1, 0],
-          [0, -1],
-          [0, 1],
-        ];
-
-        for (const [dr, dc] of directions) {
-          let newRow = row + dr;
-          let newCol = col + dc;
-
-          while (isInBounds(newRow, newCol)) {
-            const targetPiece = boardState[newRow][newCol];
-
-            if (!targetPiece) {
-              moves.push([newRow, newCol]);
-            } else {
-              if (getPieceColor(targetPiece) !== getPieceColor(piece)) {
-                moves.push([newRow, newCol]);
-              }
-              break; // Stop after capture
-            }
-
-            newRow += dr;
-            newCol += dc;
-          }
-        }
-
-        return moves;
-      }
-
-      // Get all valid moves for a queen (combines bishop and rook moves)
-      function getQueenMoves(row, col, piece, boardState) {
-        return [...getBishopMoves(row, col, piece, boardState), ...getRookMoves(row, col, piece, boardState)];
-      }
-
-      // Get all valid moves for a king
-      function getKingMoves(row, col, piece, boardState) {
-        const moves = [];
-        const directions = [
-          [-1, -1],
-          [-1, 0],
-          [-1, 1],
-          [0, -1],
-          [0, 1],
-          [1, -1],
-          [1, 0],
-          [1, 1],
-        ];
-
-        // Regular king moves
-        for (const [dr, dc] of directions) {
-          const newRow = row + dr;
-          const newCol = col + dc;
-
-          if (isInBounds(newRow, newCol)) {
-            const targetPiece = boardState[newRow][newCol];
-            if (!targetPiece || getPieceColor(targetPiece) !== getPieceColor(piece)) {
-              moves.push([newRow, newCol]);
-            }
-          }
-        }
-
-        // Castling moves
-        const isWhite = getPieceColor(piece) === "white";
-
-        // Kingside castling
-        if ((isWhite && castlingRights.whiteKingSide) || (!isWhite && castlingRights.blackKingSide)) {
-          if (boardState[row][col + 1] === null && boardState[row][col + 2] === null) {
-            if (
-              !isInCheck(currentPlayer, boardState) &&
-              !wouldBeInCheck(row, col, row, col + 1, piece, boardState) &&
-              !wouldBeInCheck(row, col, row, col + 2, piece, boardState)
-            ) {
-              moves.push([row, col + 2]);
-            }
-          }
-        }
-
-        // Queenside castling
-        if ((isWhite && castlingRights.whiteQueenSide) || (!isWhite && castlingRights.blackQueenSide)) {
-          if (
-            boardState[row][col - 1] === null &&
-            boardState[row][col - 2] === null &&
-            boardState[row][col - 3] === null
-          ) {
-            if (
-              !isInCheck(currentPlayer, boardState) &&
-              !wouldBeInCheck(row, col, row, col - 1, piece, boardState) &&
-              !wouldBeInCheck(row, col, row, col - 2, piece, boardState)
-            ) {
-              moves.push([row, col - 2]);
-            }
-          }
-        }
-
-        return moves;
-      }
-
-      // Get all valid moves for a piece
-      function getValidMoves(row, col, piece, boardState, enPassantTarget = null) {
-        if (!piece) return [];
-
-        const pieceType = piece.toLowerCase();
-
-        switch (pieceType) {
-          case "p":
-            return getPawnMoves(row, col, piece, boardState, enPassantTarget);
-          case "n":
-            return getKnightMoves(row, col, piece, boardState);
-          case "b":
-            return getBishopMoves(row, col, piece, boardState);
-          case "r":
-            return getRookMoves(row, col, piece, boardState);
-          case "q":
-            return getQueenMoves(row, col, piece, boardState);
-          case "k":
-            return getKingMoves(row, col, piece, boardState);
-          default:
-            return [];
-        }
-      }
-
-      // Check if a move would result in check
-      function wouldBeInCheck(fromRow, fromCol, toRow, toCol, piece, boardState) {
-        // Create a copy of the board with the move applied
-        const testBoard = JSON.parse(JSON.stringify(boardState));
-        testBoard[toRow][toCol] = piece;
-        testBoard[fromRow][fromCol] = null;
-
-        // Check if the king would be in check after this move
-        return isInCheck(getPieceColor(piece), testBoard);
-      }
-
-      // Find the king's position for a given color
-      function findKing(color, boardState) {
-        const kingSymbol = color === "white" ? "K" : "k";
-
-        for (let row = 0; row < 8; row++) {
-          for (let col = 0; col < 8; col++) {
-            if (boardState[row][col] === kingSymbol) {
-              return [row, col];
-            }
-          }
-        }
-
-        return null; // King not found (shouldn't happen in a valid game)
-      }
-
+      
       // Debugging function
       function debugLog(message, data = null) {
         const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
         console.log(`[${timestamp}] ${message}`, data ? data : "");
       }
-
-      // Direct check detection without using move validation
-      function isSquareAttacked(row, col, byColor, boardState) {
-        // --- CORRECTED Pawn Attack Check V2 ---
-        // Check if the target square (row, col) is attacked by a pawn of 'byColor'
-        let attackingPawnRow;
-        let pawnToFind;
-
-        if (byColor === "white") {
-          // White pawns ('P') attack diagonally "forward" from their perspective,
-          // which means a DECREASING row index from the board's perspective.
-          // Therefore, if square (row, col) is attacked by a White Pawn,
-          // that pawn must be on the row BELOW it (row + 1).
-          attackingPawnRow = row + 1;
-          pawnToFind = "P";
-        } else {
-          // byColor === 'black'
-          // Black pawns ('p') attack diagonally "forward" from their perspective,
-          // which means an INCREASING row index from the board's perspective.
-          // Therefore, if square (row, col) is attacked by a Black Pawn,
-          // that pawn must be on the row ABOVE it (row - 1).
-          attackingPawnRow = row - 1;
-          pawnToFind = "p";
-        }
-
-        // Check the two diagonal squares where an attacking pawn of the correct color could be
-        const potentialPawnCols = [col - 1, col + 1];
-
-        for (const attackingPawnCol of potentialPawnCols) {
-          if (isInBounds(attackingPawnRow, attackingPawnCol)) {
-            const piece = boardState[attackingPawnRow][attackingPawnCol];
-            if (piece === pawnToFind) {
-              // Found a pawn of the correct color in the correct attacking position
-              debugLog(
-                `Square ${row},${col} is attacked by pawn ${pawnToFind} at ${attackingPawnRow},${attackingPawnCol}`,
-              );
-              return true; // Square IS attacked by a pawn
-            }
-          }
-        }
-        // --- End of CORRECTED Pawn Attack Check V2 ---
-
-        // Check knight attacks
-        const knightMoves = [
-          [-2, -1],
-          [-2, 1],
-          [-1, -2],
-          [-1, 2],
-          [1, -2],
-          [1, 2],
-          [2, -1],
-          [2, 1],
-        ];
-
-        for (const [dr, dc] of knightMoves) {
-          const r = row + dr;
-          const c = col + dc;
-          if (isInBounds(r, c)) {
-            const piece = boardState[r][c];
-            if (piece && piece.toLowerCase() === "n" && getPieceColor(piece) === byColor) {
-              debugLog(`Square ${row},${col} is attacked by knight at ${r},${c}`);
-              return true;
-            }
-          }
-        }
-
-        // Check diagonal attacks (bishop/queen)
-        const bishopDirections = [
-          [-1, -1],
-          [-1, 1],
-          [1, -1],
-          [1, 1],
-        ];
-        for (const [dr, dc] of bishopDirections) {
-          let r = row + dr;
-          let c = col + dc;
-          while (isInBounds(r, c)) {
-            const piece = boardState[r][c];
-            if (piece) {
-              if (getPieceColor(piece) === byColor && (piece.toLowerCase() === "b" || piece.toLowerCase() === "q")) {
-                debugLog(`Square ${row},${col} is attacked by bishop/queen at ${r},${c}`);
-                return true;
-              }
-              break; // Stop at first piece encountered in this direction
-            }
-            r += dr;
-            c += dc;
-          }
-        }
-
-        // Check horizontal/vertical attacks (rook/queen)
-        const rookDirections = [
-          [-1, 0],
-          [1, 0],
-          [0, -1],
-          [0, 1],
-        ];
-        for (const [dr, dc] of rookDirections) {
-          let r = row + dr;
-          let c = col + dc;
-          while (isInBounds(r, c)) {
-            const piece = boardState[r][c];
-            if (piece) {
-              if (getPieceColor(piece) === byColor && (piece.toLowerCase() === "r" || piece.toLowerCase() === "q")) {
-                debugLog(`Square ${row},${col} is attacked by rook/queen at ${r},${c}`);
-                return true;
-              }
-              break; // Stop at first piece encountered in this direction
-            }
-            r += dr;
-            c += dc;
-          }
-        }
-
-        // Check king attacks (for adjacent squares)
-        const kingMoves = [
-          [-1, -1],
-          [-1, 0],
-          [-1, 1],
-          [0, -1],
-          [0, 1],
-          [1, -1],
-          [1, 0],
-          [1, 1],
-        ];
-
-        for (const [dr, dc] of kingMoves) {
-          const r = row + dr;
-          const c = col + dc;
-          if (isInBounds(r, c)) {
-            const piece = boardState[r][c];
-            if (piece && piece.toLowerCase() === "k" && getPieceColor(piece) === byColor) {
-              debugLog(`Square ${row},${col} is attacked by king at ${r},${c}`);
-              return true;
-            }
-          }
-        }
-
-        // If no attacks found
-        return false;
-      }
-
-      function isInCheck(playerColor, boardState) {
-        debugLog(`Checking if ${playerColor} is in check`);
-        const kingPosition = findKing(playerColor, boardState);
-        if (!kingPosition) {
-          debugLog("No king found!");
-          return false;
-        }
-
-        const [kingRow, kingCol] = kingPosition;
-        debugLog(`King found at row: ${kingRow}, col: ${kingCol}`);
-
-        const opponentColor = playerColor === "white" ? "black" : "white";
-        const isAttacked = isSquareAttacked(kingRow, kingCol, opponentColor, boardState);
-
-        debugLog(`King at ${kingRow},${kingCol} is${isAttacked ? "" : " not"} in check`);
-        return isAttacked;
-      }
-
-      // Check if a player is in checkmate
-      function isCheckmate(playerColor, boardState) {
-        // First, check if the player is in check
-        if (!isInCheck(playerColor, boardState)) {
-          return false;
-        }
-
-        // Try all possible moves for all of the player's pieces
+      
+      // Convert chess.js board to our UI representation
+      function convertChessJsBoard() {
+        const board = chess.board();
+        const convertedBoard = Array(8).fill().map(() => Array(8).fill(null));
+        
         for (let row = 0; row < 8; row++) {
           for (let col = 0; col < 8; col++) {
-            const piece = boardState[row][col];
-
-            if (piece && getPieceColor(piece) === playerColor) {
-              const moves = getValidMoves(row, col, piece, boardState, enPassantTarget);
-
-              // For each move, check if it gets the player out of check
-              for (const [toRow, toCol] of moves) {
-                if (!wouldBeInCheck(row, col, toRow, toCol, piece, boardState)) {
-                  return false; // Found a legal move that gets out of check
-                }
-              }
-            }
-          }
-        }
-
-        // No legal moves found, it's checkmate
-        return true;
-      }
-
-      // Render the chessboard on the screen
-      function renderBoard() {
-        boardElement.innerHTML = "";
-
-        for (let row = 0; row < 8; row++) {
-          const rowElement = document.createElement("div");
-          rowElement.className = "row";
-
-          for (let col = 0; col < 8; col++) {
-            const squareElement = document.createElement("div");
-            const isLightSquare = (row + col) % 2 === 0;
-
-            squareElement.className = `square ${isLightSquare ? "light-square" : "dark-square"}`;
-            squareElement.dataset.row = row;
-            squareElement.dataset.col = col;
-
-            const piece = boardState[row][col];
+            const piece = board[row][col];
             if (piece) {
-              const pieceElement = document.createElement("div");
-              const pieceColor = getPieceColor(piece);
-
-              pieceElement.className = `piece ${pieceColor}-piece`;
-              pieceElement.textContent = pieceMapping[piece];
-              squareElement.appendChild(pieceElement);
-            }
-
-            // Visual highlights
-            if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
-              squareElement.classList.add("selected");
-            }
-
-            if (validMoves.some(([r, c]) => r === row && c === col)) {
-              squareElement.classList.add("valid-move");
-            }
-
-            if (lastMove.from && row === lastMove.from[0] && col === lastMove.from[1]) {
-              squareElement.classList.add("last-move-from");
-            }
-
-            if (lastMove.to && row === lastMove.to[0] && col === lastMove.to[1]) {
-              squareElement.classList.add("last-move-to");
-            }
-
-            squareElement.addEventListener("click", () => handleSquareClick(row, col));
-            rowElement.appendChild(squareElement);
-          }
-
-          boardElement.appendChild(rowElement);
-        }
-
-        updateGameStatus();
-        updateCapturedPieces();
-      }
-
-      // Function to evaluate safety of a move by checking attacks and defenders
-      function evaluateSquareSafety(toRow, toCol, piece, boardState) {
-        const pieceColor = getPieceColor(piece);
-        const opponentColor = pieceColor === "white" ? "black" : "white";
-        
-        // Large penalty for moving to a square attacked by a lower value piece
-        const pieceValue = pieceValues[piece.toLowerCase()];
-        let safetyScore = 0;
-        
-        // If square is attacked by opponent
-        if (isSquareAttacked(toRow, toCol, opponentColor, boardState)) {
-          // Get all opponent pieces that attack this square
-          for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-              const attackingPiece = boardState[row][col];
-              if (attackingPiece && getPieceColor(attackingPiece) === opponentColor) {
-                const moves = getValidMoves(row, col, attackingPiece, boardState);
-                if (moves.some(([r, c]) => r === toRow && c === toCol)) {
-                  const attackerValue = pieceValues[attackingPiece.toLowerCase()];
-                  if (attackerValue < pieceValue) {
-                    // Bigger penalty for being attacked by cheaper piece
-                    safetyScore -= (pieceValue - attackerValue) * 2;
-                  } else {
-                    // Smaller penalty for being attacked by more expensive piece
-                    safetyScore -= 1;
-                  }
-                }
-              }
+              // Convert chess.js piece to our notation (uppercase for white, lowercase for black)
+              convertedBoard[row][col] = piece.color === 'w' ? piece.type.toUpperCase() : piece.type.toLowerCase();
             }
           }
         }
         
-        return safetyScore;
+        return convertedBoard;
       }
-
-      // Evaluate the current board state
-      function evaluateBoard(boardState) {
-        // Material score - main component of evaluation
-        const materialScore = calculateMaterialScore(boardState);
-
-        // Position score - small bonus for positional advantages
-        const positionScore = calculatePositionScore(boardState);
-
-        // Piece safety score - penalize pieces under attack
-        let safetyScore = 0;
-        for (let row = 0; row < 8; row++) {
-          for (let col = 0; col < 8; col++) {
-            const piece = boardState[row][col];
-            if (piece) {
-              safetyScore += evaluateSquareSafety(row, col, piece, boardState);
-            }
-          }
-        }
-
-        // Check and checkmate detection
-        let checkScore = 0;
-
-        // Check if white is in check or checkmate
-        if (isInCheck("white", boardState)) {
-          const whiteMoves = getAllPossibleMoves("white", boardState);
-          if (whiteMoves.length === 0) {
-            checkScore = -100; // White is checkmated
-          } else {
-            checkScore = -2; // White is in check
-          }
-        }
-
-        // Check if black is in check or checkmate
-        if (isInCheck("black", boardState)) {
-          const blackMoves = getAllPossibleMoves("black", boardState);
-          if (blackMoves.length === 0) {
-            checkScore = 100; // Black is checkmated
-          } else {
-            checkScore = 2; // Black is in check
-          }
-        }
-
-        // Combine scores with appropriate weights
-        return materialScore * 10 + positionScore * 3 + safetyScore * 5 + checkScore;
+      
+      // Function to get valid moves for a specific square
+      function getValidMovesForSquare(row, col) {
+        const square = coordsToSquare(row, col);
+        const moves = chess.moves({
+          square: square,
+          verbose: true
+        });
+        
+        // Convert moves to our format [row, col]
+        return moves.map(move => squareToCoords(move.to));
       }
-
-      // Function to move a piece from one square to another
-      // This is used by both human player moves and AI moves
-      function movePiece(fromRow, fromCol, toRow, toCol) {
-        debugLog(`Attempting move from (${fromRow},${fromCol}) to (${toRow},${toCol})`);
-        const piece = boardState[fromRow][fromCol];
-
-        if (!piece) {
-          debugLog("No piece at source position");
-          return false;
-        }
-
-        debugLog(`Moving piece: ${piece}`);
-
-        // Create a copy of the board for the new state
-        const newBoardState = JSON.parse(JSON.stringify(boardState));
-
-        // Check if a piece is being captured
-        const capturedPiece = newBoardState[toRow][toCol];
-        if (capturedPiece) {
-          // Add to the captured pieces list
-          if (currentPlayer === "white") {
+      
+      // Update captured pieces based on move
+      function updateCapturedPiecesFromMove(move) {
+        if (move.captured) {
+          const capturedPiece = move.color === 'w' ? move.captured.toLowerCase() : move.captured.toUpperCase();
+          if (move.color === 'w') {
             capturedPieces.white.push(capturedPiece);
           } else {
             capturedPieces.black.push(capturedPiece);
           }
         }
-
-        // Reset 50-move rule counter if pawn move or capture, else increment
-        if (piece.toLowerCase() === "p" || capturedPiece) {
-          halfMoveClock = 0;
-        } else {
-          halfMoveClock++;
-        }
-
-        // Move the piece
-        newBoardState[toRow][toCol] = piece;
-        newBoardState[fromRow][fromCol] = null;
-
-        // Handle castling
-        if (piece.toLowerCase() === "k" && Math.abs(toCol - fromCol) === 2) {
-          // Update castling rights
-          if (getPieceColor(piece) === "white") {
-            castlingRights.whiteKingSide = false;
-            castlingRights.whiteQueenSide = false;
-          } else {
-            castlingRights.blackKingSide = false;
-            castlingRights.blackQueenSide = false;
-          }
-
-          // Kingside castling
-          if (toCol > fromCol) {
-            const rookPiece = newBoardState[toRow][7];
-            newBoardState[toRow][5] = rookPiece; // Move rook
-            newBoardState[toRow][7] = null; // Remove from original position
-          }
-          // Queenside castling
-          else {
-            const rookPiece = newBoardState[toRow][0];
-            newBoardState[toRow][3] = rookPiece; // Move rook
-            newBoardState[toRow][0] = null; // Remove from original position
-          }
-        }
-
-        // Update castling rights when rooks or kings move
-        if (piece.toLowerCase() === "k") {
-          if (getPieceColor(piece) === "white") {
-            castlingRights.whiteKingSide = false;
-            castlingRights.whiteQueenSide = false;
-          } else {
-            castlingRights.blackKingSide = false;
-            castlingRights.blackQueenSide = false;
-          }
-        } else if (piece.toLowerCase() === "r") {
-          if (getPieceColor(piece) === "white") {
-            if (fromCol === 0) castlingRights.whiteQueenSide = false;
-            if (fromCol === 7) castlingRights.whiteKingSide = false;
-          } else {
-            if (fromCol === 0) castlingRights.blackQueenSide = false;
-            if (fromCol === 7) castlingRights.blackKingSide = false;
-          }
-        }
-
-        // Handle en passant capture
-        if (
-          piece.toLowerCase() === "p" &&
-          enPassantTarget &&
-          toRow === enPassantTarget[0] &&
-          toCol === enPassantTarget[1]
-        ) {
-          // Remove the pawn that was captured via en passant
-          const capturedPawnRow = currentPlayer === "white" ? toRow + 1 : toRow - 1;
-
-          // Add the captured en passant pawn to captured pieces
-          const capturedPawn = newBoardState[capturedPawnRow][toCol];
-          if (capturedPawn) {
-            if (currentPlayer === "white") {
-              capturedPieces.white.push(capturedPawn);
-            } else {
-              capturedPieces.black.push(capturedPawn);
-            }
-          }
-
-          newBoardState[capturedPawnRow][toCol] = null;
-        }
-
-        // Set new en passant target if a pawn moved two squares
-        if (piece.toLowerCase() === "p" && Math.abs(toRow - fromRow) === 2) {
-          // The en passant target is the square that was skipped
-          const enPassantRow = (fromRow + toRow) / 2;
-          enPassantTarget = [enPassantRow, toCol];
-        } else {
-          enPassantTarget = null; // Clear en passant target for other moves
-        }
-
-        // Handle pawn promotion
-        if (piece.toLowerCase() === "p" && (toRow === 0 || toRow === 7)) {
-          // Auto-promote to queen for simplicity
-          newBoardState[toRow][toCol] = currentPlayer === "white" ? "Q" : "q";
-        }
-
-        // Update board state
-        boardState = newBoardState;
-
-        // Record move in PGN-like format
-        const cols = ["a", "b", "c", "d", "e", "f", "g", "h"];
-        const from = cols[fromCol] + (8 - fromRow);
-        const to = cols[toCol] + (8 - toRow);
-        const moveNotation = from + to;
-
-        moveHistory.push(moveNotation);
-
-        // Update PGN output after every move
-        const pgnOutput = document.getElementById("pgn-output");
-        if (pgnOutput) {
-          pgnOutput.textContent =
-            "PGN: " + moveHistory.map((m, i) => (i % 2 === 0 ? `${Math.floor(i / 2) + 1}.` : "") + m).join(" ");
-        }
-
-        // Store last move for highlighting
-        lastMove = {
-          from: [fromRow, fromCol],
-          to: [toRow, toCol],
-        };
-
-        // Switch to the other player
-        currentPlayer = currentPlayer === "white" ? "black" : "white";
-
-        // Track position for 3-fold repetition
-        const boardKey = getBoardKey(boardState, currentPlayer);
-        positionCounts[boardKey] = (positionCounts[boardKey] || 0) + 1;
-
-        // Check for 3-fold repetition
-        function isThreefoldRepetition() {
-          const boardKey = getBoardKey(boardState, currentPlayer);
-          return positionCounts[boardKey] >= 3;
-        }
-
-        // Check for 50-move rule
-        function isFiftyMoveRule() {
-          return halfMoveClock >= 100;
-        }
-
-        // Check for check or checkmate
-        const inCheck = isInCheck(currentPlayer, boardState);
-        debugLog(`Is ${currentPlayer} in check after move? ${inCheck}`);
-
-        if (isCheckmate(currentPlayer, boardState)) {
-          debugLog(`CHECKMATE detected for ${currentPlayer}`);
-          gameStatus = "checkmate";
-          drawReason = null;
-          // Show PGN in console and update display
-          console.log("PGN:", moveHistory.join(" "));
-
-          const pgnOutput = document.getElementById("pgn-output");
-          if (pgnOutput) {
-            pgnOutput.textContent = "PGN: " + moveHistory.join(" ");
-          }
-        } else if (isStalemate(currentPlayer, boardState)) {
-          gameStatus = "draw";
-          drawReason = "stalemate";
-        } else if (isFiftyMoveRule()) {
-          gameStatus = "draw";
-          drawReason = "50move";
-        } else if (isThreefoldRepetition()) {
-          gameStatus = "draw";
-          drawReason = "repetition";
-        } else if (isInCheck(currentPlayer, boardState)) {
-          debugLog(`CHECK detected for ${currentPlayer}`);
-          gameStatus = "check";
-        } else {
-          gameStatus = "playing";
-        }
-
-        // Check for stalemate
-        function isStalemate(playerColor, boardState) {
-          if (isInCheck(playerColor, boardState)) return false;
-
-          // Try all legal moves for the player
-          for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-              const piece = boardState[row][col];
-              if (piece && getPieceColor(piece) === playerColor) {
-                const moves = getValidMoves(row, col, piece, boardState, enPassantTarget);
-                const legalMoves = moves.filter(([toRow, toCol]) => {
-                  return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
-                });
-                if (legalMoves.length > 0) {
-                  return false; // At least one legal move exists
-                }
-              }
-            }
-          }
-
-          return true; // No legal moves and not in check
-        }
-
-        // Trigger haptic feedback when a piece is moved
-        triggerHapticFeedback();
-
-        // Update the UI
-        renderBoard();
-
-        // Return success
-        return true;
       }
 
+      // Render the chessboard on the screen
+      function renderBoard() {
+        boardElement.innerHTML = "";
+        
+        const boardState = convertChessJsBoard();
+        
+        for (let row = 0; row < 8; row++) {
+          const rowElement = document.createElement("div");
+          rowElement.className = "row";
+          
+          for (let col = 0; col < 8; col++) {
+            const squareElement = document.createElement("div");
+            const isLightSquare = (row + col) % 2 === 0;
+            
+            squareElement.className = `square ${isLightSquare ? "light-square" : "dark-square"}`;
+            squareElement.dataset.row = row;
+            squareElement.dataset.col = col;
+            
+            const piece = boardState[row][col];
+            if (piece) {
+              const pieceElement = document.createElement("div");
+              const pieceColor = getPieceColor(piece);
+              
+              pieceElement.className = `piece ${pieceColor}-piece`;
+              pieceElement.textContent = pieceMapping[piece];
+              squareElement.appendChild(pieceElement);
+            }
+            
+            // Visual highlights
+            if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
+              squareElement.classList.add("selected");
+            }
+            
+            if (validMoves.some(([r, c]) => r === row && c === col)) {
+              squareElement.classList.add("valid-move");
+            }
+            
+            if (lastMove.from && row === lastMove.from[0] && col === lastMove.from[1]) {
+              squareElement.classList.add("last-move-from");
+            }
+            
+            if (lastMove.to && row === lastMove.to[0] && col === lastMove.to[1]) {
+              squareElement.classList.add("last-move-to");
+            }
+            
+            squareElement.addEventListener("click", () => handleSquareClick(row, col));
+            rowElement.appendChild(squareElement);
+          }
+          
+          boardElement.appendChild(rowElement);
+        }
+        
+        updateGameStatus();
+        updateCapturedPieces();
+      }
+      
       // Handle square clicks for moving pieces
       function handleSquareClick(row, col) {
-        // Don't allow moves if the game is in checkmate
-        if (gameStatus === "checkmate") {
+        // Don't allow moves if the game is over or if it's AI's turn and AI is thinking
+        if (chess.game_over() || (gameMode === "ai" && chess.turn() === (aiColor === "black" ? 'b' : 'w') && aiThinking)) {
           return;
         }
-
-        // If no piece is selected, try to select one
+        
+        const currentPlayerColor = chess.turn() === 'w' ? "white" : "black";
+        const square = coordsToSquare(row, col);
+        const piece = chess.get(square);
+        
+        // If no piece is selected yet, try to select one
         if (!selectedPiece) {
-          const piece = boardState[row][col];
-
           // Can only select pieces of the current player's color
-          if (piece && getPieceColor(piece) === currentPlayer) {
-            selectedPiece = { row, col, piece };
-
+          if (piece && piece.color === chess.turn()) {
+            selectedPiece = { row, col, piece: getPieceNotation(piece), square };
+            
             // Calculate valid moves for the selected piece
-            validMoves = getValidMoves(row, col, piece, boardState, enPassantTarget).filter(([toRow, toCol]) => {
-              // Filter out moves that would put the king in check
-              return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
-            });
-
+            validMoves = getValidMovesForSquare(row, col);
+            
             renderBoard();
           }
           return;
         }
-
-        // If a piece is already selected
-        const { row: fromRow, col: fromCol, piece } = selectedPiece;
-
-        // Check if the clicked square is a valid move
-        const moveIndex = validMoves.findIndex(([r, c]) => r === row && c === col);
-
-        if (moveIndex >= 0) {
-          // Move the piece using the common function
-          movePiece(fromRow, fromCol, row, col);
-
-          // Clear selection and valid moves
-          selectedPiece = null;
-          validMoves = [];
-
-          // If the game is in AI mode and it's AI's turn, make the AI move
-          if (gameMode === "ai" && currentPlayer === aiColor && gameStatus !== "checkmate") {
-            makeAIMove();
+        
+        // If a piece is already selected, try to move it
+        const isValidMove = validMoves.some(([r, c]) => r === row && c === col);
+        
+        if (isValidMove) {
+          // Make the move
+          const moveResult = chess.move({
+            from: selectedPiece.square,
+            to: square,
+            promotion: 'q' // Auto-promote to queen for simplicity
+          });
+          
+          if (moveResult) {
+            // Update last move for highlighting
+            lastMove = {
+              from: squareToCoords(moveResult.from),
+              to: squareToCoords(moveResult.to)
+            };
+            
+            // Update captured pieces
+            updateCapturedPiecesFromMove(moveResult);
+            
+            // Trigger haptic feedback
+            triggerHapticFeedback();
+            
+            // Update PGN output
+            const pgnOutput = document.getElementById("pgn-output");
+            if (pgnOutput) {
+              pgnOutput.textContent = "PGN: " + chess.pgn();
+            }
+            
+            // Clear selection and valid moves
+            selectedPiece = null;
+            validMoves = [];
+            
+            // Render the updated board
+            renderBoard();
+            
+            // If the game is in AI mode and it's AI's turn, make the AI move
+            if (gameMode === "ai" && !chess.game_over() && chess.turn() === (aiColor === "black" ? 'b' : 'w')) {
+              makeAIMove();
+            }
           }
         } else {
-          // If the clicked square is not a valid move
-
           // If clicking on another one of the player's pieces, select that piece instead
-          const targetPiece = boardState[row][col];
-          if (targetPiece && getPieceColor(targetPiece) === currentPlayer) {
-            selectedPiece = { row, col, piece: targetPiece };
-            validMoves = getValidMoves(row, col, targetPiece, boardState, enPassantTarget).filter(([toRow, toCol]) => {
-              return !wouldBeInCheck(row, col, toRow, toCol, targetPiece, boardState);
-            });
+          if (piece && piece.color === chess.turn()) {
+            selectedPiece = { row, col, piece: getPieceNotation(piece), square };
+            validMoves = getValidMovesForSquare(row, col);
           } else {
             // Otherwise, deselect
             selectedPiece = null;
             validMoves = [];
           }
-
+          
           renderBoard();
         }
       }
-
-      // Piece values are defined later in the code
-
+      
       // Update the game status display
       function updateGameStatus() {
-        currentPlayerElement.textContent = currentPlayer.toUpperCase();
-        gameStatusElement.textContent = gameStatus.toUpperCase();
-
-        if (gameStatus === "checkmate") {
-          const winner = currentPlayer === "white" ? "BLACK" : "WHITE";
+        const currentTurn = chess.turn() === 'w' ? "WHITE" : "BLACK";
+        currentPlayerElement.textContent = currentTurn;
+        
+        if (chess.in_checkmate()) {
+          gameStatusElement.textContent = "CHECKMATE";
+          const winner = currentTurn === "WHITE" ? "BLACK" : "WHITE";
           const winnerElement = document.createElement("div");
           winnerElement.className = "winner";
           winnerElement.textContent = `${winner} WINS!`;
           gameStatusElement.appendChild(winnerElement);
-
+          
           // Calculate score for Farcade SDK
-          // 2 points for checkmate, 1 point for draw, 0 for loss
-          if (
-            (winner === "WHITE" && gameMode === "ai" && aiColor === "black") ||
-            (winner === "BLACK" && gameMode === "ai" && aiColor === "white")
-          ) {
+          if ((winner === "WHITE" && gameMode === "ai" && aiColor === "black") || 
+              (winner === "BLACK" && gameMode === "ai" && aiColor === "white")) {
             // Player won against AI
             gameScore = 2;
           } else if (gameMode === "ai") {
             // Player lost against AI
             gameScore = 0;
           }
-        }
-
-        if (gameStatus === "draw") {
+          
+          // Add game over overlay with Submit Score button
+          showGameOverOverlay("CHECKMATE", winner);
+          
+        } else if (chess.in_stalemate()) {
+          gameStatusElement.textContent = "DRAW";
           const drawElement = document.createElement("div");
           drawElement.className = "winner";
-
-          if (drawReason === "stalemate") {
-            drawElement.textContent = "STALEMATE";
-          } else if (drawReason === "50move") {
-            drawElement.textContent = "50 MOVES";
-          } else if (drawReason === "repetition") {
-            drawElement.textContent = "REPETITION";
-          } else {
-            drawElement.textContent = "DRAW";
-          }
-
+          drawElement.textContent = "STALEMATE";
           gameStatusElement.appendChild(drawElement);
           gameScore = 1;
-        }
-
-        // Add game over overlay with Submit Score button
-        if (gameStatus === "checkmate" || gameStatus === "draw") {
-          const overlay = document.createElement("div");
-          overlay.className = "checkmate-overlay";
-
-          const content = document.createElement("div");
-          content.style.display = "flex";
-          content.style.flexDirection = "column";
-          content.style.alignItems = "center";
-          content.style.gap = "10px";
-
-          const title = document.createElement("div");
-          title.className = "checkmate-text";
-          title.textContent = gameStatus === "checkmate" ? "CHECKMATE" : "DRAW";
-
-          const subtext = document.createElement("div");
-          subtext.className = "scoreboard-text";
-          if (gameStatus === "draw") {
-            if (drawReason === "50move") subtext.textContent = "50 moves without a capture or pawn move";
-            else if (drawReason === "repetition") subtext.textContent = "Same position repeated 3 times";
-            else if (drawReason === "stalemate") subtext.textContent = "Stalemate";
-          }
-
-          const buttonContainer = document.createElement("div");
-          buttonContainer.style.display = "flex";
-          buttonContainer.style.gap = "10px";
-
-          const newGameButton = document.createElement("button");
-          newGameButton.className = "modal-button";
-          newGameButton.textContent = "NEW GAME";
-          newGameButton.id = "new-game-checkmate";
-          newGameButton.addEventListener("click", resetGame);
-
-          const submitScoreButton = document.createElement("button");
-          submitScoreButton.className = "modal-button";
-          submitScoreButton.textContent = "SUBMIT SCORE";
-          submitScoreButton.addEventListener("click", () => {
-            // Call Farcade SDK gameOver
-            updateFarcadeScore();
-            // Remove Submit Score button after submission
-            submitScoreButton.style.display = "none";
-          });
-
-          content.appendChild(title);
-          if (subtext.textContent) content.appendChild(subtext);
-          buttonContainer.appendChild(newGameButton);
-          buttonContainer.appendChild(submitScoreButton);
-          content.appendChild(buttonContainer);
-          overlay.appendChild(content);
-          boardElement.appendChild(overlay);
-
-          triggerHapticFeedback();
+          
+          showGameOverOverlay("DRAW", "STALEMATE");
+          
+        } else if (chess.in_threefold_repetition()) {
+          gameStatusElement.textContent = "DRAW";
+          const drawElement = document.createElement("div");
+          drawElement.className = "winner";
+          drawElement.textContent = "REPETITION";
+          gameStatusElement.appendChild(drawElement);
+          gameScore = 1;
+          
+          showGameOverOverlay("DRAW", "Same position repeated 3 times");
+          
+        } else if (chess.insufficient_material()) {
+          gameStatusElement.textContent = "DRAW";
+          const drawElement = document.createElement("div");
+          drawElement.className = "winner";
+          drawElement.textContent = "INSUFFICIENT MATERIAL";
+          gameStatusElement.appendChild(drawElement);
+          gameScore = 1;
+          
+          showGameOverOverlay("DRAW", "Insufficient material to checkmate");
+          
+        } else if (chess.in_draw()) {
+          gameStatusElement.textContent = "DRAW";
+          const drawElement = document.createElement("div");
+          drawElement.className = "winner";
+          drawElement.textContent = "DRAW";
+          gameStatusElement.appendChild(drawElement);
+          gameScore = 1;
+          
+          showGameOverOverlay("DRAW", "50 moves without a capture or pawn move");
+          
+        } else if (chess.in_check()) {
+          gameStatusElement.textContent = "CHECK";
+        } else {
+          gameStatusElement.textContent = gameMode === "ai" ? "PLAYING vs AI" : "PLAYING";
         }
       }
-
+      
+      // Show Game Over Overlay
+      function showGameOverOverlay(title, subtext) {
+        const overlay = document.createElement("div");
+        overlay.className = "checkmate-overlay";
+        
+        const content = document.createElement("div");
+        content.style.display = "flex";
+        content.style.flexDirection = "column";
+        content.style.alignItems = "center";
+        content.style.gap = "10px";
+        
+        const titleElement = document.createElement("div");
+        titleElement.className = "checkmate-text";
+        titleElement.textContent = title;
+        
+        const subtextElement = document.createElement("div");
+        subtextElement.className = "scoreboard-text";
+        subtextElement.textContent = subtext;
+        
+        const buttonContainer = document.createElement("div");
+        buttonContainer.style.display = "flex";
+        buttonContainer.style.gap = "10px";
+        
+        const newGameButton = document.createElement("button");
+        newGameButton.className = "modal-button";
+        newGameButton.textContent = "NEW GAME";
+        newGameButton.id = "new-game-checkmate";
+        newGameButton.addEventListener("click", resetGame);
+        
+        const submitScoreButton = document.createElement("button");
+        submitScoreButton.className = "modal-button";
+        submitScoreButton.textContent = "SUBMIT SCORE";
+        submitScoreButton.addEventListener("click", () => {
+          // Disable the button immediately to prevent multiple clicks
+          submitScoreButton.disabled = true;
+          submitScoreButton.textContent = "SUBMITTING...";
+          
+          // Call Farcade SDK gameOver using the updateFarcadeScore function
+          updateFarcadeScore();
+          
+          // Create and show a confirmation message
+          const confirmationMsg = document.createElement("div");
+          confirmationMsg.className = "winner";
+          confirmationMsg.style.fontSize = "0.7rem";
+          confirmationMsg.style.marginTop = "10px";
+          confirmationMsg.textContent = "SCORE SUBMITTED!";
+          content.appendChild(confirmationMsg);
+          
+          // Hide the button
+          submitScoreButton.style.display = "none";
+          
+          // Trigger haptic feedback for confirmation
+          triggerHapticFeedback();
+        });
+        
+        content.appendChild(titleElement);
+        content.appendChild(subtextElement);
+        buttonContainer.appendChild(newGameButton);
+        buttonContainer.appendChild(submitScoreButton);
+        content.appendChild(buttonContainer);
+        overlay.appendChild(content);
+        boardElement.appendChild(overlay);
+        
+        triggerHapticFeedback();
+      }
+      
       // Calculate the score difference between captured pieces
       function calculateScoreDifference() {
+        const pieceValues = {
+          p: 1, // pawn
+          n: 3, // knight
+          b: 3, // bishop
+          r: 5, // rook
+          q: 9, // queen
+          k: 0, // king (not factored in material evaluation)
+        };
+        
         let whiteScore = 0;
         let blackScore = 0;
-
+        
         // Calculate score from captured pieces
         capturedPieces.white.forEach((piece) => {
           whiteScore += pieceValues[piece.toLowerCase()];
         });
-
+        
         capturedPieces.black.forEach((piece) => {
           blackScore += pieceValues[piece.toLowerCase()];
         });
-
+        
         return { whiteScore, blackScore };
       }
-
+      
       // Update the captured pieces display
       function updateCapturedPieces() {
         // Clear current display
         whiteCapturedElement.innerHTML = "";
         blackCapturedElement.innerHTML = "";
-
+        
         // Add each captured piece to the display
         capturedPieces.white.forEach((piece) => {
           const pieceSpan = document.createElement("span");
@@ -1941,17 +1273,17 @@
           pieceSpan.className = "black-piece"; // These are black pieces captured by white
           whiteCapturedElement.appendChild(pieceSpan);
         });
-
+        
         capturedPieces.black.forEach((piece) => {
           const pieceSpan = document.createElement("span");
           pieceSpan.textContent = pieceMapping[piece];
           pieceSpan.className = "white-piece"; // These are white pieces captured by black
           blackCapturedElement.appendChild(pieceSpan);
         });
-
+        
         // Update score display
         const { whiteScore, blackScore } = calculateScoreDifference();
-
+        
         if (whiteScore > blackScore) {
           whiteScoreElement.textContent = `+${whiteScore - blackScore}`;
           blackScoreElement.textContent = "+0";
@@ -1963,521 +1295,184 @@
           blackScoreElement.textContent = "+0";
         }
       }
-
+      
       // AI OPPONENT FUNCTIONS
-
-      // Get all valid moves for all pieces of a specific color
-      function getAllPossibleMoves(color, boardState) {
-        const moves = [];
-
-        for (let row = 0; row < 8; row++) {
-          for (let col = 0; col < 8; col++) {
-            const piece = boardState[row][col];
-            if (piece && getPieceColor(piece) === color) {
-              const pieceMoves = getValidMoves(row, col, piece, boardState, enPassantTarget);
-
-              // Filter out moves that would leave the king in check
-              const legalMoves = pieceMoves.filter(([toRow, toCol]) => {
-                return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
-              });
-
-              legalMoves.forEach(([toRow, toCol]) => {
-                moves.push({
-                  piece,
-                  from: [row, col],
-                  to: [toRow, toCol],
-                });
-              });
-            }
-          }
-        }
-
-        return moves;
-      }
-
-      // Calculate piece values for board evaluation
-      const pieceValues = {
-        p: 1, // pawn
-        n: 3, // knight
-        b: 3, // bishop
-        r: 5, // rook
-        q: 9, // queen
-        k: 0, // king (not factored in material evaluation)
-      };
-
-      // Calculate material score for a given board state
-      function calculateMaterialScore(boardState) {
-        let whiteScore = 0;
-        let blackScore = 0;
-
-        for (let row = 0; row < 8; row++) {
-          for (let col = 0; col < 8; col++) {
-            const piece = boardState[row][col];
-            if (piece) {
-              const pieceType = piece.toLowerCase();
-              const value = pieceValues[pieceType];
-
-              if (getPieceColor(piece) === "white") {
-                whiteScore += value;
-              } else {
-                blackScore += value;
-              }
-            }
-          }
-        }
-
-        return whiteScore - blackScore; // Positive is good for white, negative for black
-      }
-
-      // Position evaluation bonuses - encourage control of center and development
-      const positionBonus = {
-        // Pawns - encourage center control and advancement
-        p: [
-          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-          [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0], // Big bonus for promoting
-          [1.0, 1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 1.0],
-          [0.5, 0.5, 1.0, 2.5, 2.5, 1.0, 0.5, 0.5],
-          [0.0, 0.0, 0.0, 2.0, 2.0, 0.0, 0.0, 0.0],
-          [0.5, -0.5, -1.0, 0.0, 0.0, -1.0, -0.5, 0.5], // Discourage backward pawns
-          [0.5, 1.0, 1.0, -2.0, -2.0, 1.0, 1.0, 0.5], // Encourage pawn structure
-          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        ],
-        // Knights - encourage central control and development
-        n: [
-          [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
-          [-4.0, -2.0, 0.0, 0.0, 0.0, 0.0, -2.0, -4.0],
-          [-3.0, 0.0, 1.0, 1.5, 1.5, 1.0, 0.0, -3.0],
-          [-3.0, 0.5, 1.5, 2.0, 2.0, 1.5, 0.5, -3.0],
-          [-3.0, 0.0, 1.5, 2.0, 2.0, 1.5, 0.0, -3.0],
-          [-3.0, 0.5, 1.0, 1.5, 1.5, 1.0, 0.5, -3.0],
-          [-4.0, -2.0, 0.0, 0.5, 0.5, 0.0, -2.0, -4.0],
-          [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0]
-        ],
-        // Bishops - encourage diagonal control and development
-        b: [
-          [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
-          [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
-          [-1.0, 0.0, 0.5, 1.0, 1.0, 0.5, 0.0, -1.0],
-          [-1.0, 0.5, 0.5, 1.0, 1.0, 0.5, 0.5, -1.0],
-          [-1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, -1.0],
-          [-1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0],
-          [-1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, -1.0],
-          [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0]
-        ],
-        // Rooks - encourage open files and 7th rank
-        r: [
-          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-          [0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5],
-          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-          [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-          [0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0]
-        ],
-        // Queen - slight center preference
-        q: [
-          [-2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
-          [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
-          [-1.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -1.0],
-          [-0.5, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -0.5],
-          [0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -0.5],
-          [-1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0, -1.0],
-          [-1.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, -1.0],
-          [-2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0]
-        ],
-        // King - encourage castling and king safety
-        k: [
-          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-          [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-          [-2.0, -3.0, -3.0, -4.0, -4.0, -3.0, -3.0, -2.0],
-          [-1.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -1.0],
-          [2.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0],
-          [2.0, 3.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0]
-        ],
-      };
-
-      // Calculate position score for a given board state
-      function calculatePositionScore(boardState) {
-        let whiteScore = 0;
-        let blackScore = 0;
-
-        for (let row = 0; row < 8; row++) {
-          for (let col = 0; col < 8; col++) {
-            const piece = boardState[row][col];
-            if (piece) {
-              const pieceType = piece.toLowerCase();
-
-              if (getPieceColor(piece) === "white") {
-                // For white pieces, row 7 is the bottom, so we invert the row index
-                whiteScore += positionBonus[pieceType][row][col];
-              } else {
-                // For black pieces, row 0 is the bottom from its perspective
-                blackScore += positionBonus[pieceType][7 - row][col];
-              }
-            }
-          }
-        }
-
-        return whiteScore - blackScore; // Positive is good for white, negative for black
-      }
-
-      // Make AI move with weighted randomness
+      
+      // Make AI move
       function makeAIMove() {
-        // Prevent AI move if game is over or it's not AI's turn or AI is already thinking
-        if (aiThinking || (gameStatus !== "playing" && gameStatus !== "check") || currentPlayer !== aiColor) {
-          debugLog("AI move cancelled or not AI turn:", { aiThinking, gameStatus, currentPlayer, aiColor });
-          // Ensure thinking flag is false if cancelled here
-          if (gameStatus === "checkmate" || gameStatus === "draw") aiThinking = false;
+        // Prevent AI move if game is over or it's not AI's turn
+        if (chess.game_over() || chess.turn() !== (aiColor === "black" ? 'b' : 'w')) {
           return;
         }
-
+        
         debugLog("AI starting move evaluation");
         aiThinking = true;
         selectedPiece = null; // Ensure no piece selection interferes
         validMoves = []; // Clear any leftover valid moves display
-
-        // Use setTimeout to simulate thinking time and prevent blocking the UI thread
+        renderBoard(); // Update board to show AI is thinking
+        
+        // Use setTimeout to simulate thinking time and prevent blocking the UI
         setTimeout(() => {
-          // Double-check game status hasn't changed while waiting and it's still AI's turn
-          if ((gameStatus !== "playing" && gameStatus !== "check") || currentPlayer !== aiColor) {
-            debugLog("AI move aborted, game ended or turn changed during thinking time.");
+          // Double-check game status hasn't changed
+          if (chess.game_over() || chess.turn() !== (aiColor === "black" ? 'b' : 'w')) {
+            debugLog("AI move aborted, game ended during thinking time.");
             aiThinking = false;
-            renderBoard(); // Re-render to show final state if needed
+            renderBoard();
             return;
           }
-
-          // Get all *strictly legal* moves (should filter moves into check)
-          const possibleMoves = getAllPossibleMoves(aiColor, boardState);
-          debugLog(`AI found ${possibleMoves.length} possible moves initially`);
-
-          // ***** NEW STALEMATE/CHECKMATE CHECK *****
-          if (possibleMoves.length === 0) {
-            if (isInCheck(aiColor, boardState)) {
-              // No legal moves AND in check = Checkmate
-              debugLog(`AI found 0 moves and is in check. CHECKMATE.`);
-              gameStatus = "checkmate";
-              // Optional: Update score if tracking vs AI
-              gameScore = 0; // Player wins if AI is checkmated
-              updateFarcadeScore();
-            } else {
-              // No legal moves AND NOT in check = Stalemate
-              debugLog(`AI found 0 moves and is NOT in check. STALEMATE.`);
-              gameStatus = "draw";
-              drawReason = "stalemate";
-              // Optional: Update score if tracking vs AI
-              gameScore = 1; // Draw score
-              updateFarcadeScore();
-            }
+          
+          // Get all legal moves
+          const moves = chess.moves({ verbose: true });
+          
+          if (moves.length === 0) {
             aiThinking = false;
-            renderBoard(); // Update UI to show Checkmate/Stalemate overlay
-            return; // Stop further processing for this turn
+            renderBoard();
+            return;
           }
-          // ***** END OF NEW CHECK *****
-
-          // If we reach here, there are possible moves, proceed with evaluation...
-          const evaluatedMoves = possibleMoves.map((move) => {
-            // Create a temporary board state to simulate the move
-            const tempBoard = JSON.parse(JSON.stringify(boardState));
-            tempBoard[move.to[0]][move.to[1]] = move.piece;
-            tempBoard[move.from[0]][move.from[1]] = null;
-
-            // Although getAllPossibleMoves should filter checks, we double-check here
-            // to assign the -1000 score for the filtering step below.
-            if (isInCheck(aiColor, tempBoard)) {
-              debugLog(`Move (${move.from.join(",")}) to (${move.to.join(",")}) results in check - scoring -1000`);
-              return { ...move, score: -1000 };
+          
+          // Evaluate each move with a simple heuristic
+          const evaluatedMoves = moves.map(move => {
+            // Create a temporary chess instance to simulate the move
+            const tempChess = new Chess(chess.fen());
+            tempChess.move(move);
+            
+            // Simple evaluation: material + position + randomness
+            let score = 0;
+            
+            // Material score - check if the move captures a piece
+            if (move.captured) {
+              const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+              score += pieceValues[move.captured] || 1;
             }
-
-            // Evaluate the board *after* the potential move
-            // Score is relative to white. If AI is black, negate the score.
-            const boardScore = evaluateBoard(tempBoard);
-            const score = aiColor === "black" ? -boardScore : boardScore;
-
-            // Simple bonus for captures to encourage taking pieces
-            const isCapture = boardState[move.to[0]][move.to[1]] !== null;
-            const captureBonus = isCapture ? pieceValues[boardState[move.to[0]][move.to[1]].toLowerCase()] || 0.5 : 0; // Bonus based on captured piece value or default 0.5
-
-            return { ...move, score: score + captureBonus };
+            
+            // Position score - bonus for controlling center
+            const [toRow, toCol] = squareToCoords(move.to);
+            const centerBonus = 4 - Math.abs(toRow - 3.5) - Math.abs(toCol - 3.5);
+            score += centerBonus * 0.1;
+            
+            // Check if the move gives check
+            if (tempChess.in_check()) {
+              score += 0.5;
+            }
+            
+            // Check if the move gives checkmate
+            if (tempChess.in_checkmate()) {
+              score += 100;
+            }
+            
+            // Add a small random factor (0-0.2) to avoid predictable play
+            score += Math.random() * 0.2;
+            
+            return { move, score };
           });
-
-          // Sort moves: Best score first
+          
+          // Sort moves by score (best first)
           evaluatedMoves.sort((a, b) => b.score - a.score);
-          // Only log top 5 for brevity if many moves
-          // debugLog("AI evaluated moves (Top 5):", evaluatedMoves.slice(0, 5));
-
-          // Filter out any moves that somehow still resulted in check (score -1000)
-          // This relies on the isInCheck call within the map function above working correctly.
-          const filteredMoves = evaluatedMoves.filter((m) => m.score > -1000);
-          debugLog(`AI has ${filteredMoves.length} valid moves after filtering checks.`);
-
-          // This should not happen if the initial possibleMoves.length check is working
-          if (filteredMoves.length === 0) {
-            console.error(
-              "AI Error: No valid moves after filtering, but initial possibleMoves > 0. Check evaluation/filtering logic.",
-            );
-            aiThinking = false;
-            renderBoard(); // Re-render current state
-            return;
-          }
-
-          // --- Improved Move Selection Logic ---
-          let selectedMove;
-          // Consider only the top 25% of moves (reduced from 40% for more focus on better moves)
-          const goodMovesCount = Math.max(1, Math.floor(filteredMoves.length * 0.25));
+          
+          // Select from top moves with weighted probability
+          const topMoves = evaluatedMoves.slice(0, Math.max(1, Math.floor(evaluatedMoves.length * 0.3)));
+          
+          // Weighted selection
           const weights = [];
           let totalWeight = 0;
-
-          // Assign more aggressive exponential weighting to prefer better moves
-          for (let i = 0; i < goodMovesCount; i++) {
-              if (i < filteredMoves.length) {
-                  const weight = Math.pow(0.6, i); // Changed from 0.8 to 0.6 for stronger preference of better moves
-                  weights.push(weight);
-                  totalWeight += weight;
-              } else {
-                  break;
-              }
+          
+          for (let i = 0; i < topMoves.length; i++) {
+            const weight = Math.pow(0.7, i); // Exponential decay of probability
+            weights.push(weight);
+            totalWeight += weight;
           }
-
-          // Small chance (10%) to pick the absolute best move
+          
+          // Small chance to pick the absolute best move
           if (Math.random() < 0.1) {
-              selectedMove = filteredMoves[0];
+            selectedMove = topMoves[0].move;
           } else {
-              // Otherwise use weighted random selection
-              const randomValue = Math.random() * totalWeight;
-              let cumulativeWeight = 0;
-              for (let i = 0; i < goodMovesCount; i++) {
-                  if (i < filteredMoves.length && i < weights.length) {
-                      cumulativeWeight += weights[i];
-                      if (randomValue <= cumulativeWeight) {
-                          selectedMove = filteredMoves[i];
-                          break;
-                      }
-                  }
+            // Otherwise, weighted random selection from top moves
+            let random = Math.random() * totalWeight;
+            for (let i = 0; i < weights.length; i++) {
+              random -= weights[i];
+              if (random <= 0) {
+                selectedMove = topMoves[i].move;
+                break;
               }
+            }
           }
-
-          // Fallback to best move if no selection was made
+          
+          // If somehow no move was selected, pick the best one
           if (!selectedMove) {
-              selectedMove = filteredMoves[0];
+            selectedMove = topMoves[0].move;
           }
-          // --- End of Improved Selection Logic ---
-
-          // Ensure a move was actually selected
-          if (!selectedMove) {
-            console.error("AI Critical Error: Could not select a move despite having valid options.");
-            aiThinking = false;
-            return;
-          }
-
-          const [fromRow, fromCol] = selectedMove.from;
-          const [toRow, toCol] = selectedMove.to;
-          const pieceToMove = boardState[fromRow][fromCol]; // Get piece before simulation for sanity check
-
-          // --- Final Sanity Check (Optional but recommended) ---
-          // Verify the chosen move doesn't put the AI in check *just before* executing it.
-          if (!pieceToMove) {
-            console.error(
-              `!!! AI Critical Error: Trying to move null piece from (${fromRow},${fromCol}) !!!`,
-              selectedMove,
-            );
-            aiThinking = false;
-            return;
-          }
-          if (wouldBeInCheck(fromRow, fromCol, toRow, toCol, pieceToMove, boardState)) {
-            console.error(
-              `!!! AI Critical Error: Chosen move from (${fromRow},${fromCol}) to (${toRow},${toCol}) results in check despite filtering !!!`,
-              selectedMove,
-            );
-            debugLog("All filtered moves were:", filteredMoves);
-            // If this happens, perhaps force pick the next best move if available? For now, just stop.
-            aiThinking = false;
-            return;
-          }
-          // --- End Sanity Check ---
-
+          
           debugLog("AI selected move:", selectedMove);
-
-          // Execute the chosen move
-          // movePiece handles board update, state changes, and calls renderBoard()
-          movePiece(fromRow, fromCol, toRow, toCol);
-
-          aiThinking = false; // AI is done thinking
-
-          // Note: renderBoard() and updateGameStatus() are called inside movePiece
-        }, 500); // AI "thinking" delay in milliseconds
+          
+          // Make the selected move
+          const moveResult = chess.move(selectedMove);
+          
+          // Update last move for highlighting
+          lastMove = {
+            from: squareToCoords(moveResult.from),
+            to: squareToCoords(moveResult.to)
+          };
+          
+          // Update captured pieces
+          updateCapturedPiecesFromMove(moveResult);
+          
+          // Update PGN output
+          const pgnOutput = document.getElementById("pgn-output");
+          if (pgnOutput) {
+            pgnOutput.textContent = "PGN: " + chess.pgn();
+          }
+          
+          aiThinking = false;
+          
+          // Render the updated board
+          renderBoard();
+          
+          // Trigger haptic feedback
+          triggerHapticFeedback();
+          
+        }, 500); // AI "thinking" delay
       }
-
+      
       // Reset the game to the initial state
       function resetGame() {
-        boardState = JSON.parse(JSON.stringify(initialBoardState));
+        chess = new Chess(); // Reset chess instance
         selectedPiece = null;
-        currentPlayer = "white";
-        gameStatus = "playing";
         validMoves = [];
         lastMove = { from: null, to: null };
-        enPassantTarget = null;
-        aiThinking = false; // Reset AI thinking state
-        gameScore = 0; // Reset the Farcade score
-        moveHistory = [];
-        halfMoveClock = 0; // Reset the 50-move rule counter
-        positionCounts = {}; // Reset the position counts for repetition detection
-
+        aiThinking = false;
+        gameScore = 0;
+        capturedPieces = { white: [], black: [] };
+        
         // Clear PGN display
         const pgnOutput = document.getElementById("pgn-output");
         if (pgnOutput) {
           pgnOutput.textContent = "";
         }
-
-        // Reset captured pieces
-        capturedPieces = {
-          white: [],
-          black: [],
-        };
-
-        castlingRights = {
-          whiteKingSide: true,
-          whiteQueenSide: true,
-          blackKingSide: true,
-          blackQueenSide: true,
-        };
-
+        
         renderBoard();
-        updateGameStatus();
-        updateCapturedPieces();
-
+        
         // If it's an AI game and AI plays as white, make the first move
         if (gameMode === "ai" && aiColor === "white") {
           setTimeout(() => {
             makeAIMove();
-          }, 500); // Small delay for better user experience
+          }, 500);
+        }
+        
+        // Remove any existing game over overlay
+        const existingOverlay = boardElement.querySelector(".checkmate-overlay");
+        if (existingOverlay) {
+          boardElement.removeChild(existingOverlay);
         }
       }
-
-      // Event listeners
-      // Modal controls
-      menuButton.addEventListener("click", () => {
-        menuModal.classList.add("active");
-
-        // Update the UI to reflect current game mode
-        document.getElementById(gameMode === "human" ? "mode-human" : "mode-ai").classList.add("active");
-        document.getElementById(gameMode === "human" ? "mode-ai" : "mode-human").classList.remove("active");
-
-        // Show/hide AI options based on game mode
-        aiOptionsContainer.style.display = gameMode === "ai" ? "block" : "none";
-
-        // Update AI color selection UI to match current aiColor setting
-        if (aiColor === "black") {
-          aiColorWhiteButton.classList.add("active");
-          aiColorBlackButton.classList.remove("active");
-        } else {
-          aiColorBlackButton.classList.add("active");
-          aiColorWhiteButton.classList.remove("active");
+      
+      // Haptic feedback with Farcade SDK
+      function triggerHapticFeedback() {
+        if (window.FarcadeSDK && typeof window.FarcadeSDK.singlePlayer?.actions?.hapticFeedback === 'function') {
+          window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
         }
-      });
-
-      closeModalButton.addEventListener("click", () => {
-        menuModal.classList.remove("active");
-      });
-
-      // Game mode selection
-      const modeHumanButton = document.getElementById("mode-human");
-      const modeAIButton = document.getElementById("mode-ai");
-
-      // Get references to the new AI option elements
-      const aiOptionsContainer = document.getElementById("ai-options");
-      const aiColorWhiteButton = document.getElementById("ai-color-white");
-      const aiColorBlackButton = document.getElementById("ai-color-black");
-
-      // Human mode button event handler
-      modeHumanButton.addEventListener("click", () => {
-        gameMode = "human";
-        modeHumanButton.classList.add("active");
-        modeAIButton.classList.remove("active");
-        aiOptionsContainer.style.display = "none"; // Hide AI options
-      });
-
-      // AI mode button event handler
-      modeAIButton.addEventListener("click", () => {
-        gameMode = "ai";
-        modeAIButton.classList.add("active");
-        modeHumanButton.classList.remove("active");
-        aiOptionsContainer.style.display = "block"; // Show AI options
-      });
-
-      // AI color selection: white
-      aiColorWhiteButton.addEventListener("click", () => {
-        aiColor = "black"; // AI plays as black
-        aiColorWhiteButton.classList.add("active");
-        aiColorBlackButton.classList.remove("active");
-      });
-
-      // AI color selection: black
-      aiColorBlackButton.addEventListener("click", () => {
-        aiColor = "white"; // AI plays as white
-        aiColorBlackButton.classList.add("active");
-        aiColorWhiteButton.classList.remove("active");
-      });
-
-      newGameModalButton.addEventListener("click", () => {
-        resetGame();
-        menuModal.classList.remove("active");
-      });
-
-      // Initialize the game
-      renderBoard();
-      updateGameStatus();
-      updateCapturedPieces();
-
-      // Set initial UI state for AI options
-      aiOptionsContainer.style.display = gameMode === "ai" ? "block" : "none";
-
-      // Set initial button states to match default game mode
-      if (gameMode === "ai") {
-        modeAIButton.classList.add("active");
-        modeHumanButton.classList.remove("active");
-      } else {
-        modeHumanButton.classList.add("active");
-        modeAIButton.classList.remove("active");
       }
-
-      // Set AI color button states
-      if (aiColor === "black") {
-        aiColorWhiteButton.classList.add("active");
-        aiColorBlackButton.classList.remove("active");
-      } else {
-        aiColorBlackButton.classList.add("active");
-        aiColorWhiteButton.classList.remove("active");
-      }
-
-             // Farcade SDK Integration
-
-      // Initialize SDK when the game is fully loaded and ready to play
-      window.addEventListener("DOMContentLoaded", () => {
-        if (window.FarcadeSDK) {
-          // Signal that the game is ready to play
-          window.FarcadeSDK.singlePlayer.actions.ready();
-
-          // Set up event handlers for Farcade SDK events
-
-          // Handle play_again event
-          window.FarcadeSDK.on("play_again", () => {
-            // Reset the game state
-            resetGame();
-          });
-
-          // Handle toggle_mute event
-          window.FarcadeSDK.on("toggle_mute", (data) => {
-            // Set game audio based on data.isMuted
-            isMuted = data.isMuted;
-            // Future audio can check isMuted before playing
-          });
-        }
-      });
-
-      // Function to send score to Farcade SDK
+      
+      // Update Farcade score
       function updateFarcadeScore() {
         if (window.FarcadeSDK) {
           window.FarcadeSDK.singlePlayer.actions.gameOver({
@@ -2486,63 +1481,59 @@
         }
       }
 
-      // Function to trigger haptic feedback
-      function triggerHapticFeedback() {
-        if (window.FarcadeSDK) {
-          window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
-        }
-      }
-
-      // Touch event handlers for the entire board
+      // Touch event handlers
+      // Add touch drag and drop functionality similar to original implementation
       let activeGhost = null;
       let isPieceBeingDragged = false;
-
+      
       boardElement.addEventListener("touchstart", (e) => {
-        debugLog("Touch start event triggered");
-        if (gameStatus === "checkmate" || aiThinking) {
-          debugLog("Touch ignored - game over or AI thinking");
+        if (chess.game_over() || aiThinking) {
           return;
         }
-
+        
         const touch = e.touches[0];
         const element = document.elementFromPoint(touch.clientX, touch.clientY);
-        debugLog("Touch target:", element?.className);
-
+        
         if (!element || !element.classList.contains("piece")) return;
-
+        
         const square = element.parentElement;
         const row = parseInt(square.dataset.row);
         const col = parseInt(square.dataset.col);
-        const piece = boardState[row][col];
-
-        if (!piece || getPieceColor(piece) !== currentPlayer) return;
-
+        const algebraicSquare = coordsToSquare(row, col);
+        const piece = chess.get(algebraicSquare);
+        
+        if (!piece || piece.color !== chess.turn()) return;
+        
         e.preventDefault();
         isPieceBeingDragged = true;
-
+        
         // Use the same selection system as click handling
-        selectedPiece = { row, col, piece };
-        validMoves = getValidMoves(row, col, piece, boardState, enPassantTarget).filter(([toRow, toCol]) => {
-          return !wouldBeInCheck(row, col, toRow, toCol, piece, boardState);
-        });
-
-        debugLog("Valid moves for selected piece:", validMoves);
-
+        selectedPiece = { 
+          row, col, 
+          piece: getPieceNotation(piece), 
+          square: algebraicSquare 
+        };
+        
+        validMoves = getValidMovesForSquare(row, col);
+        
         // Create ghost piece
         activeGhost = element.cloneNode(true);
         activeGhost.classList.add("ghost-piece");
         activeGhost.style.left = `${touch.clientX}px`;
         activeGhost.style.top = `${touch.clientY}px`;
         document.body.appendChild(activeGhost);
-
+        
         // Add dragging state to original piece
         element.classList.add("dragging");
-
+        
         // Highlight valid moves
         validMoves.forEach(([r, c]) => {
           const targetSquare = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
           if (targetSquare) {
-            if (boardState[r][c] && getPieceColor(boardState[r][c]) !== currentPlayer) {
+            const targetAlgebraicSquare = coordsToSquare(r, c);
+            const targetPiece = chess.get(targetAlgebraicSquare);
+            
+            if (targetPiece) {
               targetSquare.classList.add("capture-highlight");
             } else {
               targetSquare.classList.add("valid-drop");
@@ -2550,15 +1541,15 @@
           }
         });
       });
-
+      
       document.addEventListener("touchmove", (e) => {
         if (!activeGhost || !isPieceBeingDragged) return;
-
+        
         e.preventDefault();
         const touch = e.touches[0];
         activeGhost.style.left = `${touch.clientX}px`;
         activeGhost.style.top = `${touch.clientY}px`;
-
+        
         // Update highlights based on current touch position
         const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
         if (targetElement) {
@@ -2566,16 +1557,19 @@
           if (square) {
             const row = parseInt(square.dataset.row);
             const col = parseInt(square.dataset.col);
-
+            
             // Remove all current highlights
-            document.querySelectorAll(".square").forEach((square) => {
-              square.classList.remove("valid-drop", "capture-highlight");
+            document.querySelectorAll(".square").forEach((s) => {
+              s.classList.remove("valid-drop", "capture-highlight");
             });
-
+            
             // Add appropriate highlight if it's a valid move
-            if (validMoves.some(([r, c]) => r === row && c === col)) {
-              debugLog("Valid drop target found:", { row, col });
-              if (boardState[row][col] && getPieceColor(boardState[row][col]) !== currentPlayer) {
+            const isValid = validMoves.some(([r, c]) => r === row && c === col);
+            if (isValid) {
+              const targetAlgebraicSquare = coordsToSquare(row, col);
+              const targetPiece = chess.get(targetAlgebraicSquare);
+              
+              if (targetPiece) {
                 square.classList.add("capture-highlight");
               } else {
                 square.classList.add("valid-drop");
@@ -2584,74 +1578,192 @@
           }
         }
       });
-
+      
       document.addEventListener("touchend", (e) => {
-        if (!activeGhost || !isPieceBeingDragged || !selectedPiece) return;
-
+        if (!activeGhost || !isPieceBeingDragged || !selectedPiece) {
+          return;
+        }
+        
         e.preventDefault();
         isPieceBeingDragged = false;
-
-        // Clean up ghost piece
+        
+        // Remove ghost piece
         document.body.removeChild(activeGhost);
         activeGhost = null;
-
-        // Remove dragging state and highlights
-        document.querySelector(".piece.dragging")?.classList.remove("dragging");
-        document.querySelectorAll(".square").forEach((square) => {
-          square.classList.remove("valid-drop", "capture-highlight");
-        });
-
+        
+        // Remove dragging class from original piece
+        const originalPiece = document.querySelector(".piece.dragging");
+        if (originalPiece) {
+          originalPiece.classList.remove("dragging");
+        }
+        
+        // Find the square under the touch position
         const touch = e.changedTouches[0];
-        let targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-        let square = targetElement?.closest(".square");
-
-        if (square && gameStatus !== "checkmate" && !aiThinking) {
-          const toRow = parseInt(square.dataset.row);
-          const toCol = parseInt(square.dataset.col);
-          const { row: fromRow, col: fromCol } = selectedPiece;
-
-          const isValid = validMoves.some(([r, c]) => r === toRow && c === toCol);
-          debugLog("Attempting move:", { fromRow, fromCol, toRow, toCol, isValid });
-
-          if (isValid) {
-            const isCapture = boardState[toRow][toCol] !== null;
-            if (isCapture) {
-              square.classList.add("capture-highlight");
+        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (!targetElement) return;
+        
+        const square = targetElement.closest(".square");
+        if (!square) {
+          // If not dropped on a square, clean up
+          selectedPiece = null;
+          validMoves = [];
+          renderBoard();
+          return;
+        }
+        
+        const toRow = parseInt(square.dataset.row);
+        const toCol = parseInt(square.dataset.col);
+        const toSquare = coordsToSquare(toRow, toCol);
+        
+        // Check if this is a valid move
+        const isValid = validMoves.some(([r, c]) => r === toRow && c === toCol);
+        
+        if (isValid) {
+          const isCapture = chess.get(toSquare) !== null;
+          
+          // Make the move
+          const moveResult = chess.move({
+            from: selectedPiece.square,
+            to: toSquare,
+            promotion: 'q' // Auto-promote to queen for simplicity
+          });
+          
+          if (moveResult) {
+            // Update last move for highlighting
+            lastMove = {
+              from: squareToCoords(moveResult.from),
+              to: squareToCoords(moveResult.to)
+            };
+            
+            // Update captured pieces
+            updateCapturedPiecesFromMove(moveResult);
+            
+            // Update PGN output
+            const pgnOutput = document.getElementById("pgn-output");
+            if (pgnOutput) {
+              pgnOutput.textContent = "PGN: " + chess.pgn();
             }
-
-            const moveSucceeded = movePiece(fromRow, fromCol, toRow, toCol);
-            debugLog("Move result:", moveSucceeded);
-
-            if (moveSucceeded) {
-              // Clear selection and valid moves immediately
-              selectedPiece = null;
-              validMoves = [];
-              renderBoard();
-
-              // Remove capture highlight after animation
-              if (isCapture) {
-                setTimeout(() => {
-                  square.classList.remove("capture-highlight");
-                }, 300);
-              }
-
-              // If it's an AI game and it's AI's turn, schedule the AI move
-              if (gameMode === "ai" && currentPlayer === aiColor && gameStatus !== "checkmate") {
-                debugLog("Scheduling AI move...");
-                setTimeout(() => {
-                  if (gameStatus !== "checkmate") {
-                    makeAIMove();
-                  }
-                }, 500);
-              }
+            
+            // Clear selection and valid moves
+            selectedPiece = null;
+            validMoves = [];
+            
+            // Render the updated board
+            renderBoard();
+            
+            // Trigger haptic feedback
+            triggerHapticFeedback();
+            
+            // If it's an AI game and it's AI's turn, schedule the AI move
+            if (gameMode === "ai" && !chess.game_over() && chess.turn() === (aiColor === "black" ? 'b' : 'w')) {
+              setTimeout(() => {
+                makeAIMove();
+              }, 500);
             }
           }
+        } else {
+          // Invalid move, clean up
+          selectedPiece = null;
+          validMoves = [];
+          renderBoard();
         }
+      });
+      
+      // Event listeners
+      
+      // Modal controls
+      menuButton.addEventListener("click", () => {
+        menuModal.classList.add("active");
+      });
+      
+      closeModalButton.addEventListener("click", () => {
+        menuModal.classList.remove("active");
+      });
+      
+      newGameModalButton.addEventListener("click", () => {
+        resetGame();
+        menuModal.classList.remove("active");
+      });
+      
+      // Game mode buttons
+      const modeHumanButton = document.getElementById("mode-human");
+      const modeAIButton = document.getElementById("mode-ai");
+      const aiOptionsContainer = document.getElementById("ai-options");
+      const aiColorWhiteButton = document.getElementById("ai-color-white");
+      const aiColorBlackButton = document.getElementById("ai-color-black");
+      
+      modeHumanButton.addEventListener("click", () => {
+        gameMode = "human";
+        modeHumanButton.classList.add("active");
+        modeAIButton.classList.remove("active");
+        aiOptionsContainer.style.display = "none";
+      });
+      
+      modeAIButton.addEventListener("click", () => {
+        gameMode = "ai";
+        modeAIButton.classList.add("active");
+        modeHumanButton.classList.remove("active");
+        aiOptionsContainer.style.display = "block";
+      });
+      
+      aiColorWhiteButton.addEventListener("click", () => {
+        aiColor = "white";
+        aiColorWhiteButton.classList.add("active");
+        aiColorBlackButton.classList.remove("active");
+      });
+      
+      aiColorBlackButton.addEventListener("click", () => {
+        aiColor = "black";
+        aiColorWhiteButton.classList.remove("active");
+        aiColorBlackButton.classList.add("active");
+      });
+      
+      // Initialize the game
+      renderBoard();
+      
+      // Set initial UI state for AI options
+      aiOptionsContainer.style.display = gameMode === "ai" ? "block" : "none";
+      
+      // Set initial button states to match default game mode
+      if (gameMode === "ai") {
+        modeAIButton.classList.add("active");
+        modeHumanButton.classList.remove("active");
+      } else {
+        modeHumanButton.classList.add("active");
+        modeAIButton.classList.remove("active");
+      }
+      
+      // Set AI color button states
+      if (aiColor === "black") {
+        aiColorWhiteButton.classList.add("active");
+        aiColorBlackButton.classList.remove("active");
+      } else {
+        aiColorBlackButton.classList.add("active");
+        aiColorWhiteButton.classList.remove("active");
+      }
+      
+      // Re-run the makeAIMove function in case AI should move first
+      if (gameMode === "ai" && aiColor === "white") {
+        setTimeout(() => {
+          makeAIMove();
+        }, 500);
+      }
 
-        // Clear selection state
-        selectedPiece = null;
-        validMoves = [];
-        renderBoard();
+      // Listen for Farcade SDK events
+      if (window.FarcadeSDK) {
+        // Handle play_again event
+        window.FarcadeSDK.on("play_again", () => {
+          // Reset the game state
+          resetGame();
+        });
+      }
+
+      // Farcade SDK Integration
+      window.addEventListener("DOMContentLoaded", () => {
+        if (window.FarcadeSDK) {
+          // Signal that the game is ready to play
+          window.FarcadeSDK.singlePlayer.actions.ready();
+        }
       });
     </script>
   </body>
