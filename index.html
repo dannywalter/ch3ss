@@ -17,6 +17,12 @@
         box-sizing: border-box;
         margin: 0;
         padding: 0;
+        -webkit-touch-callout: none; /* iOS Safari */
+        -webkit-user-select: none; /* Safari */
+        -khtml-user-select: none; /* Konqueror HTML */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+        user-select: none; /* Non-prefixed version, supported by Chrome and Opera */
       }
 
       html {
@@ -753,6 +759,47 @@
       </div>
     </div>
 
+    <!-- Welcome Screen Overlay -->
+    <div id="welcome-overlay" class="modal-overlay active">
+      <div class="modal welcome-modal">
+        <div class="modal-header">WELCOME TO CH3SS</div>
+        
+        <div class="modal-section">
+          <div class="modal-content" style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 0.7rem; color: #00ffff; margin-bottom: 15px;">
+              A cyberpunk-themed chess game
+            </div>
+            <div style="font-size: 0.5rem; line-height: 1.5; margin-bottom: 20px;">
+              Play against AI or against another human (in-person only for now) in this modern implementation
+              of the classic game of strategy.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="modal-section-title">GAME MODE</div>
+          <div class="option-buttons">
+            <button id="welcome-mode-ai" class="option-button active">PLAY VS AI</button>
+            <button id="welcome-mode-human" class="option-button">PLAY IN PERSON</button>
+          </div>
+        </div>
+        
+        <div id="welcome-ai-options" class="modal-section">
+          <div class="modal-section-title">PLAY AS</div>
+          <div class="option-buttons">
+            <button id="welcome-color-black" class="option-button active">WHITE (YOU PLAY FIRST)</button>
+            <button id="welcome-color-white" class="option-button">BLACK (AI PLAYS FIRST)</button>
+          </div>
+        </div>
+
+        <div class="modal-buttons" style="justify-content: center; margin-top: 25px;">
+          <button id="start-game" class="modal-button" style="font-size: 0.7rem; padding: 10px 20px;">
+            START GAME
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Game Menu Modal -->
     <div id="menu-modal" class="modal-overlay">
       <div class="modal">
@@ -772,8 +819,8 @@
             <div id="ai-options" class="option-group" style="display: none">
               <div class="option-label">PLAY AS:</div>
               <div class="option-buttons">
-                <button id="ai-color-white" class="option-button active">WHITE (YOU PLAY FIRST)</button>
-                <button id="ai-color-black" class="option-button">BLACK (AI PLAYS FIRST)</button>
+                <button id="ai-color-black" class="option-button active">WHITE (YOU PLAY FIRST)</button>
+                <button id="ai-color-white" class="option-button">BLACK (AI PLAYS FIRST)</button>
               </div>
             </div>
             <div class="spacer-small"></div>
@@ -1674,6 +1721,26 @@
       // Modal controls
       menuButton.addEventListener("click", () => {
         menuModal.classList.add("active");
+        
+        // Sync menu options with current game mode
+        if (gameMode === "human") {
+          modeHumanButton.classList.add("active");
+          modeAIButton.classList.remove("active");
+          aiOptionsContainer.style.display = "none";
+        } else {
+          modeAIButton.classList.add("active");
+          modeHumanButton.classList.remove("active");
+          aiOptionsContainer.style.display = "block";
+          
+          // Sync AI color selection
+          if (aiColor === "white") {
+            aiColorWhiteButton.classList.add("active");
+            aiColorBlackButton.classList.remove("active");
+          } else {
+            aiColorBlackButton.classList.add("active");
+            aiColorWhiteButton.classList.remove("active");
+          }
+        }
       });
       
       closeModalButton.addEventListener("click", () => {
@@ -1735,11 +1802,11 @@
       
       // Set AI color button states
       if (aiColor === "black") {
-        aiColorWhiteButton.classList.add("active");
-        aiColorBlackButton.classList.remove("active");
-      } else {
         aiColorBlackButton.classList.add("active");
         aiColorWhiteButton.classList.remove("active");
+      } else {
+        aiColorWhiteButton.classList.add("active");
+        aiColorBlackButton.classList.remove("active");
       }
       
       // Re-run the makeAIMove function in case AI should move first
@@ -1773,6 +1840,65 @@
           window.FarcadeSDK.singlePlayer.actions.ready();
         }
       });
+
+      // Welcome Screen Controls
+      const welcomeOverlay = document.getElementById("welcome-overlay");
+      const welcomeModeAIButton = document.getElementById("welcome-mode-ai");
+      const welcomeModeHumanButton = document.getElementById("welcome-mode-human");
+      const welcomeAIOptions = document.getElementById("welcome-ai-options");
+      const welcomeColorWhiteButton = document.getElementById("welcome-color-white");
+      const welcomeColorBlackButton = document.getElementById("welcome-color-black");
+      const startGameButton = document.getElementById("start-game");
+      
+      // Configure welcome screen based on current game mode
+      function updateWelcomeScreen() {
+        if (gameMode === "ai") {
+          welcomeModeAIButton.classList.add("active");
+          welcomeModeHumanButton.classList.remove("active");
+          welcomeAIOptions.style.display = "block";
+          
+          if (aiColor === "white") {
+            welcomeColorWhiteButton.classList.add("active");
+            welcomeColorBlackButton.classList.remove("active");
+          } else {
+            welcomeColorBlackButton.classList.add("active");
+            welcomeColorWhiteButton.classList.remove("active");
+          }
+        } else {
+          welcomeModeHumanButton.classList.add("active");
+          welcomeModeAIButton.classList.remove("active");
+          welcomeAIOptions.style.display = "none";
+        }
+      }
+      
+      // Set up welcome screen buttons
+      welcomeModeAIButton.addEventListener("click", () => {
+        gameMode = "ai";
+        updateWelcomeScreen();
+      });
+      
+      welcomeModeHumanButton.addEventListener("click", () => {
+        gameMode = "human";
+        updateWelcomeScreen();
+      });
+      
+      welcomeColorWhiteButton.addEventListener("click", () => {
+        aiColor = "white";
+        updateWelcomeScreen();
+      });
+      
+      welcomeColorBlackButton.addEventListener("click", () => {
+        aiColor = "black";
+        updateWelcomeScreen();
+      });
+      
+      startGameButton.addEventListener("click", () => {
+        welcomeOverlay.classList.remove("active");
+        resetGame();
+      });
+      
+      // Initialize welcome screen with current settings
+      updateWelcomeScreen();
     </script>
   </body>
 </html>
