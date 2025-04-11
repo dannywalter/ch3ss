@@ -996,6 +996,28 @@
           </div>
         </div>
 
+        <div class="modal-section">
+          <div class="modal-section-title">DEVELOPER OPTIONS</div>
+          <div class="modal-content">
+            <div class="option-group">
+              <div class="option-label">DEBUG MODE:</div>
+              <div class="option-buttons">
+                <button id="debug-mode-off" class="option-button active">OFF</button>
+                <button id="debug-mode-on" class="option-button">ON</button>
+              </div>
+            </div>
+            <div id="debug-scenarios" style="display: none; margin-top: 10px;">
+              <div class="option-label">TEST SCENARIOS:</div>
+              <div class="option-buttons">
+                <button id="scenario-checkmate-player" class="option-button">Player Wins</button>
+                <button id="scenario-checkmate-ai" class="option-button">AI Wins</button>
+                <button id="scenario-checkmate-pawn" class="option-button">Pawn Checkmate</button>
+                <button id="scenario-stalemate" class="option-button">Stalemate</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="modal-buttons">
           <button id="close-modal" class="modal-button">CLOSE</button>
         </div>
@@ -2713,6 +2735,244 @@
           });
         });
       });
+
+      // Debug mode variables
+      let debugMode = false;
+      
+      // Add debug mode control event listeners
+      const debugModeOn = document.getElementById("debug-mode-on");
+      const debugModeOff = document.getElementById("debug-mode-off");
+      const debugScenarios = document.getElementById("debug-scenarios");
+      
+      // Debug mode toggle
+      debugModeOn.addEventListener("click", () => {
+        debugMode = true;
+        debugModeOn.classList.add("active");
+        debugModeOff.classList.remove("active");
+        debugScenarios.style.display = "block";
+        console.log("Debug mode enabled");
+      });
+      
+      debugModeOff.addEventListener("click", () => {
+        debugMode = false;
+        debugModeOff.classList.add("active");
+        debugModeOn.classList.remove("active");
+        debugScenarios.style.display = "none";
+        console.log("Debug mode disabled");
+      });
+      
+      // Debug test scenario buttons
+      document.getElementById("scenario-checkmate-player").addEventListener("click", () => {
+        setupDebugScenario("player-checkmate");
+        menuModal.classList.remove("active");
+      });
+      
+      document.getElementById("scenario-checkmate-ai").addEventListener("click", () => {
+        setupDebugScenario("ai-checkmate");
+        menuModal.classList.remove("active");
+      });
+      
+      document.getElementById("scenario-checkmate-pawn").addEventListener("click", () => {
+        setupDebugScenario("pawn-checkmate");
+        menuModal.classList.remove("active");
+      });
+      
+      document.getElementById("scenario-stalemate").addEventListener("click", () => {
+        setupDebugScenario("stalemate");
+        menuModal.classList.remove("active");
+      });
+      
+      // Function to set up debug testing scenarios
+      function setupDebugScenario(scenarioType) {
+        if (!debugMode) return;
+        
+        // Reset game and clear the board
+        chess = new Chess();
+        
+        // Define predefined test FEN positions
+        const scenarios = {
+          // Black is about to be checkmated (player wins)
+          "player-checkmate": "4k3/4Q3/4K3/8/8/8/8/8 b - - 0 1",
+          
+          // White is about to be checkmated (AI wins)
+          "ai-checkmate": "4k3/4q3/4K3/8/8/8/8/8 w - - 0 1",
+          
+          // Pawn checkmate scenario - white to move, can checkmate with pawn
+          "pawn-checkmate": "7k/7P/5K2/8/8/8/8/8 w - - 0 1",
+          
+          // Stalemate scenario - black to move, in stalemate
+          "stalemate": "8/8/8/8/8/8/6Q1/7k b - - 0 1"
+        };
+        
+        // Load the selected scenario
+        if (scenarios[scenarioType]) {
+          chess.load(scenarios[scenarioType]);
+          
+          // Set AI color appropriately for the scenario
+          if (scenarioType === "player-checkmate" || scenarioType === "pawn-checkmate") {
+            aiColor = "black";
+          } else if (scenarioType === "ai-checkmate") {
+            aiColor = "white";
+          }
+          
+          // Ensure gameMode is set to AI
+          gameMode = "ai";
+        }
+        
+        // Reset other game state
+        selectedPiece = null;
+        validMoves = [];
+        lastMove = { from: null, to: null };
+        aiThinking = false;
+        capturedPieces = { white: [], black: [] };
+        
+        // Update board
+        renderBoard();
+        
+        // Create debug info display
+        addDebugInfoDisplay();
+        
+        console.log(`Debug scenario '${scenarioType}' loaded`);
+      }
+      
+      // Function to add debug info display to the board
+      function addDebugInfoDisplay() {
+        // Remove any existing debug display
+        const existingDebug = document.getElementById("debug-info-display");
+        if (existingDebug) {
+          existingDebug.remove();
+        }
+        
+        // Create debug display container
+        const debugDisplay = document.createElement("div");
+        debugDisplay.id = "debug-info-display";
+        debugDisplay.style.position = "absolute";
+        debugDisplay.style.top = "5px";
+        debugDisplay.style.left = "5px";
+        debugDisplay.style.background = "rgba(0, 0, 0, 0.7)";
+        debugDisplay.style.border = "1px solid #ff00ff";
+        debugDisplay.style.borderRadius = "3px";
+        debugDisplay.style.padding = "5px";
+        debugDisplay.style.fontSize = "10px";
+        debugDisplay.style.fontFamily = "monospace";
+        debugDisplay.style.color = "#00ffff";
+        debugDisplay.style.maxWidth = "350px";
+        debugDisplay.style.zIndex = "100";
+        
+        // Show current FEN for debugging
+        const fenDisplay = document.createElement("div");
+        fenDisplay.textContent = `FEN: ${chess.fen()}`;
+        fenDisplay.style.marginBottom = "5px";
+        debugDisplay.appendChild(fenDisplay);
+        
+        // Show current turn
+        const turnDisplay = document.createElement("div");
+        turnDisplay.textContent = `Turn: ${chess.turn() === 'w' ? 'White' : 'Black'}`;
+        debugDisplay.appendChild(turnDisplay);
+        
+        // Show game state
+        const stateDisplay = document.createElement("div");
+        stateDisplay.textContent = `Check: ${chess.in_check() ? 'Yes' : 'No'} | Checkmate: ${chess.in_checkmate() ? 'Yes' : 'No'} | Stalemate: ${chess.in_stalemate() ? 'Yes' : 'No'}`;
+        debugDisplay.appendChild(stateDisplay);
+        
+        // Show AI color
+        const aiDisplay = document.createElement("div");
+        aiDisplay.textContent = `AI: ${aiColor} | Game Mode: ${gameMode}`;
+        debugDisplay.appendChild(aiDisplay);
+        
+        // Add score debug section
+        const scoreSection = document.createElement("div");
+        scoreSection.style.marginTop = "10px";
+        scoreSection.style.borderTop = "1px solid #ff00ff";
+        scoreSection.style.paddingTop = "5px";
+        
+        // Add score debug elements
+        const scoreTitle = document.createElement("div");
+        scoreTitle.textContent = "SCORE DEBUG:";
+        scoreTitle.style.color = "#ff00ff";
+        scoreTitle.style.marginBottom = "3px";
+        scoreSection.appendChild(scoreTitle);
+        
+        // Current calculated score
+        const scoreValue = document.createElement("div");
+        scoreValue.textContent = `Current Score: ${gameScore}`;
+        scoreSection.appendChild(scoreValue);
+        
+        // Add button to trigger score calculation
+        const calculateButton = document.createElement("button");
+        calculateButton.textContent = "Calculate Final Score";
+        calculateButton.style.background = "transparent";
+        calculateButton.style.color = "#00ffff";
+        calculateButton.style.border = "1px solid #00ffff";
+        calculateButton.style.padding = "3px";
+        calculateButton.style.fontSize = "9px";
+        calculateButton.style.cursor = "pointer";
+        calculateButton.style.marginTop = "5px";
+        calculateButton.style.width = "100%";
+        
+        calculateButton.addEventListener("click", () => {
+          // Determine the game result based on the current state
+          let result;
+          
+          if (chess.in_checkmate()) {
+            const winner = chess.turn() === 'w' ? 'black' : 'white';
+            result = (winner === aiColor) ? "loss" : "win";
+          } else if (chess.in_draw()) {
+            result = "draw";
+          } else {
+            result = "in progress";
+          }
+          
+          // Calculate the score as if the game ended with this result
+          const scoreResult = calculateGameScore(result);
+          
+          // Update the debug display with calculated score
+          scoreValue.textContent = `Calculated Score: ${scoreResult.score} (${result})`;
+          
+          // Show detailed breakdown
+          const breakdownDiv = document.createElement("div");
+          breakdownDiv.style.marginTop = "5px";
+          breakdownDiv.style.fontSize = "8px";
+          
+          let breakdownText = "";
+          scoreResult.breakdown.forEach(item => {
+            if (item.points !== undefined) {
+              breakdownText += `${item.description}: ${item.points >= 0 ? '+' : ''}${item.points}\n`;
+            } else if (item.multiplier !== undefined) {
+              breakdownText += `${item.description}: x${item.multiplier}\n`;
+            }
+          });
+          
+          breakdownDiv.innerText = breakdownText;
+          
+          // Replace any existing breakdown
+          const existingBreakdown = scoreSection.querySelector(".score-breakdown");
+          if (existingBreakdown) {
+            existingBreakdown.remove();
+          }
+          
+          breakdownDiv.classList.add("score-breakdown");
+          scoreSection.appendChild(breakdownDiv);
+          
+          console.log("Score calculation:", scoreResult);
+        });
+        
+        scoreSection.appendChild(calculateButton);
+        debugDisplay.appendChild(scoreSection);
+        
+        // Append to the board
+        boardElement.appendChild(debugDisplay);
+      }
+      
+      // Update the renderBoard function to add debug display when in debug mode
+      const originalRenderBoard = renderBoard;
+      renderBoard = function() {
+        originalRenderBoard();
+        
+        if (debugMode) {
+          addDebugInfoDisplay();
+        }
+      };
     </script>
   </body>
 </html>
