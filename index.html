@@ -1641,7 +1641,7 @@
         newGameButton.className = "modal-button";
         newGameButton.textContent = "NEW GAME";
         newGameButton.id = "new-game-checkmate";
-        newGameButton.addEventListener("click", resetGame);
+        newGameButton.addEventListener("click", () => resetGame(false)); // Explicitly set fullReset to false
         
         const submitScoreButton = document.createElement("button");
         submitScoreButton.className = "modal-button";
@@ -1880,7 +1880,7 @@
       }
       
       // Reset the game to the initial state
-      function resetGame() {
+      function resetGame(fullReset = false) {
         chess = new Chess(); // Reset chess instance
         selectedPiece = null;
         validMoves = [];
@@ -1897,6 +1897,20 @@
         playerStats.lastCaptureMove = -1;
         playerStats.queenLost = false;
         playerStats.checkmateWithPawn = false;
+        
+        // If this is a full reset (from play_again handler), reset all cumulative stats too
+        if (fullReset) {
+          console.log("Full stats reset (new session)");
+          playerStats.gamesPlayed = 0;
+          playerStats.wins = 0;
+          playerStats.draws = 0;
+          playerStats.losses = 0;
+          playerStats.currentWinStreak = 0;
+          playerStats.highestWinStreak = 0;
+          playerStats.quickWinsUnder30Moves = 0;
+          playerStats.totalScore = 0;
+          playerStats.achievements = [];
+        }
         
         // Reset current score display (just the current game display, not cumulative)
         const scoreValue = document.querySelector('.score-value');
@@ -2165,7 +2179,7 @@
       });
       
       newGameModalButton.addEventListener("click", () => {
-        resetGame();
+        resetGame(false); // Explicitly set fullReset to false for in-session new games
         menuModal.classList.remove("active");
       });
       
@@ -2235,10 +2249,10 @@
 
       // Listen for Farcade SDK events
       if (window.FarcadeSDK) {
-        // Handle play_again event
+        // Handle play_again event - use fullReset=true to reset cumulative stats
         window.FarcadeSDK.on("play_again", () => {
-          // Reset the game state
-          resetGame();
+          // Reset the game state with full reset (true)
+          resetGame(true);
         });
         
         // Handle toggle_mute event
@@ -2550,33 +2564,16 @@
       
       // Save player stats to localStorage
       function savePlayerStats() {
-        try {
-          localStorage.setItem('ch3ss_playerStats', JSON.stringify(playerStats));
-        } catch (e) {
-          console.error("Could not save player stats:", e);
-        }
+        // Intentionally empty - arcade mode doesn't persist stats between sessions
+        console.log("Stats not saved (arcade mode)");
+        // Note: In arcade mode, stats are only kept for the current session
       }
       
       // Load player stats from localStorage
       function loadPlayerStats() {
-        try {
-          const savedStats = localStorage.getItem('ch3ss_playerStats');
-          if (savedStats) {
-            const parsedStats = JSON.parse(savedStats);
-            // Only copy over the properties we care about to avoid structure changes
-            playerStats.gamesPlayed = parsedStats.gamesPlayed || 0;
-            playerStats.wins = parsedStats.wins || 0;
-            playerStats.draws = parsedStats.draws || 0;
-            playerStats.losses = parsedStats.losses || 0;
-            playerStats.currentWinStreak = parsedStats.currentWinStreak || 0;
-            playerStats.highestWinStreak = parsedStats.highestWinStreak || 0;
-            playerStats.quickWinsUnder30Moves = parsedStats.quickWinsUnder30Moves || 0;
-            playerStats.totalScore = parsedStats.totalScore || 0;
-            playerStats.achievements = parsedStats.achievements || [];
-          }
-        } catch (e) {
-          console.error("Could not load player stats:", e);
-        }
+        // Intentionally empty - arcade mode initializes fresh stats each session
+        console.log("Stats not loaded (arcade mode)");
+        // Player starts with clean stats each new browser session
       }
       
       // Show the scoring overlay with detailed score breakdown
@@ -2854,7 +2851,7 @@
         // Show overlay
         scoringOverlay.classList.add('active');
       }
-      
+
       // Load player stats on game init
       loadPlayerStats();
     </script>
