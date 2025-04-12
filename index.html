@@ -961,6 +961,18 @@
         </div>
 
         <div class="modal-section">
+          <div class="modal-section-title">PLAYER DATA</div>
+          <div class="modal-content">
+            <div class="option-group">
+              <div class="option-buttons">
+                <button id="view-stats-button" class="option-button">VIEW STATS</button>
+                <button id="reset-stats-button" class="option-button danger">RESET ALL STATS</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section">
           <div class="modal-section-title">GAME RULES</div>
           <div class="modal-content">
             Standard chess rules apply in a cyberpunk setting:<br /><br />
@@ -1886,7 +1898,7 @@
         playerStats.queenLost = false;
         playerStats.checkmateWithPawn = false;
         
-        // Reset current score display
+        // Reset current score display (just the current game display, not cumulative)
         const scoreValue = document.querySelector('.score-value');
         if (scoreValue) {
           scoreValue.textContent = "0";
@@ -1924,17 +1936,12 @@
       // Update Farcade score
       function updateFarcadeScore() {
         if (window.FarcadeSDK) {
-          // Get current session score from the score tracker display
-          const scoreTrackerValue = document.querySelector('.score-value');
-          const totalSessionScore = parseInt(scoreTrackerValue?.textContent || "0");
-          
-          // Calculate final score based on game result
-          const finalScore = gameScore > 0 ? gameScore : totalSessionScore;
-          
-          // Submit the final score to Farcade
+          // Submit the player's total cumulative score to Farcade
           window.FarcadeSDK.singlePlayer.actions.gameOver({
-            score: finalScore,
+            score: playerStats.totalScore,
           });
+          
+          console.log(`Submitted score to Farcade: ${playerStats.totalScore}`);
         }
       }
 
@@ -2713,6 +2720,143 @@
           });
         });
       });
+
+      // Reset all player stats
+      function resetAllStats() {
+        // Reset core stats
+        playerStats = {
+          gamesPlayed: 0,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          currentWinStreak: 0,
+          highestWinStreak: 0,
+          quickWinsUnder30Moves: 0,
+          capturedPieces: { p: 0, n: 0, b: 0, r: 0, q: 0 },
+          capturedPieceValue: 0,
+          totalScore: 0,
+          achievements: [],
+          startTime: Date.now(),
+          consecutiveCaptures: 0,
+          lastCaptureMove: -1,
+          queenLost: false,
+          checkmateWithPawn: false,
+          moveHistory: []
+        };
+        
+        // Save empty stats to localStorage
+        localStorage.removeItem('ch3ss_playerStats');
+        
+        // Reset current game score display
+        const scoreValue = document.querySelector('.score-value');
+        if (scoreValue) {
+          scoreValue.textContent = "0";
+        }
+        
+        // Show confirmation message
+        alert("All player stats and achievements have been reset!");
+        
+        // Close modal
+        menuModal.classList.remove('active');
+        
+        // Restart game with fresh state
+        resetGame();
+      }
+      
+      // Event listeners for stats buttons
+      document.getElementById('reset-stats-button').addEventListener('click', () => {
+        if (confirm("Are you sure you want to reset ALL stats and achievements? This cannot be undone!")) {
+          resetAllStats();
+        }
+      });
+      
+      document.getElementById('view-stats-button').addEventListener('click', () => {
+        // Show the scoring overlay with current stats
+        showStatsOverlay();
+        menuModal.classList.remove('active');
+      });
+      
+      // Show stats overlay without needing a game result
+      function showStatsOverlay() {
+        const scoringOverlay = document.getElementById('scoring-overlay');
+        const finalScoreDisplay = document.getElementById('final-score-display');
+        const scoreBreakdown = document.getElementById('score-breakdown');
+        const achievementsList = document.getElementById('achievements-list');
+        const playerStatsElement = document.getElementById('player-stats');
+        
+        // Set cumulative score total
+        finalScoreDisplay.textContent = playerStats.totalScore;
+        
+        // Show a simple breakdown
+        scoreBreakdown.innerHTML = '<div style="text-align:center; margin: 10px 0;">View your current CH3SS statistics below</div>';
+        
+        // Show all achievements earned
+        if (playerStats.achievements && playerStats.achievements.length > 0) {
+          let achievementsHtml = '';
+          playerStats.achievements.forEach(achievementId => {
+            const achievement = scoringSystem.achievements[achievementId];
+            if (achievement) {
+              achievementsHtml += `
+                <div class="achievement-item">
+                  <span class="achievement-title">${achievement.title}</span>
+                  <span class="achievement-bonus">+${achievement.bonus}</span>
+                  <div class="achievement-desc">${achievement.description}</div>
+                </div>
+              `;
+            }
+          });
+          achievementsList.innerHTML = achievementsHtml;
+        } else {
+          achievementsList.innerHTML = '<div style="text-align:center; opacity:0.7; font-style:italic;">No achievements yet</div>';
+        }
+        
+        // Update player stats
+        playerStatsElement.innerHTML = `
+          <table style="width:100%; border-collapse:collapse; font-size:0.45rem;">
+            <tr>
+              <td>Games Played</td>
+              <td style="text-align:right;">${playerStats.gamesPlayed}</td>
+            </tr>
+            <tr>
+              <td>Wins / Draws / Losses</td>
+              <td style="text-align:right;">${playerStats.wins} / ${playerStats.draws} / ${playerStats.losses}</td>
+            </tr>
+            <tr>
+              <td>Win Rate</td>
+              <td style="text-align:right;">${playerStats.gamesPlayed > 0 ? Math.round((playerStats.wins / playerStats.gamesPlayed) * 100) : 0}%</td>
+            </tr>
+            <tr>
+              <td>Current Win Streak</td>
+              <td style="text-align:right;">${playerStats.currentWinStreak}</td>
+            </tr>
+            <tr>
+              <td>Highest Win Streak</td>
+              <td style="text-align:right;">${playerStats.highestWinStreak}</td>
+            </tr>
+            <tr>
+              <td>Total Score</td>
+              <td style="text-align:right;">${playerStats.totalScore.toLocaleString()}</td>
+            </tr>
+          </table>
+        `;
+        
+        // Change the header text to indicate stats view
+        document.querySelector('.modal-header').textContent = "CH3SS PLAYER STATS";
+        
+        // Set up buttons
+        const closeButton = document.getElementById('close-scoring');
+        closeButton.addEventListener('click', () => {
+          scoringOverlay.classList.remove('active');
+          // Reset header text when closing
+          document.querySelector('.modal-header').textContent = "CH3SS SCOREBOARD";
+        });
+        
+        // Show overlay
+        scoringOverlay.classList.add('active');
+      }
+      
+      // Load player stats on game init
+      loadPlayerStats();
     </script>
   </body>
 </html>
