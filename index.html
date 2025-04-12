@@ -68,7 +68,7 @@
       .title {
         text-align: center;
         font-size: 1.5rem;
-        margin-bottom: 15px;
+        margin: 10px 0 10px 0;
         font-weight: bold;
         text-shadow:
           0 0 10px #00ffff,
@@ -748,7 +748,6 @@
         height: 1rem;
         min-width: 80px;
         text-align: center;
-        animation: fadeUp 1s ease-out forwards;
       }
       
       @keyframes fadeUp {
@@ -1127,7 +1126,7 @@
     </div>
     
     <!-- Real-time Score Display -->
-    <div id="current-score-display" class="score-tracker">
+    <div id="current-score-display" class="score-tracker" style="display: none;">
       <div class="score-value">0</div>
       <div id="score-notification" class="score-notification"></div>
     </div>
@@ -2364,22 +2363,44 @@
       
       // Show a score notification
       function showScoreNotification(text, points) {
-        const scoreNotification = document.getElementById('score-notification');
-        const scoreValue = document.querySelector('.score-value');
+        // Get both score value elements (new location and original location)
+        const scoreValueElements = document.querySelectorAll('.score-value');
+        const scoreNotifications = document.querySelectorAll('.score-notification');
         
-        // Update current score display
-        let currentScore = parseInt(scoreValue.textContent) || 0;
+        // Update all score displays
+        let currentScore = parseInt(scoreValueElements[0].textContent) || 0;
         currentScore += points;
-        scoreValue.textContent = currentScore;
         
-        // Show notification
+        // Update all score value displays
+        scoreValueElements.forEach(element => {
+          element.textContent = currentScore;
+        });
+        
+        // Show notification in all locations
         const prefix = points > 0 ? '+' : '';
-        scoreNotification.textContent = `${text} ${prefix}${points}`;
-        
-        // Reset animation
-        scoreNotification.style.animation = 'none';
-        scoreNotification.offsetHeight; // Trigger reflow
-        scoreNotification.style.animation = 'fadeUp 1s ease-out forwards';
+        scoreNotifications.forEach(notification => {
+          // Add highlight styling to make new notifications stand out
+          notification.textContent = `${text} ${prefix}${points}`;
+          notification.style.color = points > 0 ? '#00ffff' : '#ff5050';
+          
+          // Apply a simple highlight effect that doesn't make text disappear
+          notification.style.fontWeight = 'bold';
+          notification.style.opacity = '1';
+          
+          // Reset the highlight after a delay without removing the text
+          setTimeout(() => {
+            notification.style.transition = 'color 1s, opacity 1s';
+            notification.style.color = '';  // Return to default color
+            notification.style.opacity = '0.7'; // Fade but remain visible
+            notification.style.fontWeight = 'normal';
+          }, 1000);
+          
+          // For combos, add additional visual emphasis
+          if (text.includes('COMBO')) {
+            notification.style.fontSize = '0.5rem'; // Make combos slightly larger
+            notification.style.textShadow = '0 0 5px #ff00ff';
+          }
+        });
       }
       
       // Calculate and update score after a game
