@@ -623,7 +623,7 @@
         }
 
         .scoreboard-text {
-          font-size: 0.5rem;
+          font-size: 0.45rem;
           padding: 10px;
         }
 
@@ -743,9 +743,13 @@
       }
       
       .score-notification {
+        font-family: monospace;
         color: #00ffff;
-        font-size: 0.4rem;
-        height: 1rem;
+        text-shadow: none;
+        font-size: 0.65rem;
+        font-weight: bold;
+        line-height: normal;
+        letter-spacing: 0.1em;
         min-width: 80px;
         text-align: center;
       }
@@ -844,11 +848,11 @@
           <div class="info-row">
             <div class="info-panel">
               <div class="display">
-                <div class="display-header">CH3SS</div>
+                <div class="display-header">CURRENT SCORE</div>
                 <div class="display-content rules-content">
-                  <div id="current-game-score" style="display: flex; flex-direction: column; align-items: center;">
-                    <div class="score-value" style="font-size: 1.2rem; color: #ff00ff; text-shadow: 0 0 5px #ff00ff;">0</div>
-                    <div id="score-notification" class="score-notification" style="font-size: 0.45rem; height: 1rem; margin-top: 5px;"></div>
+                  <div id="current-game-score" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between">
+                    <div class="score-value" style="font-size: 1.2rem; color: #ff00ff; text-shadow: 0 0 5px #ff00ff; padding-left: 5px;">000</div>
+                    <div id="score-notification" class="score-notification" style="">No Captures Yet</div>
                   </div>
                 </div>
               </div>
@@ -858,11 +862,11 @@
                 <div class="display-header">MENU</div>
                 <div class="display-content menu-content">
                   <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <button id="pgn-button" class="menu-inline-button" style="flex-grow: 1; margin-right: 5px; text-shadow: none;" title="View PGN notation">
+                      <span id="last-pgn-moves" style="font-size: 0.45rem; ">...</span>
+                    </button>
                     <button id="menu-button" class="menu-inline-button" style="padding: 4px 8px;" title="Options">
                       <span style="font-size: 0.7rem;">⚙️</span>
-                    </button>
-                    <button id="pgn-button" class="menu-inline-button" style="flex-grow: 1; margin-left: 5px;" title="View PGN notation">
-                      <span id="last-pgn-moves" style="font-size: 0.45rem;">...</span>
                     </button>
                   </div>
                 </div>
@@ -1934,8 +1938,14 @@
         // Reset current score display (just the current game display, not cumulative)
         const scoreValue = document.querySelector('.score-value');
         if (scoreValue) {
-          scoreValue.textContent = "0";
+          scoreValue.textContent = "000";
         }
+
+        // Clear the score notification text
+const scoreNotification = document.querySelector('.score-notification');
+if (scoreNotification) {
+  scoreNotification.textContent = "No Captures Yet";
+}
         
         // Clear PGN display
         const pgnOutput = document.getElementById("pgn-output");
@@ -2362,29 +2372,33 @@
       }
       
       // Show a score notification
-      function showScoreNotification(text, points) {
-        // Get both score value elements (new location and original location)
-        const scoreValueElements = document.querySelectorAll('.score-value');
-        const scoreNotifications = document.querySelectorAll('.score-notification');
-        
-        // Update all score displays
-        let currentScore = parseInt(scoreValueElements[0].textContent) || 0;
-        currentScore += points;
-        
-        // Update all score value displays
-        scoreValueElements.forEach(element => {
-          element.textContent = currentScore;
-        });
-        
-        // Show notification in all locations
-        const prefix = points > 0 ? '+' : '';
-        scoreNotifications.forEach(notification => {
+function showScoreNotification(text, points) {
+  // Get both score value elements (new location and original location)
+  const scoreValueElements = document.querySelectorAll('.score-value');
+  const scoreNotifications = document.querySelectorAll('.score-notification');
+  
+  // Update all score displays
+  let currentScore = parseInt(scoreValueElements[0].textContent) || 0;
+  currentScore += points;
+  
+  // Format the score with leading zeros (always showing 3 digits)
+  const formattedScore = currentScore.toString().padStart(3, '0');
+  
+  // Update all score value displays with the formatted score
+  scoreValueElements.forEach(element => {
+    element.textContent = formattedScore;
+  });
+  
+  // Show notification in all locations
+  const prefix = points > 0 ? '+' : '';
+  scoreNotifications.forEach(notification => {
+    
           // Add highlight styling to make new notifications stand out
           notification.textContent = `${text} ${prefix}${points}`;
           notification.style.color = points > 0 ? '#00ffff' : '#ff5050';
           
           // Apply a simple highlight effect that doesn't make text disappear
-          notification.style.fontWeight = 'bold';
+          
           notification.style.opacity = '1';
           
           // Reset the highlight after a delay without removing the text
@@ -2392,13 +2406,13 @@
             notification.style.transition = 'color 1s, opacity 1s';
             notification.style.color = '';  // Return to default color
             notification.style.opacity = '0.7'; // Fade but remain visible
-            notification.style.fontWeight = 'normal';
+            
           }, 1000);
           
           // For combos, add additional visual emphasis
           if (text.includes('COMBO')) {
-            notification.style.fontSize = '0.5rem'; // Make combos slightly larger
-            notification.style.textShadow = '0 0 5px #ff00ff';
+            notification.style.fontSize = '0.65rem'; // Make combos slightly larger
+            notification.style.textShadow = 'none';
           }
         });
       }
