@@ -847,10 +847,10 @@
               <div class="display">
                 <div class="display-header">CH3SS</div>
                 <div class="display-content rules-content">
-                  <div
-                    id="pgn-output"
-                    style="font-size: 0.45rem; color: #00ffff; text-align: center; margin-top: 0px"
-                  ></div>
+                  <div id="current-game-score" style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="score-value" style="font-size: 1.2rem; color: #ff00ff; text-shadow: 0 0 5px #ff00ff;">0</div>
+                    <div id="score-notification" class="score-notification" style="font-size: 0.45rem; height: 1rem; margin-top: 5px;"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -858,7 +858,14 @@
               <div class="display">
                 <div class="display-header">MENU</div>
                 <div class="display-content menu-content">
-                  <button id="menu-button" class="menu-inline-button">OPTIONS</button>
+                  <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <button id="menu-button" class="menu-inline-button" style="padding: 4px 8px;" title="Options">
+                      <span style="font-size: 0.7rem;">⚙️</span>
+                    </button>
+                    <button id="pgn-button" class="menu-inline-button" style="flex-grow: 1; margin-left: 5px;" title="View PGN notation">
+                      <span id="last-pgn-moves" style="font-size: 0.45rem;">...</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1013,6 +1020,25 @@
         </div>
       </div>
     </div>
+
+    <!-- PGN Modal -->
+<div id="pgn-modal" class="modal-overlay">
+  <div class="modal" style="max-width: 350px;">
+    <div class="modal-header">GAME NOTATION</div>
+    
+    <div class="modal-section">
+      <div class="modal-section-title">PGN</div>
+      <div class="modal-content">
+        <div id="full-pgn-output" style="font-size: 0.45rem; color: #00ffff; white-space: pre-wrap; max-height: 200px; overflow-y: auto; text-align: left; font-family: monospace; padding: 5px; background: rgba(0,0,0,0.3);"></div>
+      </div>
+    </div>
+    
+    <div class="modal-buttons">
+      <button id="copy-pgn" class="modal-button">COPY PGN</button>
+      <button id="close-pgn-modal" class="modal-button">CLOSE</button>
+    </div>
+  </div>
+</div>
 
     <!-- Scoring System Overlay -->
     <div id="scoring-overlay" class="modal-overlay">
@@ -1457,11 +1483,8 @@
             // Trigger haptic feedback
             triggerHapticFeedback();
             
-            // Update PGN output
-            const pgnOutput = document.getElementById("pgn-output");
-            if (pgnOutput) {
-              pgnOutput.textContent = "PGN: " + chess.pgn();
-            }
+            // Update PGN display
+            updatePgnDisplay();
             
             // Clear selection and valid moves
             selectedPiece = null;
@@ -1862,11 +1885,8 @@
           // Update captured pieces
           updateCapturedPiecesFromMove(moveResult);
           
-          // Update PGN output
-          const pgnOutput = document.getElementById("pgn-output");
-          if (pgnOutput) {
-            pgnOutput.textContent = "PGN: " + chess.pgn();
-          }
+          // Update PGN display
+          updatePgnDisplay();
           
           aiThinking = false;
           
@@ -2116,11 +2136,8 @@
             // Update captured pieces
             updateCapturedPiecesFromMove(moveResult);
             
-            // Update PGN output
-            const pgnOutput = document.getElementById("pgn-output");
-            if (pgnOutput) {
-              pgnOutput.textContent = "PGN: " + chess.pgn();
-            }
+            // Update PGN display
+            updatePgnDisplay();
             
             // Clear selection and valid moves
             selectedPiece = null;
@@ -2854,6 +2871,55 @@
 
       // Load player stats on game init
       loadPlayerStats();
+
+      // PGN functionality
+      const pgnButton = document.getElementById('pgn-button');
+      const pgnModal = document.getElementById('pgn-modal');
+      const fullPgnOutput = document.getElementById('full-pgn-output');
+      const lastPgnMoves = document.getElementById('last-pgn-moves');
+      const closePgnModal = document.getElementById('close-pgn-modal');
+      const copyPgnButton = document.getElementById('copy-pgn');
+
+      // Update PGN display after each move
+      function updatePgnDisplay() {
+        const history = chess.history();
+        const fullPgn = chess.pgn();
+        
+        // Update the button to show the last couple of moves
+        if (history.length > 0) {
+          // Show last 2-3 moves, depends on space
+          const lastMoves = history.slice(-3);
+          lastPgnMoves.textContent = lastMoves.join(' ');
+        } else {
+          lastPgnMoves.textContent = '...';
+        }
+        
+        // Also update the full PGN output in the modal
+        fullPgnOutput.textContent = fullPgn || 'No moves yet';
+      }
+
+      // Add event listeners for PGN functionality
+      pgnButton.addEventListener('click', () => {
+        // Update full PGN before showing modal
+        const fullPgn = chess.pgn();
+        fullPgnOutput.textContent = fullPgn || 'No moves yet';
+        
+        // Show the modal
+        pgnModal.classList.add('active');
+      });
+
+      closePgnModal.addEventListener('click', () => {
+        pgnModal.classList.remove('active');
+      });
+
+      copyPgnButton.addEventListener('click', () => {
+        navigator.clipboard.writeText(chess.pgn()).then(() => {
+          copyPgnButton.textContent = 'COPIED!';
+          setTimeout(() => {
+            copyPgnButton.textContent = 'COPY PGN';
+          }, 2000);
+        });
+      });
     </script>
   </body>
 </html>
