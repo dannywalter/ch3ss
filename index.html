@@ -1124,6 +1124,7 @@
         
         <div class="modal-buttons">
           <button id="close-scoring" class="modal-button">CLOSE</button>
+          <button id="submit-final-score" class="modal-button">SUBMIT SCORE</button>
           <button id="share-score" class="modal-button">SHARE</button>
         </div>
       </div>
@@ -1946,6 +1947,15 @@ const scoreNotification = document.querySelector('.score-notification');
 if (scoreNotification) {
   scoreNotification.textContent = "No Captures Yet";
 }
+
+// Reset the submit final score button
+const submitFinalScoreButton = document.getElementById('submit-final-score');
+  if (submitFinalScoreButton) {
+    submitFinalScoreButton.disabled = false;
+    submitFinalScoreButton.textContent = 'SUBMIT SCORE';
+    submitFinalScoreButton.style.backgroundColor = '';
+    submitFinalScoreButton.style.opacity = '';
+  }
         
         // Clear PGN display
         const pgnOutput = document.getElementById("pgn-output");
@@ -2629,49 +2639,69 @@ function showScoreNotification(text, points) {
       }
       
       // Show the scoring overlay with detailed score breakdown
-      function showScoringOverlay(scoreResult) {
-        const scoringOverlay = document.getElementById('scoring-overlay');
-        const finalScoreDisplay = document.getElementById('final-score-display');
-        const scoreBreakdown = document.getElementById('score-breakdown');
-        const achievementsList = document.getElementById('achievements-list');
-        const playerStatsElement = document.getElementById('player-stats');
-        
-        // Set final score
-        finalScoreDisplay.textContent = scoreResult.score;
-        
-        // Generate score breakdown HTML
-        let breakdownHtml = '<table style="width:100%; border-collapse:collapse; margin:10px 0;">';
-        
-        // Add score components (additions)
-        scoreResult.breakdown.filter(item => item.points !== undefined).forEach(item => {
-          breakdownHtml += `
-            <tr>
-              <td>${item.description}</td>
-              <td style="text-align:right;">${item.points >= 0 ? '+' : ''}${item.points}</td>
-            </tr>
-          `;
-        });
-        
-        // Add multipliers
-        scoreResult.breakdown.filter(item => item.multiplier !== undefined).forEach(item => {
-          breakdownHtml += `
-            <tr>
-              <td>${item.description}</td>
-              <td style="text-align:right;">x${item.multiplier}</td>
-            </tr>
-          `;
-        });
-        
-        // Add total
-        breakdownHtml += `
-          <tr style="border-top: 1px solid #ff00ff80; margin-top:5px; padding-top:5px; color:#ff00ff; font-weight:bold;">
-            <td>TOTAL SCORE</td>
-            <td style="text-align:right;">${scoreResult.score}</td>
-          </tr>
-        `;
-        
-        breakdownHtml += '</table>';
-        scoreBreakdown.innerHTML = breakdownHtml;
+function showScoringOverlay(scoreResult) {
+  const scoringOverlay = document.getElementById('scoring-overlay');
+  const finalScoreDisplay = document.getElementById('final-score-display');
+  const scoreBreakdown = document.getElementById('score-breakdown');
+  const achievementsList = document.getElementById('achievements-list');
+  const playerStatsElement = document.getElementById('player-stats');
+  
+  // Set final score
+  finalScoreDisplay.textContent = scoreResult.score;
+  
+  // Generate score breakdown HTML
+  let breakdownHtml = '<table style="width:100%; border-collapse:collapse; margin:10px 0;">';
+  
+  // Add score components (additions)
+  scoreResult.breakdown.filter(item => item.points !== undefined).forEach(item => {
+    breakdownHtml += `
+      <tr>
+        <td>${item.description}</td>
+        <td style="text-align:right;">${item.points >= 0 ? '+' : ''}${item.points}</td>
+      </tr>
+    `;
+  });
+  
+  // Add multipliers
+  scoreResult.breakdown.filter(item => item.multiplier !== undefined).forEach(item => {
+    breakdownHtml += `
+      <tr>
+        <td>${item.description}</td>
+        <td style="text-align:right;">x${item.multiplier}</td>
+      </tr>
+    `;
+  });
+  
+  // Add total
+  breakdownHtml += `
+    <tr style="border-top: 1px solid #ff00ff80; margin-top:5px; padding-top:5px; color:#ff00ff; font-weight:bold;">
+      <td>TOTAL SCORE</td>
+      <td style="text-align:right;">${scoreResult.score}</td>
+    </tr>
+  `;
+  
+  breakdownHtml += '</table>';
+  
+  // Add a call-to-action message based on win streak and game result
+  if (playerStats.currentWinStreak > 0) {
+    breakdownHtml += `
+      <div style="margin-top:15px; text-align:center; padding:8px; border:1px dashed #ff00ff; border-radius:5px; background:rgba(255,0,255,0.1);">
+        <span style="color:#ff00ff; font-weight:bold;">WIN STREAK: ${playerStats.currentWinStreak}</span><br>
+        <span style="font-size:0.45rem; color:#00ffff;">Keep playing to increase your streak multiplier!<br>Each win makes the next one worth more points.</span>
+      </div>
+    `;
+  } else {
+    breakdownHtml += `
+      <div style="margin-top:15px; text-align:center; padding:8px; border:1px dashed #00ffff; border-radius:5px; background:rgba(0,255,255,0.1);">
+        <span style="color:#00ffff; font-weight:bold;">SUBMIT YOUR SCORE</span><br>
+        <span style="font-size:0.45rem;">Save your total score of ${playerStats.totalScore} points to the leaderboard!</span>
+      </div>
+    `;
+  }
+  
+  scoreBreakdown.innerHTML = breakdownHtml;
+  
+  // Rest of the function remains the same...
         
         // Generate achievements HTML
         if (scoreResult.achievements && scoreResult.achievements.length > 0) {
@@ -2721,6 +2751,16 @@ function showScoreNotification(text, points) {
         closeButton.addEventListener('click', () => {
           scoringOverlay.classList.remove('active');
         });
+
+        const submitFinalScoreButton = document.getElementById('submit-final-score');
+submitFinalScoreButton.addEventListener('click', () => {
+  // Disable the button immediately to prevent multiple clicks
+  submitFinalScoreButton.disabled = true;
+  submitFinalScoreButton.textContent = 'SUBMITTING...';
+  scoringOverlay.classList.remove('active');
+  // Call Farcade SDK gameOver using the updateFarcadeScore function
+  updateFarcadeScore();
+});
         
         const shareButton = document.getElementById('share-score');
         shareButton.addEventListener('click', () => {
