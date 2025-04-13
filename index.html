@@ -861,9 +861,9 @@
               <div class="display">
                 <div class="display-header">MENU</div>
                 <div class="display-content menu-content">
-                  <div style="display: flex; justify-content: space-between; width: 100%;">
+                  <div style="display: flex; justify-content: space-between; width: 100%; margin: 2px 0 0 0;">
                     <button id="pgn-button" class="menu-inline-button" style="flex-grow: 1; margin-right: 5px; text-shadow: none;" title="View PGN notation">
-                      <span id="last-pgn-moves" style="font-size: 0.45rem; ">...</span>
+                      <span id="last-pgn-moves" style="font-family: monospace; font-size: 0.7rem; ">Last Moves</span>
                     </button>
                     <button id="menu-button" class="menu-inline-button" style="padding: 4px 8px;" title="Options">
                       <span style="font-size: 0.7rem;">⚙️</span>
@@ -1032,7 +1032,7 @@
     <div class="modal-section">
       <div class="modal-section-title">PGN</div>
       <div class="modal-content">
-        <div id="full-pgn-output" style="font-size: 0.45rem; color: #00ffff; white-space: pre-wrap; max-height: 200px; overflow-y: auto; text-align: left; font-family: monospace; padding: 5px; background: rgba(0,0,0,0.3);"></div>
+        <div id="full-pgn-output" style="font-family: monospace; font-size: 0.75rem; color: #00ffff; white-space: pre-wrap; max-height: 200px; overflow-y: auto; text-align: left; font-family: monospace; padding: 5px; background: rgba(0,0,0,0.3);"></div>
       </div>
     </div>
     
@@ -1147,13 +1147,13 @@
         q: "♛",
         r: "♖",
         b: "♗",
-        n: "♘",
+        n: "♞",
         p: "♙",
         K: "♚",
         Q: "♛",
         R: "♖",
         B: "♗",
-        N: "♘",
+        N: "♞",
         P: "♙",
       };
 
@@ -1899,7 +1899,7 @@
           // Trigger haptic feedback
           triggerHapticFeedback();
           
-        }, 500); // AI "thinking" delay
+        }, 800); // AI "thinking" delay
       }
       
       // Reset the game to the initial state
@@ -2926,7 +2926,7 @@ function showScoreNotification(text, points) {
           const lastMoves = history.slice(-3);
           lastPgnMoves.textContent = lastMoves.join(' ');
         } else {
-          lastPgnMoves.textContent = '...';
+          lastPgnMoves.textContent = 'Last Moves';
         }
         
         // Also update the full PGN output in the modal
