@@ -909,7 +909,7 @@
 
         <div class="modal-section" style="padding-bottom: 0px; margin-bottom: 0px; border-bottom: none;">
           <div class="modal-section-title">// DATA PERSISTENCE //</div>
-          <div id="score-breakdown" class="modal-content" style="font-size:0.5rem;">
+          <div id="welcome-score-persistence" class="modal-content" style="font-size:0.5rem;">
             <table style="width:100%; border-collapse:collapse; margin:10px 0;">
               <tbody><tr>
                 <td>Your score <strong>accumulates across games</strong> until you hit 'SUBMIT SCORE' and your total score is sent to Farcade for final analysis.
@@ -919,7 +919,7 @@
           </div>
 
               <div class="modal-section-title">// CH3SS SCORE PROTOCOL //</div>
-              <div id="score-breakdown" class="modal-content" style="font-size:0.5rem;">
+              <div id="welcome-score-protocol" class="modal-content" style="font-size:0.5rem;">
                 <table style="width:100%; border-collapse:collapse; margin:10px 0;">
                   <tbody>
                     <tr>
@@ -983,7 +983,7 @@
               </div>
 
               <div class="modal-section-title">// ACHIEVEMENTS //</div>
-              <div id="achievements-list" class="modal-content">
+              <div id="welcome-achievements-list" class="modal-content">
                 <div class="achievement-item">
                   <span class="achievement-title">Queen Protector</span>
                   <span class="achievement-bonus">+100</span>
@@ -2636,50 +2636,60 @@ function showScoreNotification(text, points) {
         const baseScore = score;
         score = Math.round(baseScore * streakMultiplier * diffMultiplier);
         
+
         // 6. Check for achievements
+        console.log("--- Achievement Check ---");
+        console.log("Result:", gameResult);
+        console.log("Queen Lost:", playerStats.queenLost);
+        console.log("Checkmate w/ Pawn:", playerStats.checkmateWithPawn);
+        console.log("Quick Wins (<30):", playerStats.quickWinsUnder30Moves);
+        console.log("Current Win Streak:", playerStats.currentWinStreak);
+        console.log("Already Earned (Cumulative):", playerStats.achievements);
+
         // Unstoppable - 10 consecutive wins
-        if (playerStats.currentWinStreak >= 10 && 
+        if (playerStats.currentWinStreak >= 10 &&
             !playerStats.achievements.includes("unstoppable")) {
+          console.log("AWARDING: Unstoppable");
           playerStats.achievements.push("unstoppable");
-          achievementsEarned.push({
-            id: "unstoppable",
-            ...scoringSystem.achievements.unstoppable
-          });
-          score += scoringSystem.achievements.unstoppable.bonus;
+          const achievementData = scoringSystem.achievements.unstoppable;
+          achievementsEarned.push({ id: "unstoppable", ...achievementData });
+          score += achievementData.bonus;
         }
         
         // Queen Protector - Win without losing Queen
         if (gameResult === "win" && !playerStats.queenLost &&
             !playerStats.achievements.includes("queenProtector")) {
+          console.log("AWARDING: Queen Protector");
           playerStats.achievements.push("queenProtector");
-          achievementsEarned.push({
-            id: "queenProtector",
-            ...scoringSystem.achievements.queenProtector
-          });
-          score += scoringSystem.achievements.queenProtector.bonus;
+          const achievementData = scoringSystem.achievements.queenProtector;
+          achievementsEarned.push({ id: "queenProtector", ...achievementData });
+          score += achievementData.bonus;
         }
         
         // Pawn Slayer - Deliver checkmate with a pawn
         if (gameResult === "win" && playerStats.checkmateWithPawn &&
             !playerStats.achievements.includes("pawnSlayer")) {
+          console.log("AWARDING: Pawn Slayer");
           playerStats.achievements.push("pawnSlayer");
-          achievementsEarned.push({
-            id: "pawnSlayer",
-            ...scoringSystem.achievements.pawnSlayer
-          });
-          score += scoringSystem.achievements.pawnSlayer.bonus;
+          const achievementData = scoringSystem.achievements.pawnSlayer;
+          achievementsEarned.push({ id: "pawnSlayer", ...achievementData });
+          score += achievementData.bonus;
         }
         
         // Speed Demon - Win 5 games within 30 moves
         if (playerStats.quickWinsUnder30Moves >= 5 &&
             !playerStats.achievements.includes("speedDemon")) {
+          console.log("AWARDING: Speed Demon");
           playerStats.achievements.push("speedDemon");
-          achievementsEarned.push({
-            id: "speedDemon",
-            ...scoringSystem.achievements.speedDemon
-          });
-          score += scoringSystem.achievements.speedDemon.bonus;
+          const achievementData = scoringSystem.achievements.speedDemon;
+          achievementsEarned.push({ id: "speedDemon", ...achievementData });
+          score += achievementData.bonus;
         }
+
+        console.log("Achievements earned this game:", achievementsEarned.map(a => a.id));
+        console.log("Updated cumulative achievements:", playerStats.achievements);
+        console.log("--- End Achievement Check ---");
+
         
         // Update total score
         playerStats.totalScore += score;
