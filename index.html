@@ -2053,6 +2053,12 @@ const submitFinalScoreButton = document.getElementById('submit-final-score');
         if (pgnOutput) {
           pgnOutput.textContent = "";
         }
+
+        // Reset the last moves display in the info section
+const lastPgnMoves = document.getElementById("last-pgn-moves");
+if (lastPgnMoves) {
+  lastPgnMoves.textContent = "Last Moves";
+}
         
         renderBoard();
         
