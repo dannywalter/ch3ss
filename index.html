@@ -702,7 +702,7 @@
         color: #00ffff;
         font-size: 0.5rem;
         font-weight: bold;
-        text-shadow: 0 0 5px #00ffff;
+        text-shadow: 0 0 7px #00ffff;
       }
       
       .achievement-bonus {
@@ -882,13 +882,32 @@
       <div class="modal welcome-modal" style="max-width: 380px;">
         <div class="modal-header" style="font-size: .8rem;">Welcome, Ch3ss Mast3r</div>
 
-        <div class="modal-section">
-          <div class="modal-content" style="text-align: left; font-size: 0.5rem; line-height: 1.6;">
-            Beyond the checkmate lies the real challenge: maximize your score output and dominate the Farcade leaderboard!
+        <div id="welcome-ai-options" class="modal-section" style="border-bottom: none;">
+          <div class="modal-content" style="text-align: left; font-size: 0.5rem; line-height: 1.6; margin-bottom: 10px;">
+            Read the score instructions below or jump right into battle!
           </div>
-        </div>
 
-        <div class="modal-section">
+          <div class="option-buttons">
+            <button id="welcome-color-black" class="option-button active">WHITE (YOU PLAY FIRST)</button>
+            <button id="welcome-color-white" class="option-button">BLACK (AI PLAYS FIRST)</button>
+          </div>
+        
+
+       <div class="modal-buttons" style="justify-content: center; margin-top: 25px;">
+         <button id="start-game" class="modal-button" style="font-size: 0.7rem; padding: 10px 20px;">
+           > START GAME <
+         </button>
+       </div>
+       </div>
+
+       <div class="modal-section">
+        <div class="modal-content" style="text-align: left; font-size: 0.5rem; line-height: 1.6;">
+          Think beyond the checkmate.<br>
+          Dominate the Farcade leaderboard!
+        </div>
+      </div>
+
+        <div class="modal-section" style="padding-bottom: 0px; margin-bottom: 0px; border-bottom: none;">
           <div class="modal-section-title">// DATA PERSISTENCE //</div>
           <div id="score-breakdown" class="modal-content" style="font-size:0.5rem;">
             <table style="width:100%; border-collapse:collapse; margin:10px 0;">
@@ -898,29 +917,31 @@
               </tr>
             </tbody></table>
           </div>
-        </div>
 
-            <div class="modal-section">
-              <div class="modal-section-title">// CORE SCORING DIRECTIVES //</div>
+              <div class="modal-section-title">// CH3SS SCORE PROTOCOL //</div>
               <div id="score-breakdown" class="modal-content" style="font-size:0.5rem;">
                 <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-                  <tbody><tr>
-                    <td>Checkmate</td>
-                    <td style="text-align:right;">+100</td>
+                  <tbody>
+                    <tr>
+                      <td strong style="color:#00ffff;">» CORE DIRECTIVES</td>
+                    </tr>
+                    <tr>
+                      <td>Checkmate</td>
+                      <td style="text-align:right;">+100</td>
+                    </tr>
+                    <tr>
+                      <td>Stalemate/Draw</td>
+                      <td style="text-align:right;">+30</td>
+                    </tr>
+                </tbody>
+              </table>
+
+              <table style="width:100%; border-collapse:collapse; margin:10px 0;">
+                <tbody>
+                  <tr>
+                    <td strong style="color:#00ffff;">» ENEMY TARGETS</td>
                   </tr>
                   <tr>
-                    <td>Stalemate/Draw</td>
-                    <td style="text-align:right;">+30</td>
-                  </tr>
-                </tbody></table>
-              </div>
-            </div>
-
-            <div class="modal-section">
-              <div class="modal-section-title">// ENEMY TARGETS //</div>
-              <div id="score-breakdown" class="modal-content" style="font-size:0.5rem;">
-                <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-                  <tbody><tr>
                     <td>Pawn</td>
                     <td style="text-align:right;">+2</td>
                   </tr>
@@ -936,16 +957,16 @@
                     <td>Queen</td>
                     <td style="text-align:right;">+20</td>
                   </tr>
-                </tbody></table>
-              </div>
-            </div>
+                </tbody>
+              </table>
 
-            <div class="modal-section">
-              <div class="modal-section-title">// SYSTEM OVERRIDES //</div>
-              <div id="score-breakdown" class="modal-content" style="font-size:0.5rem;">
-                <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-                  <tbody><tr>
-                    <td>Win Streak Multipliers (3+, 5+, 10+)</td>
+              <table style="width:100%; border-collapse:collapse; margin:10px 0;">
+                <tbody>
+                  <tr>
+                    <td strong style="color:#00ffff;">» SYSTEM OVERRIDES</td>
+                  </tr>
+                  <tr>
+                    <td>Win Streak (3, 5, 10)</td>
                     <td style="text-align:right;">1.5x, 3x, 5x</td>
                   </tr>
                   <tr>
@@ -956,43 +977,36 @@
                     <td>Quick Win (under 5 minutes)</td>
                     <td style="text-align:right;">+50</td>
                   </tr>
-                </tbody></table>
-              </div>
-            </div>
+              </tbody>
+            </table>
 
-            <div class="modal-section">
-              <div class="modal-section-title">ACHIEVEMENTS</div>
+              </div>
+
+              <div class="modal-section-title">// ACHIEVEMENTS //</div>
               <div id="achievements-list" class="modal-content">
                 <div class="achievement-item">
-                  <span class="achievement-title">Speed Demon</span>
-                  <span class="achievement-bonus">+200</span>
-                  <div class="achievement-desc">Win 5 games within 30 moves</div>
-                </div>
+                  <span class="achievement-title">Queen Protector</span>
+                  <span class="achievement-bonus">+100</span>
+                  <div class="achievement-desc">Win without losing your Queen</div>
+                  </div>
+                  <div class="achievement-item">
+                    <span class="achievement-title">Pawn Slayer</span>
+                    <span class="achievement-bonus">+150</span>
+                    <div class="achievement-desc">Deliver checkmate using a Pawn</div>
+                  </div>
+                  <div class="achievement-item">
+                    <span class="achievement-title">Speed Demon</span>
+                    <span class="achievement-bonus">+200</span>
+                    <div class="achievement-desc">Win 5 games within 30 moves</div>
+                  </div>
+                  <div class="achievement-item">
+                    <span class="achievement-title">Unstoppable</span>
+                    <span class="achievement-bonus">+500</span>
+                    <div class="achievement-desc">Win 10 consecutive games</div>
+                  </div>
               </div>
             </div>
-
-         <div class="modal-section">
-           <div class="modal-section-title">GAME MODE</div>
-           <div class="option-buttons">
-             <button id="welcome-mode-ai" class="option-button active">PLAY VS AI</button>
-             <button id="welcome-mode-human" class="option-button">PLAY IN PERSON</button>
-           </div>
-         </div>
-        
-         <div id="welcome-ai-options" class="modal-section">
-           <div class="modal-section-title">PLAY AS</div>
-           <div class="option-buttons">
-             <button id="welcome-color-black" class="option-button active">WHITE (YOU PLAY FIRST)</button>
-             <button id="welcome-color-white" class="option-button">BLACK (AI PLAYS FIRST)</button>
-           </div>
-         </div>
-
-        <div class="modal-buttons" style="justify-content: center; margin-top: 25px;">
-          <button id="start-game" class="modal-button" style="font-size: 0.7rem; padding: 10px 20px;">
-            > ENGAGE <
-          </button>
-        </div>
-      </div>
+              </div>
     </div>
 
     <!-- Game Menu Modal -->
@@ -2396,36 +2410,16 @@ const submitFinalScoreButton = document.getElementById('submit-final-score');
       
       // Configure welcome screen based on current game mode
       function updateWelcomeScreen() {
-        if (gameMode === "ai") {
-          welcomeModeAIButton.classList.add("active");
-          welcomeModeHumanButton.classList.remove("active");
-          welcomeAIOptions.style.display = "block";
-          
-          if (aiColor === "white") {
-            welcomeColorWhiteButton.classList.add("active");
+        if (aiColor === "white") {
+          welcomeColorWhiteButton.classList.add("active");
             welcomeColorBlackButton.classList.remove("active");
+          
           } else {
-            welcomeColorBlackButton.classList.add("active");
-            welcomeColorWhiteButton.classList.remove("active");
-          }
-        } else {
-          welcomeModeHumanButton.classList.add("active");
-          welcomeModeAIButton.classList.remove("active");
-          welcomeAIOptions.style.display = "none";
-        }
+          welcomeColorBlackButton.classList.add("active");
+          welcomeColorWhiteButton.classList.remove("active");        }
       }
       
-      // Set up welcome screen buttons
-      welcomeModeAIButton.addEventListener("click", () => {
-        gameMode = "ai";
-        updateWelcomeScreen();
-      });
-      
-      welcomeModeHumanButton.addEventListener("click", () => {
-        gameMode = "human";
-        updateWelcomeScreen();
-      });
-      
+      // Set up welcome screen buttons      
       welcomeColorWhiteButton.addEventListener("click", () => {
         aiColor = "white";
         updateWelcomeScreen();
