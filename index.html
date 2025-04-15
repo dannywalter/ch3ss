@@ -911,7 +911,7 @@
           <div id="welcome-score-persistence" class="modal-content" style="font-size:0.5rem;">
             <table style="width:100%; border-collapse:collapse; margin:10px 0;">
               <tbody><tr>
-                <td>Your score <strong>accumulates across games</strong> until you hit 'SUBMIT SCORE' and your total score is sent to Farcade for final analysis.
+                <td>Your score <strong style="color: #ffffff; text-shadow: 0px 0px 6px #00ffff;">accumulates across games</strong> until you hit 'SUBMIT SCORE' and your total score is sent to Farcade for final analysis.
                 </td>
               </tr>
             </tbody></table>
@@ -1032,26 +1032,27 @@
               </div>
               
               <div class="option-label" style="margin-top: 10px;">DIFFICULTY:</div>
-              <div class="difficulty-selector">
+              <div class="difficulty-selector" style="opacity: 0.5; position: relative;">
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); padding: 5px 10px; border: 1px solid #00ffff; color: #00ffff; font-size: 0.5rem; z-index: 1;">COMING SOON</div>
                 <label class="difficulty-option" for="diff-easy">
-                  <input type="radio" id="diff-easy" name="ai-difficulty" value="easy">
+                  <input type="radio" id="diff-easy" name="ai-difficulty" value="easy" disabled>
                   <span class="difficulty-name">Easy</span>
                   <span class="difficulty-multi">x1.0</span>
                 </label>
                 <label class="difficulty-option active" for="diff-medium">
-                  <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" checked>
+                  <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" checked disabled>
                   <span class="difficulty-name">Medium</span>
-                  <span class="difficulty-multi">x1.5</span>
+                  <span class="difficulty-multi">x1.0</span>
                 </label>
                 <label class="difficulty-option" for="diff-hard">
-                  <input type="radio" id="diff-hard" name="ai-difficulty" value="hard">
+                  <input type="radio" id="diff-hard" name="ai-difficulty" value="hard" disabled>
                   <span class="difficulty-name">Hard</span>
-                  <span class="difficulty-multi">x2.0</span>
+                  <span class="difficulty-multi">x1.0</span>
                 </label>
                 <label class="difficulty-option" for="diff-expert">
-                  <input type="radio" id="diff-expert" name="ai-difficulty" value="expert">
+                  <input type="radio" id="diff-expert" name="ai-difficulty" value="expert" disabled>
                   <span class="difficulty-name">Expert</span>
-                  <span class="difficulty-multi">x3.0</span>
+                  <span class="difficulty-multi">x1.0</span>
                 </label>
               </div>
             </div>
@@ -1160,10 +1161,6 @@
               <tr>
                 <td>Win Streak Bonus (x1.2)</td>
                 <td style="text-align:right;">x1.2</td>
-              </tr>
-              <tr>
-                <td>Difficulty Multiplier (Hard)</td>
-                <td style="text-align:right;">x2</td>
               </tr>
               <tr style="border-top: 1px solid #ff00ff80; margin-top:5px; padding-top:5px; color:#ff00ff; font-weight:bold;">
                 <td>TOTAL SCORE</td>
@@ -2299,10 +2296,10 @@ if (lastPgnMoves) {
           if (aiColor === "white") {
             aiColorWhiteButton.classList.add("active");
             aiColorBlackButton.classList.remove("active");
+          
           } else {
-            aiColorBlackButton.classList.add("active");
-            aiColorWhiteButton.classList.remove("active");
-          }
+          aiColorBlackButton.classList.add("active");
+          aiColorWhiteButton.classList.remove("active");        }
         }
       });
       
@@ -2630,18 +2627,10 @@ function showScoreNotification(text, points) {
           });
         }
         
-        // 5. Apply difficulty multiplier
-        const diffMultiplier = scoringSystem.difficultyMultiplier[aiDifficulty];
-        scoreBreakdown.push({
-          description: `Difficulty (${aiDifficulty.charAt(0).toUpperCase() + aiDifficulty.slice(1)})`,
-          multiplier: diffMultiplier
-        });
-        
-        // Apply all multipliers
+        // Apply streak multiplier only (removed difficulty multiplier)
         const baseScore = score;
-        score = Math.round(baseScore * streakMultiplier * diffMultiplier);
+        score = Math.round(baseScore * streakMultiplier);
         
-
         // 6. Check for achievements
         console.log("--- Achievement Check ---");
         console.log("Result:", gameResult);
@@ -2880,21 +2869,8 @@ submitFinalScoreButton.addEventListener('click', () => {
       // Setup difficulty selector
       const difficultySelector = document.querySelector(".difficulty-selector");
       
-      // Setup difficulty radio buttons
-      document.querySelectorAll('input[name="ai-difficulty"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-          aiDifficulty = radio.value;
-          
-          // Update visuals
-          document.querySelectorAll('.difficulty-option').forEach(option => {
-            if (option.contains(radio)) {
-              option.classList.add('active');
-            } else {
-              option.classList.remove('active');
-            }
-          });
-        });
-      });
+      // Difficulty selector disabled - "Coming Soon"
+      // No event listeners for the disabled difficulty options
 
       // Reset all player stats
       function resetAllStats() {
