@@ -1253,6 +1253,25 @@
         to: null,
       };
       
+      // Audio for piece interactions
+      const piecePutDownSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/piecePutDown-I0Np4sDGwYKs149G5uvDTUPoPV9pyN.wav');
+      // Preload audio
+      piecePutDownSound.load();
+      
+      // Function to play the piece pickup sound
+      function playPieceSound() {
+        // Only play if the game is not muted
+        if (!isMuted && piecePutDownSound) {
+          // Reset the audio to the beginning (in case it's still playing)
+          piecePutDownSound.currentTime = 0;
+          // Play the sound
+          piecePutDownSound.play().catch(error => {
+            // This catches errors like when the browser requires user interaction before playing audio
+            console.log("Audio playback error:", error);
+          });
+        }
+      }
+      
       // AI variables
       let gameMode = "ai"; // human, ai
       let aiColor = "black"; // AI will play as black by default
@@ -1540,6 +1559,9 @@
         if (!selectedPiece) {
           // Can only select pieces of the current player's color
           if (piece && piece.color === chess.turn()) {
+            // Play sound when a piece is selected
+            playPieceSound();
+            
             selectedPiece = { row, col, piece: getPieceNotation(piece), square };
             
             // Calculate valid moves for the selected piece
@@ -1592,6 +1614,9 @@
         } else {
           // If clicking on another one of the player's pieces, select that piece instead
           if (piece && piece.color === chess.turn()) {
+            // Play sound when switching to a different piece
+            playPieceSound();
+            
             selectedPiece = { row, col, piece: getPieceNotation(piece), square };
             validMoves = getValidMovesForSquare(row, col);
           } else {
@@ -2113,6 +2138,9 @@ if (lastPgnMoves) {
         const piece = chess.get(algebraicSquare);
         
         if (!piece || piece.color !== chess.turn()) return;
+        
+        // Play sound when a piece is touched/dragged
+        playPieceSound();
         
         e.preventDefault();
         isPieceBeingDragged = true;
