@@ -1255,8 +1255,10 @@
       
       // Audio for piece interactions
       const piecePutDownSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/piecePutDown-I0Np4sDGwYKs149G5uvDTUPoPV9pyN.wav');
+      const piecePickUpSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/piecePickUp-FWPH1iwf5vLiMT0haVKUbcahJL3auD.wav');
       // Preload audio
       piecePutDownSound.load();
+      piecePickUpSound.load();
       
       // Function to play the piece pickup sound
       function playPieceSound() {
@@ -1266,6 +1268,20 @@
           piecePutDownSound.currentTime = 0;
           // Play the sound
           piecePutDownSound.play().catch(error => {
+            // This catches errors like when the browser requires user interaction before playing audio
+            console.log("Audio playback error:", error);
+          });
+        }
+      }
+      
+      // Function to play the piece put down sound
+      function playPutDownSound() {
+        // Only play if the game is not muted
+        if (!isMuted && piecePickUpSound) {
+          // Reset the audio to the beginning (in case it's still playing)
+          piecePickUpSound.currentTime = 0;
+          // Play the sound
+          piecePickUpSound.play().catch(error => {
             // This catches errors like when the browser requires user interaction before playing audio
             console.log("Audio playback error:", error);
           });
@@ -1584,6 +1600,9 @@
           });
           
           if (moveResult) {
+            // Play the put down sound
+            playPutDownSound();
+            
             // Update last move for highlighting
             lastMove = {
               from: squareToCoords(moveResult.from),
@@ -1992,6 +2011,9 @@
           // Make the selected move
           const moveResult = chess.move(selectedMove);
           
+          // Play the put down sound when AI places a piece
+          playPutDownSound();
+          
           // Update last move for highlighting
           lastMove = {
             from: squareToCoords(moveResult.from),
@@ -2267,6 +2289,9 @@ if (lastPgnMoves) {
           });
           
           if (moveResult) {
+            // Play the put down sound
+            playPutDownSound();
+            
             // Update last move for highlighting
             lastMove = {
               from: squareToCoords(moveResult.from),
