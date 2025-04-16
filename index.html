@@ -1256,9 +1256,11 @@
       // Audio for piece interactions
       const piecePutDownSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/piecePickUp-FWPH1iwf5vLiMT0haVKUbcahJL3auD.wav');
       const piecePickUpSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/piecePutDown-I0Np4sDGwYKs149G5uvDTUPoPV9pyN.wav');
+      const pieceCaptureSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/pieceCapture-tkzgPSppuXLlK9vkkFLBz0oXfDF2u1.wav');
       // Preload audio
       piecePutDownSound.load();
       piecePickUpSound.load();
+      pieceCaptureSound.load();
       
       // Function to play the piece pickup sound
       function playPieceSound() {
@@ -1600,8 +1602,17 @@
           });
           
           if (moveResult) {
-            // Play the put down sound
-            playPutDownSound();
+            // Play the appropriate sound based on if it was a capture
+            if (moveResult.captured) {
+              // Play capture sound for captures
+              pieceCaptureSound.currentTime = 0;
+              pieceCaptureSound.play().catch(error => {
+                console.log("Audio playback error:", error);
+              });
+            } else {
+              // Play regular put down sound for non-captures
+              playPutDownSound();
+            }
             
             // Update last move for highlighting
             lastMove = {
@@ -2289,8 +2300,17 @@ if (lastPgnMoves) {
           });
           
           if (moveResult) {
-            // Play the put down sound
-            playPutDownSound();
+            // Play the appropriate sound based on if it was a capture
+            if (moveResult.captured) {
+              // Play capture sound for captures
+              pieceCaptureSound.currentTime = 0;
+              pieceCaptureSound.play().catch(error => {
+                console.log("Audio playback error:", error);
+              });
+            } else {
+              // Play regular put down sound for non-captures
+              playPutDownSound();
+            }
             
             // Update last move for highlighting
             lastMove = {
@@ -2780,25 +2800,26 @@ function showScoringOverlay(scoreResult) {
   // Generate score breakdown HTML
   let breakdownHtml = '<table style="width:100%; border-collapse:collapse; margin:10px 0;">';
   
-  // Add score components (additions)
-  scoreResult.breakdown.filter(item => item.points !== undefined).forEach(item => {
-    breakdownHtml += `
-      <tr>
-        <td>${item.description}</td>
-        <td style="text-align:right;">${item.points >= 0 ? '+' : ''}${item.points}</td>
-      </tr>
-    `;
-  });
-  
-  // Add multipliers
-  scoreResult.breakdown.filter(item => item.multiplier !== undefined).forEach(item => {
-    breakdownHtml += `
-      <tr>
-        <td>${item.description}</td>
-        <td style="text-align:right;">x${item.multiplier}</td>
-      </tr>
-    `;
-  });
+  // Add each score breakdown item
+  if (scoreResult.breakdown && scoreResult.breakdown.length > 0) {
+    scoreResult.breakdown.forEach(item => {
+      if (item.multiplier) {
+        breakdownHtml += `
+          <tr>
+            <td>${item.description}</td>
+            <td style="text-align:right;">x${item.multiplier}</td>
+          </tr>
+        `;
+      } else {
+        breakdownHtml += `
+          <tr>
+            <td>${item.description}</td>
+            <td style="text-align:right;">${item.points >= 0 ? '+' : ''}${item.points}</td>
+          </tr>
+        `;
+      }
+    });
+  }
   
   // Add total
   breakdownHtml += `
@@ -2829,96 +2850,94 @@ function showScoringOverlay(scoreResult) {
   
   scoreBreakdown.innerHTML = breakdownHtml;
   
-  // Rest of the function remains the same...
-        
-        // Generate achievements HTML
-        if (scoreResult.achievements && scoreResult.achievements.length > 0) {
-          let achievementsHtml = '';
-          scoreResult.achievements.forEach(achievement => {
-            achievementsHtml += `
-              <div class="achievement-item">
-                <span class="achievement-title">${achievement.title}</span>
-                <span class="achievement-bonus">+${achievement.bonus}</span>
-                <div class="achievement-desc">${achievement.description}</div>
-              </div>
-            `;
-          });
-          achievementsList.innerHTML = achievementsHtml;
-        } else {
-          achievementsList.innerHTML = '<div style="text-align:center; opacity:0.7; font-style:italic;">No new achievements</div>';
-        }
-        
-        // Update player stats
-        playerStatsElement.innerHTML = `
-          <table style="width:100%; border-collapse:collapse; font-size:0.45rem;">
-            <tr>
-              <td>Games Played</td>
-              <td style="text-align:right;">${playerStats.gamesPlayed}</td>
-            </tr>
-            <tr>
-              <td>Wins / Draws / Losses</td>
-              <td style="text-align:right;">${playerStats.wins} / ${playerStats.draws} / ${playerStats.losses}</td>
-            </tr>
-            <tr>
-              <td>Current Win Streak</td>
-              <td style="text-align:right;">${playerStats.currentWinStreak}</td>
-            </tr>
-            <tr>
-              <td>Highest Win Streak</td>
-              <td style="text-align:right;">${playerStats.highestWinStreak}</td>
-            </tr>
-            <tr>
-              <td>Total Score</td>
-              <td style="text-align:right;">${playerStats.totalScore.toLocaleString()}</td>
-            </tr>
-          </table>
-        `;
-        
-        // Set up buttons
-        const closeButton = document.getElementById('close-scoring');
-        closeButton.addEventListener('click', () => {
-          scoringOverlay.classList.remove('active');
-        });
+  // Generate achievements HTML
+  if (scoreResult.achievements && scoreResult.achievements.length > 0) {
+    let achievementsHtml = '';
+    scoreResult.achievements.forEach(achievement => {
+      achievementsHtml += `
+        <div class="achievement-item">
+          <span class="achievement-title">${achievement.title}</span>
+          <span class="achievement-bonus">+${achievement.bonus}</span>
+          <div class="achievement-desc">${achievement.description}</div>
+        </div>
+      `;
+    });
+    achievementsList.innerHTML = achievementsHtml;
+  } else {
+    achievementsList.innerHTML = '<div style="text-align:center; opacity:0.7; font-style:italic;">No new achievements</div>';
+  }
+  
+  // Update player stats
+  playerStatsElement.innerHTML = `
+    <table style="width:100%; border-collapse:collapse; font-size:0.45rem;">
+      <tr>
+        <td>Games Played</td>
+        <td style="text-align:right;">${playerStats.gamesPlayed}</td>
+      </tr>
+      <tr>
+        <td>Wins / Draws / Losses</td>
+        <td style="text-align:right;">${playerStats.wins} / ${playerStats.draws} / ${playerStats.losses}</td>
+      </tr>
+      <tr>
+        <td>Current Win Streak</td>
+        <td style="text-align:right;">${playerStats.currentWinStreak}</td>
+      </tr>
+      <tr>
+        <td>Highest Win Streak</td>
+        <td style="text-align:right;">${playerStats.highestWinStreak}</td>
+      </tr>
+      <tr>
+        <td>Total Score</td>
+        <td style="text-align:right;">${playerStats.totalScore.toLocaleString()}</td>
+      </tr>
+    </table>
+  `;
+  
+  // Set up buttons
+  const closeButton = document.getElementById('close-scoring');
+  closeButton.addEventListener('click', () => {
+    scoringOverlay.classList.remove('active');
+  });
 
-        const submitFinalScoreButton = document.getElementById('submit-final-score');
-submitFinalScoreButton.addEventListener('click', () => {
-  // Disable the button immediately to prevent multiple clicks
-  submitFinalScoreButton.disabled = true;
-  submitFinalScoreButton.textContent = 'SUBMITTING...';
-  scoringOverlay.classList.remove('active');
-  // Call Farcade SDK gameOver using the updateFarcadeScore function
-  updateFarcadeScore();
-});
-        
-        const shareButton = document.getElementById('share-score');
-        shareButton.addEventListener('click', () => {
-          const shareText = `I scored ${scoreResult.score} points in CH3SS! My total score is now ${playerStats.totalScore.toLocaleString()} with ${playerStats.wins} wins!`;
-          
-          if (navigator.share) {
-            navigator.share({
-              title: 'My CH3SS Score',
-              text: shareText,
-              url: window.location.href
-            })
-            .catch(err => {
-              console.error('Share failed:', err);
-              // Fallback: copy to clipboard
-              navigator.clipboard.writeText(shareText).then(() => {
-                alert('Score copied to clipboard!');
-              });
-            });
-          } else {
-            // Fallback: copy to clipboard
-            navigator.clipboard.writeText(shareText).then(() => {
-              alert('Score copied to clipboard!');
-            });
-          }
+  const submitFinalScoreButton = document.getElementById('submit-final-score');
+  submitFinalScoreButton.addEventListener('click', () => {
+    // Disable the button immediately to prevent multiple clicks
+    submitFinalScoreButton.disabled = true;
+    submitFinalScoreButton.textContent = 'SUBMITTING...';
+    scoringOverlay.classList.remove('active');
+    // Call Farcade SDK gameOver using the updateFarcadeScore function
+    updateFarcadeScore();
+  });
+  
+  const shareButton = document.getElementById('share-score');
+  shareButton.addEventListener('click', () => {
+    const shareText = `I scored ${scoreResult.score} points in CH3SS! My total score is now ${playerStats.totalScore.toLocaleString()} with ${playerStats.wins} wins!`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'My CH3SS Score',
+        text: shareText,
+        url: window.location.href
+      })
+      .catch(err => {
+        console.error('Share failed:', err);
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(shareText).then(() => {
+          alert('Score copied to clipboard!');
         });
-        
-        // Show overlay
-        scoringOverlay.classList.add('active');
-      }
-
+      });
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(shareText).then(() => {
+        alert('Score copied to clipboard!');
+      });
+    }
+  });
+  
+  // Show overlay
+  scoringOverlay.classList.add('active');
+}
+      
       // Setup difficulty selector
       const difficultySelector = document.querySelector(".difficulty-selector");
       
