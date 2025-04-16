@@ -9,6 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
     <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
+    <!-- Background music element -->
+    <audio id="background-music" loop preload="auto">
+      <source src="https://dannywalter.github.io/ch3ss-puzzles/checkmate-in-neon-extended.mp3" type="audio/mpeg">
+    </audio>
     <style>
       /* Global Styles */
       *,
@@ -1254,8 +1258,8 @@
       };
       
       // Audio for piece interactions
-      const piecePutDownSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/pickupCoin-Lnw0IqTBQ68wfp46ADKqB1O9zh1kp7.wav');
-      const piecePickUpSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/putdownCoin-f1h0hHvffazoWDKVIoJQThFXMLUcpf.wav');
+      const piecePutDownSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/up-lVnF69uvGB7LxfHd4xQNXPvjHNuhzm.wav');
+      const piecePickUpSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/down-3NEqSVwCnAIyxHw3rEt0K7xdUrLW6i.wav');
       const pieceCaptureSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/pieceCapture-tkzgPSppuXLlK9vkkFLBz0oXfDF2u1.wav');
       // Preload audio
       piecePutDownSound.load();
@@ -2517,6 +2521,7 @@ if (lastPgnMoves) {
       startGameButton.addEventListener("click", () => {
         welcomeOverlay.classList.remove("active");
         resetGame();
+        startBackgroundMusic();
       });
       
       // Initialize welcome screen with current settings
@@ -3137,6 +3142,58 @@ function showScoringOverlay(scoreResult) {
             copyPgnButton.textContent = 'COPY PGN';
           }, 2000);
         });
+      });
+
+      // Background music setup
+      const backgroundMusic = document.getElementById('background-music');
+      
+      // Function to start background music with user interaction
+      function startBackgroundMusic() {
+        if (!isMuted && backgroundMusic) {
+          backgroundMusic.volume = 0.5; // Set volume to 50%
+          backgroundMusic.play().catch(error => {
+            console.log("Background music playback error:", error);
+          });
+        }
+      }
+      
+      // Modify the toggle_mute event handler to also control background music
+      if (window.FarcadeSDK) {
+        // Handle play_again event - use fullReset=true to reset cumulative stats
+        window.FarcadeSDK.on("play_again", () => {
+          // Reset the game state with full reset (true)
+          resetGame(true);
+        });
+        
+        // Handle toggle_mute event
+        window.FarcadeSDK.on("toggle_mute", (data) => {
+          // Set muted state based on data.isMuted
+          isMuted = data.isMuted;
+          
+          // Update background music state
+          if (isMuted) {
+            backgroundMusic.pause();
+            console.log("Game muted - music paused");
+          } else {
+            backgroundMusic.play().catch(error => {
+              console.log("Background music playback error:", error);
+            });
+            console.log("Game unmuted - music resumed");
+          }
+        });
+      }
+
+      // Start background music on first user interaction (needed for browsers that block autoplay)
+      document.addEventListener('click', function startMusicOnFirstClick() {
+        startBackgroundMusic();
+        document.removeEventListener('click', startMusicOnFirstClick);
+      }, { once: true });
+      
+      // Also start music when game starts
+      startGameButton.addEventListener("click", () => {
+        welcomeOverlay.classList.remove("active");
+        resetGame();
+        startBackgroundMusic();
       });
     </script>
   </body>
