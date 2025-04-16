@@ -1254,8 +1254,8 @@
       };
       
       // Audio for piece interactions
-      const piecePutDownSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/piecePickUp-FWPH1iwf5vLiMT0haVKUbcahJL3auD.wav');
-      const piecePickUpSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/piecePutDown-I0Np4sDGwYKs149G5uvDTUPoPV9pyN.wav');
+      const piecePutDownSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/pickupCoin-Lnw0IqTBQ68wfp46ADKqB1O9zh1kp7.wav');
+      const piecePickUpSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/putdownCoin-f1h0hHvffazoWDKVIoJQThFXMLUcpf.wav');
       const pieceCaptureSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/pieceCapture-tkzgPSppuXLlK9vkkFLBz0oXfDF2u1.wav');
       // Preload audio
       piecePutDownSound.load();
@@ -2022,8 +2022,17 @@
           // Make the selected move
           const moveResult = chess.move(selectedMove);
           
-          // Play the put down sound when AI places a piece
-          playPutDownSound();
+          // Play the appropriate sound based on if it was a capture
+          if (moveResult.captured) {
+            // Play capture sound for captures
+            pieceCaptureSound.currentTime = 0;
+            pieceCaptureSound.play().catch(error => {
+              console.log("Audio playback error:", error);
+            });
+          } else {
+            // Play regular put down sound for non-captures
+            playPutDownSound();
+          }
           
           // Update last move for highlighting
           lastMove = {
