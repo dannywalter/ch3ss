@@ -1788,7 +1788,7 @@
       }
       
       // Show Game Over Overlay
-      function showGameOverOverlay(title, subtext) {
+      function showGameOverOverlay(title, winner) { // Changed subtext to winner
         const overlay = document.createElement("div");
         overlay.className = "checkmate-overlay";
         
@@ -1800,11 +1800,39 @@
         
         const titleElement = document.createElement("div");
         titleElement.className = "checkmate-text";
-        titleElement.textContent = title;
-        
+        // Include winner in the main title
+        titleElement.textContent = `${title}`; 
+        if (title === "DRAW") { // Adjust title for draws
+           titleElement.textContent = title; // Just show DRAW, STALEMATE etc.
+        }
+
         const subtextElement = document.createElement("div");
         subtextElement.className = "scoreboard-text";
-        subtextElement.textContent = subtext;
+        subtextElement.style.fontSize = "0.6rem"; // Slightly smaller for stats
+        subtextElement.style.lineHeight = "1.5"; // Adjust line height
+        subtextElement.style.textAlign = "left"; // Align stats left
+        subtextElement.style.padding = "5px 15px"; // Adjust padding
+
+        // --- Calculate Stats ---
+        const totalMoves = Math.ceil(chess.history().length / 2); // Number of move pairs
+        const playerCapturesCount = Object.values(playerStats.capturedPieces).reduce((sum, count) => sum + count, 0);
+        
+        let timePlayed = "N/A";
+        if (playerStats.startTime) {
+            const durationSeconds = Math.floor((Date.now() - playerStats.startTime) / 1000);
+            const minutes = Math.floor(durationSeconds / 60);
+            const seconds = durationSeconds % 60;
+            timePlayed = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        // --- End Calculate Stats ---
+
+        // Populate subtext with stats
+        subtextElement.innerHTML = `
+          Moves: ${totalMoves}<br>
+          Captures: ${playerCapturesCount}<br>
+          Time: ${timePlayed}<br>
+          Game Score: ${gameScore} 
+        `;
         
         const buttonContainer = document.createElement("div");
         buttonContainer.style.display = "flex";
@@ -1843,9 +1871,21 @@
         });
         
         content.appendChild(titleElement);
-        content.appendChild(subtextElement);
+        // Only add subtext if it's not a draw (draw reasons are handled differently)
+        if (title !== "DRAW") {
+             content.appendChild(subtextElement);
+        } else {
+             // For draws, show the reason (stalemate, repetition etc.)
+             const drawReasonElement = document.createElement("div");
+             drawReasonElement.className = "scoreboard-text";
+             drawReasonElement.textContent = winner; // 'winner' variable holds the draw reason here
+             content.appendChild(drawReasonElement);
+        }
         buttonContainer.appendChild(newGameButton);
-        buttonContainer.appendChild(submitScoreButton);
+        // Only show Submit Score button for AI games
+        if (gameMode === "ai") {
+            buttonContainer.appendChild(submitScoreButton);
+        }
         content.appendChild(buttonContainer);
         overlay.appendChild(content);
         boardElement.appendChild(overlay);
