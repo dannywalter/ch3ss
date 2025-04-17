@@ -2060,115 +2060,17 @@
           
         }, 800); // AI "thinking" delay
       }
-
-      // Keep track of the analytics iframe
-      let analyticsIframe = null;
-
-      // Function to send a silent gameOver event for analytics
-      function trackPlayAnalytics() {
-        console.log("trackPlayAnalytics: Creating iframe...");
-        // If an old iframe exists, remove it first
-        if (analyticsIframe && analyticsIframe.parentNode) {
-          console.log("trackPlayAnalytics: Removing old iframe.");
-          analyticsIframe.parentNode.removeChild(analyticsIframe);
-        }
-
-        // Create a new iframe
-        analyticsIframe = document.createElement('iframe');
-        analyticsIframe.style.display = 'none';
-        analyticsIframe.style.width = '1px';
-        analyticsIframe.style.height = '1px';
-        analyticsIframe.style.position = 'absolute';
-        analyticsIframe.style.top = '-10px';
-        analyticsIframe.style.left = '-10px';
-        // Optional: Assign to window for easier debugging from console
-        // window.debugAnalyticsIframe = analyticsIframe;
-        document.body.appendChild(analyticsIframe);
-        console.log("trackPlayAnalytics: Iframe added to body.");
-
-
-        // Load the SDK and trigger gameOver within the iframe
-        try {
-          const iframeWindow = analyticsIframe.contentWindow;
-          const iframeDoc = iframeWindow.document;
-          iframeDoc.open();
-          iframeDoc.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Analytics Frame</title>
-              <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"><\/script>
-            </head>
-            <body>
-              <script>
-                console.log('Analytics Iframe: Script started.');
-                // Function to attempt gameOver submission
-                function submitAnalytics() {
-                  console.log('Analytics Iframe: submitAnalytics called.');
-                  try {
-                    // Check if SDK and necessary parts exist
-                    if (window.FarcadeSDK && window.FarcadeSDK.singlePlayer && window.FarcadeSDK.singlePlayer.actions && window.FarcadeSDK.singlePlayer.actions.gameOver) {
-                      console.log('Analytics Iframe: FarcadeSDK found. Attempting silent gameOver({ score: 0 })...');
-                      // Make the actual call
-                      window.FarcadeSDK.singlePlayer.actions.gameOver({
-                        score: 0 // Submit 0 score for analytics play count
-                      });
-                      console.log('Analytics Iframe: Silent gameOver call executed successfully.');
-                      // Optional: Send message back to parent window on success
-                      // window.parent.postMessage('analyticsGameOverSuccess', '*');
-                    } else {
-                      console.log('Analytics Iframe: FarcadeSDK or gameOver action not ready yet. Retrying...');
-                      // Log what's missing
-                      if (!window.FarcadeSDK) console.log('Analytics Iframe: window.FarcadeSDK is missing.');
-                      else if (!window.FarcadeSDK.singlePlayer) console.log('Analytics Iframe: window.FarcadeSDK.singlePlayer is missing.');
-                      else if (!window.FarcadeSDK.singlePlayer.actions) console.log('Analytics Iframe: window.FarcadeSDK.singlePlayer.actions is missing.');
-                      else if (!window.FarcadeSDK.singlePlayer.actions.gameOver) console.log('Analytics Iframe: window.FarcadeSDK.singlePlayer.actions.gameOver is missing.');
-
-                      // Retry after a short delay if SDK wasn't ready
-                      setTimeout(submitAnalytics, 250); // Increased retry delay slightly
-                    }
-                  } catch (sdkError) {
-                    console.error('Analytics Iframe: Error calling FarcadeSDK.gameOver:', sdkError);
-                    // Optional: Send message back to parent window on error
-                    // window.parent.postMessage('analyticsGameOverError', '*');
-                  }
-                }
-                // Wait a moment for the SDK script to potentially load, then try submitting
-                console.log('Analytics Iframe: Setting timeout for submitAnalytics.');
-                setTimeout(submitAnalytics, 200); // Increased initial delay slightly
-              <\/script>
-            </body>
-            </html>
-          `);
-          iframeDoc.close();
-          console.log("trackPlayAnalytics: Iframe content written and closed.");
-        } catch (error) {
-          console.error("trackPlayAnalytics: Error creating or writing to analytics iframe:", error);
-          // Clean up if there was an immediate error
-          if (analyticsIframe && analyticsIframe.parentNode) {
-            analyticsIframe.parentNode.removeChild(analyticsIframe);
-            analyticsIframe = null;
-          }
-        }
-      }
-
+      
       // Reset the game to the initial state
       function resetGame(fullReset = false) {
-        // If this is an in-game reset (not from play_again event) and a game was played
-        if (!fullReset && playerStats.gamesPlayed > 0) {
-          console.log("Initiating silent play tracking for analytics...");
-          trackPlayAnalytics();
-        }
-
-        // Reset chess instance
-        chess = new Chess();
+        chess = new Chess(); // Reset chess instance
         selectedPiece = null;
         validMoves = [];
         lastMove = { from: null, to: null };
         aiThinking = false;
-        gameScore = 0; // Reset score for the *new* game
+        gameScore = 0;
         capturedPieces = { white: [], black: [] };
-
+        
         // Reset game-specific player stats for a fresh game
         playerStats.capturedPieces = { p: 0, n: 0, b: 0, r: 0, q: 0 };
         playerStats.capturedPieceValue = 0;
@@ -2177,12 +2079,10 @@
         playerStats.lastCaptureMove = -1;
         playerStats.queenLost = false;
         playerStats.checkmateWithPawn = false;
-        // NOTE: We DO NOT reset playerStats.gamesPlayed here for in-game resets
-        // It only gets reset on fullReset
-
-        // If this is a full reset (from Farcade's play_again handler), reset all cumulative stats too
+        
+        // If this is a full reset (from play_again handler), reset all cumulative stats too
         if (fullReset) {
-          console.log("Full stats reset (new session via Farcade play_again)");
+          console.log("Full stats reset (new session)");
           playerStats.gamesPlayed = 0;
           playerStats.wins = 0;
           playerStats.draws = 0;
@@ -2190,61 +2090,53 @@
           playerStats.currentWinStreak = 0;
           playerStats.highestWinStreak = 0;
           playerStats.quickWinsUnder30Moves = 0;
-          playerStats.totalScore = 0; // Reset cumulative score only on full reset
+          playerStats.totalScore = 0;
           playerStats.achievements = [];
-
-          // Also remove the analytics iframe if it exists during a full reset
-          if (analyticsIframe && analyticsIframe.parentNode) {
-            analyticsIframe.parentNode.removeChild(analyticsIframe);
-            analyticsIframe = null;
-          }
         }
-
-        // Reset current game score display (UI element for the current game)
-        const scoreValueElements = document.querySelectorAll('.score-value');
-        scoreValueElements.forEach(element => {
-          element.textContent = "000";
-        });
+        
+        // Reset current score display (just the current game display, not cumulative)
+        const scoreValue = document.querySelector('.score-value');
+        if (scoreValue) {
+          scoreValue.textContent = "000";
+        }
 
         // Clear the score notification text
-        const scoreNotifications = document.querySelectorAll('.score-notification');
-        scoreNotifications.forEach(notification => {
-          notification.textContent = "No Captures Yet";
-          notification.style.color = ''; // Reset color
-          notification.style.opacity = '0.7'; // Reset opacity
-        });
+const scoreNotification = document.querySelector('.score-notification');
+if (scoreNotification) {
+  scoreNotification.textContent = "No Captures Yet";
+}
 
-        // Reset the submit final score button state in the scoring overlay
-        const submitFinalScoreButton = document.getElementById('submit-final-score');
-        if (submitFinalScoreButton) {
-          submitFinalScoreButton.disabled = false;
-          submitFinalScoreButton.textContent = 'SUBMIT SCORE';
-          submitFinalScoreButton.style.display = ''; // Ensure it's visible
-        }
-
+// Reset the submit final score button
+const submitFinalScoreButton = document.getElementById('submit-final-score');
+  if (submitFinalScoreButton) {
+    submitFinalScoreButton.disabled = false;
+    submitFinalScoreButton.textContent = 'SUBMIT SCORE';
+    submitFinalScoreButton.style.backgroundColor = '';
+    submitFinalScoreButton.style.opacity = '';
+  }
+        
         // Clear PGN display
-        const fullPgnOutput = document.getElementById("full-pgn-output");
-        if (fullPgnOutput) {
-          fullPgnOutput.textContent = "No moves yet";
-        }
-        const lastPgnMoves = document.getElementById("last-pgn-moves");
-        if (lastPgnMoves) {
-          lastPgnMoves.textContent = "Last Moves";
+        const pgnOutput = document.getElementById("pgn-output");
+        if (pgnOutput) {
+          pgnOutput.textContent = "";
         }
 
+        // Reset the last moves display in the info section
+const lastPgnMoves = document.getElementById("last-pgn-moves");
+if (lastPgnMoves) {
+  lastPgnMoves.textContent = "Last Moves";
+}
+        
         renderBoard();
-
+        
         // If it's an AI game and AI plays as white, make the first move
         if (gameMode === "ai" && aiColor === "white") {
           setTimeout(() => {
-            // Ensure game hasn't been reset again immediately
-            if (chess.turn() === 'w') {
-              makeAIMove();
-            }
+            makeAIMove();
           }, 500);
         }
-
-        // Remove any existing game over overlay from the main board
+        
+        // Remove any existing game over overlay
         const existingOverlay = boardElement.querySelector(".checkmate-overlay");
         if (existingOverlay) {
           boardElement.removeChild(existingOverlay);
