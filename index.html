@@ -1212,9 +1212,9 @@
         </div>
         
         <div class="modal-buttons">
-          <button id="close-scoring" class="modal-button">CLOSE</button>
+          <button id="keep-playing-scoring" class="modal-button">KEEP PLAYING</button> <!-- Renamed from close-scoring -->
           <button id="submit-final-score" class="modal-button">SUBMIT SCORE</button>
-          <button id="share-score" class="modal-button">SHARE</button>
+          <!-- Removed Share Button -->
         </div>
       </div>
     </div>
@@ -2930,10 +2930,10 @@ function showScoringOverlay(scoreResult) {
   `;
   
   // Set up buttons
-  const closeButton = document.getElementById('close-scoring');
-  closeButton.addEventListener('click', () => {
-    scoringOverlay.classList.remove('active');
-  });
+  const keepPlayingButton = document.getElementById('keep-playing-scoring'); // Updated ID
+      keepPlayingButton.addEventListener('click', () => { // Updated variable name
+        scoringOverlay.classList.remove('active');
+      });
 
   const submitFinalScoreButton = document.getElementById('submit-final-score');
   submitFinalScoreButton.addEventListener('click', () => {
@@ -2945,30 +2945,30 @@ function showScoringOverlay(scoreResult) {
     updateFarcadeScore();
   });
   
-  const shareButton = document.getElementById('share-score');
-  shareButton.addEventListener('click', () => {
-    const shareText = `I scored ${scoreResult.score} points in CH3SS! My total score is now ${playerStats.totalScore.toLocaleString()} with ${playerStats.wins} wins!`;
-    
-    if (navigator.share) {
-      navigator.share({
-        title: 'My CH3SS Score',
-        text: shareText,
-        url: window.location.href
-      })
-      .catch(err => {
-        console.error('Share failed:', err);
-        // Fallback: copy to clipboard
-        navigator.clipboard.writeText(shareText).then(() => {
-          alert('Score copied to clipboard!');
-        });
-      });
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(shareText).then(() => {
-        alert('Score copied to clipboard!');
-      });
-    }
-  });
+    // Remove the share button 
+  // const shareButton = document.getElementById('share-score');
+  // shareButton.addEventListener('click', () => {
+  //   const shareText = `I scored ${scoreResult.score} points in CH3SS! My total score is now ${playerStats.totalScore.toLocaleString()} with ${playerStats.wins} wins!`;
+  //   if (navigator.share) {
+  //     navigator.share({
+  //       title: 'My CH3SS Score',
+  //       text: shareText,
+  //       url: window.location.href
+  //     })
+  //     .catch(err => {
+  //       console.error('Share failed:', err);
+  //       // Fallback: copy to clipboard
+  //       navigator.clipboard.writeText(shareText).then(() => {
+  //         alert('Score copied to clipboard!');
+  //       });
+  //     });
+  //   } else {
+  //     // Fallback: copy to clipboard
+  //     navigator.clipboard.writeText(shareText).then(() => {
+  //       alert('Score copied to clipboard!');
+  //     });
+  //   }
+  // });
   
   // Show overlay
   scoringOverlay.classList.add('active');
@@ -3099,15 +3099,19 @@ function showScoringOverlay(scoreResult) {
           </table>
         `;
         
-        // Change the header text to indicate stats view
-        document.querySelector('.modal-header').textContent = "CH3SS PLAYER STATS";
+// Change the header text to indicate stats view
+document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS PLAYER STATS"; // Target header specifically
         
         // Set up buttons
-        const closeButton = document.getElementById('close-scoring');
-        closeButton.addEventListener('click', () => {
+        const closeButton = document.getElementById('keep-playing-scoring'); // Use the correct ID
+        // Ensure we don't add multiple listeners if called again
+        const newCloseButton = closeButton.cloneNode(true);
+        closeButton.parentNode.replaceChild(newCloseButton, closeButton);
+
+        newCloseButton.addEventListener('click', () => {
           scoringOverlay.classList.remove('active');
           // Reset header text when closing
-          document.querySelector('.modal-header').textContent = "CH3SS SCOREBOARD";
+          document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS SCOREBOARD"; // Target header specifically
         });
         
         // Show overlay
