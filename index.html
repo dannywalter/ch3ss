@@ -73,11 +73,11 @@
         text-align: center;
         font-size: 1.5rem;
         margin: 10px 0 10px 0;
-        font-weight: bold;
         text-shadow:
-          0 0 10px #00ffff,
-          0 0 20px #ff00ff;
+          0 0 5px #00ffff,
+          0 0 10px #00ffff;
         letter-spacing: 0.1em;
+        color: #ffffff;
       }
 
       /* Game Area */
@@ -157,17 +157,15 @@
       }
 
       .last-move-from {
-        background: rgba(255, 255, 255, 0.3) !important;
+        background: rgba(255, 255, 255, 0.1) !important;
         box-shadow:
-          0 0 10px rgba(255, 255, 255, 0.5),
-          0 0 5px rgba(255, 255, 255, 0.5) inset !important;
+          0 0 10px #ffffff inset !important;
       }
 
       .last-move-to {
-        background: rgba(255, 255, 255, 0.4) !important;
         box-shadow:
-          0 0 10px rgba(255, 255, 255, 0.6),
-          0 0 5px rgba(255, 255, 255, 0.6) inset !important;
+          0 0 20px rgba(255, 255, 255, 1),
+          0 0 5px rgba(255, 255, 255, 1) inset !important;
       }
 
       .valid-move {
@@ -883,7 +881,7 @@
     <!-- Welcome Screen Overlay -->
     <div id="welcome-overlay" class="modal-overlay active">
       <div class="modal welcome-modal" style="max-width: 380px;">
-        <div class="modal-header" style="font-size: .8rem; color: #ff00ff;">Welcome, Ch3ss Mast3r</div>
+        <div class="modal-header" style="font-size: .8rem; color: #ffffff; font-weight: bold; text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff;">Welcome, Ch3ss Mast3r</div>
 
         <div id="welcome-ai-options" class="modal-section" style="border-bottom: none;">
           <div class="modal-content" style="text-align: left; font-size: 0.5rem; line-height: 1.6; margin-bottom: 10px;">
