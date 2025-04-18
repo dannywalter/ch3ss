@@ -1985,91 +1985,20 @@
             return;
           }
           
-          // Get all legal moves
-          const moves = chess.moves({ verbose: true });
+          // Find best move using minimax with alpha-beta pruning
+          const depth = 2; // 2-ply search depth (AI move + player response)
+          const bestMove = minimaxRoot(depth, chess, true);
           
-          if (moves.length === 0) {
+          if (!bestMove) {
             aiThinking = false;
             renderBoard();
             return;
           }
           
-          // Evaluate each move with a simple heuristic
-          const evaluatedMoves = moves.map(move => {
-            // Create a temporary chess instance to simulate the move
-            const tempChess = new Chess(chess.fen());
-            tempChess.move(move);
-            
-            // Simple evaluation: material + position + randomness
-            let score = 0;
-            
-            // Material score - check if the move captures a piece
-            if (move.captured) {
-              const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9 };
-              score += pieceValues[move.captured] || 1;
-            }
-            
-            // Position score - bonus for controlling center
-            const [toRow, toCol] = squareToCoords(move.to);
-            const centerBonus = 4 - Math.abs(toRow - 3.5) - Math.abs(toCol - 3.5);
-            score += centerBonus * 0.1;
-            
-            // Check if the move gives check
-            if (tempChess.in_check()) {
-              score += 0.5;
-            }
-            
-            // Check if the move gives checkmate
-            if (tempChess.in_checkmate()) {
-              score += 100;
-            }
-            
-            // Add a small random factor (0-0.2) to avoid predictable play
-            score += Math.random() * 0.2;
-            
-            return { move, score };
-          });
-          
-          // Sort moves by score (best first)
-          evaluatedMoves.sort((a, b) => b.score - a.score);
-          
-          // Select from top moves with weighted probability
-          const topMoves = evaluatedMoves.slice(0, Math.max(1, Math.floor(evaluatedMoves.length * 0.3)));
-          
-          // Weighted selection
-          const weights = [];
-          let totalWeight = 0;
-          
-          for (let i = 0; i < topMoves.length; i++) {
-            const weight = Math.pow(0.7, i); // Exponential decay of probability
-            weights.push(weight);
-            totalWeight += weight;
-          }
-          
-          // Small chance to pick the absolute best move
-          if (Math.random() < 0.1) {
-            selectedMove = topMoves[0].move;
-          } else {
-            // Otherwise, weighted random selection from top moves
-            let random = Math.random() * totalWeight;
-            for (let i = 0; i < weights.length; i++) {
-              random -= weights[i];
-              if (random <= 0) {
-                selectedMove = topMoves[i].move;
-                break;
-              }
-            }
-          }
-          
-          // If somehow no move was selected, pick the best one
-          if (!selectedMove) {
-            selectedMove = topMoves[0].move;
-          }
-          
-          debugLog("AI selected move:", selectedMove);
+          debugLog("AI selected move:", bestMove);
           
           // Make the selected move
-          const moveResult = chess.move(selectedMove);
+          const moveResult = chess.move(bestMove);
           
           // Play the appropriate sound based on if it was a capture
           if (moveResult.captured) {
@@ -2104,6 +2033,270 @@
           triggerHapticFeedback();
           
         }, 800); // AI "thinking" delay
+      }
+      
+      // Minimax algorithm with alpha-beta pruning to find best move
+      function minimaxRoot(depth, chessInstance, isMaximizing) {
+        const moves = chessInstance.moves({ verbose: true });
+        let bestMove = null;
+        let bestValue = isMaximizing ? -Infinity : Infinity;
+        let alpha = -Infinity;
+        let beta = Infinity;
+        
+        // Add randomness to move order evaluation for variety
+        shuffleArray(moves);
+        
+        for (let i = 0; i < moves.length; i++) {
+          const move = moves[i];
+          
+          // Make the move on a cloned chess instance
+          const newChess = new Chess(chessInstance.fen());
+          newChess.move(move);
+          
+          // Get value from minimax
+          const value = minimax(depth - 1, newChess, !isMaximizing, alpha, beta);
+          
+          if (isMaximizing) {
+            if (value > bestValue) {
+              bestValue = value;
+              bestMove = move;
+            }
+            alpha = Math.max(alpha, bestValue);
+          } else {
+            if (value < bestValue) {
+              bestValue = value;
+              bestMove = move;
+            }
+            beta = Math.min(beta, bestValue);
+          }
+          
+          // Alpha-beta pruning
+          if (beta <= alpha) {
+            break;
+          }
+        }
+        
+        return bestMove;
+      }
+      
+      // Minimax with alpha-beta pruning recursive function
+      function minimax(depth, chessInstance, isMaximizing, alpha, beta) {
+        // Base case: if depth is 0 or game is over, evaluate the position
+        if (depth === 0 || chessInstance.game_over()) {
+          return evaluatePosition(chessInstance);
+        }
+        
+        const moves = chessInstance.moves();
+        
+        if (isMaximizing) {
+          let bestValue = -Infinity;
+          for (const move of moves) {
+            const newChess = new Chess(chessInstance.fen());
+            newChess.move(move);
+            bestValue = Math.max(bestValue, minimax(depth - 1, newChess, false, alpha, beta));
+            alpha = Math.max(alpha, bestValue);
+            if (beta <= alpha) break; // Alpha-beta pruning
+          }
+          return bestValue;
+        } else {
+          let bestValue = Infinity;
+          for (const move of moves) {
+            const newChess = new Chess(chessInstance.fen());
+            newChess.move(move);
+            bestValue = Math.min(bestValue, minimax(depth - 1, newChess, true, alpha, beta));
+            beta = Math.min(beta, bestValue);
+            if (beta <= alpha) break; // Alpha-beta pruning
+          }
+          return bestValue;
+        }
+      }
+      
+      // Position evaluation function - evaluates board state from AI's perspective
+      function evaluatePosition(chessInstance) {
+        // If the game is over
+        if (chessInstance.in_checkmate()) {
+          return chessInstance.turn() === 'w' ? -10000 : 10000; // -10000 if white is checkmated, 10000 if black
+        }
+        if (chessInstance.in_draw()) {
+          return 0; // Draws are neutral
+        }
+        
+        const board = chessInstance.board();
+        let score = 0;
+        
+        // Piece values
+        const pieceValues = {
+          'p': 100,  // pawn
+          'n': 320,  // knight
+          'b': 330,  // bishop
+          'r': 500,  // rook
+          'q': 900,  // queen
+          'k': 20000 // king (not actually used for material calculation)
+        };
+        
+        // Position bonuses for different pieces
+        const pawnPositionBonus = [
+          [0,  0,  0,  0,  0,  0,  0,  0],
+          [50, 50, 50, 50, 50, 50, 50, 50],
+          [10, 10, 20, 30, 30, 20, 10, 10],
+          [5,  5, 10, 25, 25, 10,  5,  5],
+          [0,  0,  0, 20, 20,  0,  0,  0],
+          [5, -5,-10,  0,  0,-10, -5,  5],
+          [5, 10, 10,-20,-20, 10, 10,  5],
+          [0,  0,  0,  0,  0,  0,  0,  0]
+        ];
+        
+        const knightPositionBonus = [
+          [-50,-40,-30,-30,-30,-30,-40,-50],
+          [-40,-20,  0,  0,  0,  0,-20,-40],
+          [-30,  0, 10, 15, 15, 10,  0,-30],
+          [-30,  5, 15, 20, 20, 15,  5,-30],
+          [-30,  0, 15, 20, 20, 15,  0,-30],
+          [-30,  5, 10, 15, 15, 10,  5,-30],
+          [-40,-20,  0,  5,  5,  0,-20,-40],
+          [-50,-40,-30,-30,-30,-30,-40,-50]
+        ];
+        
+        const bishopPositionBonus = [
+          [-20,-10,-10,-10,-10,-10,-10,-20],
+          [-10,  0,  0,  0,  0,  0,  0,-10],
+          [-10,  0, 10, 10, 10, 10,  0,-10],
+          [-10,  5,  5, 10, 10,  5,  5,-10],
+          [-10,  0, 10, 10, 10, 10,  0,-10],
+          [-10, 10, 10, 10, 10, 10, 10,-10],
+          [-10,  5,  0,  0,  0,  0,  5,-10],
+          [-20,-10,-10,-10,-10,-10,-10,-20]
+        ];
+        
+        const rookPositionBonus = [
+          [0,  0,  0,  0,  0,  0,  0,  0],
+          [5, 10, 10, 10, 10, 10, 10,  5],
+          [-5,  0,  0,  0,  0,  0,  0, -5],
+          [-5,  0,  0,  0,  0,  0,  0, -5],
+          [-5,  0,  0,  0,  0,  0,  0, -5],
+          [-5,  0,  0,  0,  0,  0,  0, -5],
+          [-5,  0,  0,  0,  0,  0,  0, -5],
+          [0,  0,  0,  5,  5,  0,  0,  0]
+        ];
+        
+        const queenPositionBonus = [
+          [-20,-10,-10, -5, -5,-10,-10,-20],
+          [-10,  0,  0,  0,  0,  0,  0,-10],
+          [-10,  0,  5,  5,  5,  5,  0,-10],
+          [-5,  0,  5,  5,  5,  5,  0, -5],
+          [0,  0,  5,  5,  5,  5,  0, -5],
+          [-10,  5,  5,  5,  5,  5,  0,-10],
+          [-10,  0,  5,  0,  0,  0,  0,-10],
+          [-20,-10,-10, -5, -5,-10,-10,-20]
+        ];
+        
+        const kingMiddlegamePositionBonus = [
+          [-30,-40,-40,-50,-50,-40,-40,-30],
+          [-30,-40,-40,-50,-50,-40,-40,-30],
+          [-30,-40,-40,-50,-50,-40,-40,-30],
+          [-30,-40,-40,-50,-50,-40,-40,-30],
+          [-20,-30,-30,-40,-40,-30,-30,-20],
+          [-10,-20,-20,-20,-20,-20,-20,-10],
+          [20, 20,  0,  0,  0,  0, 20, 20],
+          [20, 30, 10,  0,  0, 10, 30, 20]
+        ];
+
+        // Analyze the board
+        for (let i = 0; i < 8; i++) {
+          for (let j = 0; j < 8; j++) {
+            const piece = board[i][j];
+            if (piece) {
+              const value = pieceValues[piece.type.toLowerCase()];
+              
+              // Material value: positive for AI pieces, negative for opponent pieces
+              // AI is playing as aiColor
+              const isAIPiece = (piece.color === 'b' && aiColor === 'black') || 
+                                (piece.color === 'w' && aiColor === 'white');
+              
+              if (isAIPiece) {
+                score += value;
+              } else {
+                score -= value;
+              }
+              
+              // Position bonus
+              let positionBonus = 0;
+              
+              if (piece.type === 'p') { // Pawn
+                positionBonus = piece.color === 'w' ? pawnPositionBonus[i][j] : pawnPositionBonus[7-i][j];
+              }
+              else if (piece.type === 'n') { // Knight
+                positionBonus = piece.color === 'w' ? knightPositionBonus[i][j] : knightPositionBonus[7-i][j];
+              }
+              else if (piece.type === 'b') { // Bishop
+                positionBonus = piece.color === 'w' ? bishopPositionBonus[i][j] : bishopPositionBonus[7-i][j];
+              }
+              else if (piece.type === 'r') { // Rook
+                positionBonus = piece.color === 'w' ? rookPositionBonus[i][j] : rookPositionBonus[7-i][j];
+              }
+              else if (piece.type === 'q') { // Queen
+                positionBonus = piece.color === 'w' ? queenPositionBonus[i][j] : queenPositionBonus[7-i][j];
+              }
+              else if (piece.type === 'k') { // King
+                positionBonus = piece.color === 'w' ? kingMiddlegamePositionBonus[i][j] : kingMiddlegamePositionBonus[7-i][j];
+              }
+              
+              // Apply position bonus (positive for AI, negative for opponent)
+              if (isAIPiece) {
+                score += positionBonus;
+              } else {
+                score -= positionBonus;
+              }
+            }
+          }
+        }
+        
+        // Mobility is important: count legal moves
+        const origTurn = chessInstance.turn();
+        let aiMoveCount = 0;
+        let opponentMoveCount = 0;
+        
+        // Count AI moves
+        if ((origTurn === 'b' && aiColor === 'black') || (origTurn === 'w' && aiColor === 'white')) {
+          aiMoveCount = chessInstance.moves().length;
+          
+          // Flip the turn to count opponent moves
+          const fen = chessInstance.fen();
+          const fenParts = fen.split(' ');
+          fenParts[1] = fenParts[1] === 'w' ? 'b' : 'w'; // Toggle turn
+          const oppTurnFen = fenParts.join(' ');
+          
+          const tempChess = new Chess(oppTurnFen);
+          opponentMoveCount = tempChess.moves().length;
+        } else {
+          opponentMoveCount = chessInstance.moves().length;
+          
+          // Flip the turn to count AI moves
+          const fen = chessInstance.fen();
+          const fenParts = fen.split(' ');
+          fenParts[1] = fenParts[1] === 'w' ? 'b' : 'w'; // Toggle turn
+          const aiTurnFen = fenParts.join(' ');
+          
+          const tempChess = new Chess(aiTurnFen);
+          aiMoveCount = tempChess.moves().length;
+        }
+        
+        // Mobility: approximately 10 points per move difference
+        score += (aiMoveCount - opponentMoveCount) * 10;
+        
+        // Small random factor to avoid deterministic play in equal positions
+        score += Math.floor(Math.random() * 10) - 5;
+        
+        return score;
+      }
+      
+      // Helper function to shuffle array for move ordering
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
       }
       
       // Reset the game to the initial state
@@ -2940,50 +3133,24 @@ function showScoringOverlay(scoreResult) {
     </table>
   `;
   
-  // Set up buttons
-  const keepPlayingButton = document.getElementById('keep-playing-scoring'); // Updated ID
-      keepPlayingButton.addEventListener('click', () => { // Updated variable name
-        scoringOverlay.classList.remove('active');
-      });
+// Change the header text to indicate stats view
+document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS PLAYER STATS"; // Target header specifically
+        
+        // Set up buttons
+        const closeButton = document.getElementById('keep-playing-scoring'); // Use the correct ID
+        // Ensure we don't add multiple listeners if called again
+        const newCloseButton = closeButton.cloneNode(true);
+        closeButton.parentNode.replaceChild(newCloseButton, closeButton);
 
-  const submitFinalScoreButton = document.getElementById('submit-final-score');
-  submitFinalScoreButton.addEventListener('click', () => {
-    // Disable the button immediately to prevent multiple clicks
-    submitFinalScoreButton.disabled = true;
-    submitFinalScoreButton.textContent = 'SUBMITTING...';
-    scoringOverlay.classList.remove('active');
-    // Call Farcade SDK gameOver using the updateFarcadeScore function
-    updateFarcadeScore();
-  });
-  
-    // Remove the share button 
-  // const shareButton = document.getElementById('share-score');
-  // shareButton.addEventListener('click', () => {
-  //   const shareText = `I scored ${scoreResult.score} points in CH3SS! My total score is now ${playerStats.totalScore.toLocaleString()} with ${playerStats.wins} wins!`;
-  //   if (navigator.share) {
-  //     navigator.share({
-  //       title: 'My CH3SS Score',
-  //       text: shareText,
-  //       url: window.location.href
-  //     })
-  //     .catch(err => {
-  //       console.error('Share failed:', err);
-  //       // Fallback: copy to clipboard
-  //       navigator.clipboard.writeText(shareText).then(() => {
-  //         alert('Score copied to clipboard!');
-  //       });
-  //     });
-  //   } else {
-  //     // Fallback: copy to clipboard
-  //     navigator.clipboard.writeText(shareText).then(() => {
-  //       alert('Score copied to clipboard!');
-  //     });
-  //   }
-  // });
-  
-  // Show overlay
-  scoringOverlay.classList.add('active');
-}
+        newCloseButton.addEventListener('click', () => {
+          scoringOverlay.classList.remove('active');
+          // Reset header text when closing
+          document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS SCOREBOARD"; // Target header specifically
+        });
+        
+        // Show overlay
+        scoringOverlay.classList.add('active');
+      }
       
       // Setup difficulty selector
       const difficultySelector = document.querySelector(".difficulty-selector");
