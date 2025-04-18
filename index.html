@@ -1021,7 +1021,7 @@
             <div class="option-group">
               <div class="option-label">GAME MODE:</div>
               <div class="option-buttons">
-                <button id="mode-human" class="option-button active">HUMAN VS HUMAN</button>
+                <button id="mode-human" class="option-button active">HUMAN VS HUMAN (IN-PERSON)</button>
                 <button id="mode-ai" class="option-button">HUMAN VS AI</button>
               </div>
             </div>
@@ -1130,7 +1130,6 @@
     </div>
     
     <div class="modal-buttons">
-      <button id="copy-pgn" class="modal-button">COPY PGN</button>
       <button id="close-pgn-modal" class="modal-button">CLOSE</button>
     </div>
   </div>
@@ -1259,10 +1258,12 @@
       const piecePutDownSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/up-lVnF69uvGB7LxfHd4xQNXPvjHNuhzm.wav');
       const piecePickUpSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/down-3NEqSVwCnAIyxHw3rEt0K7xdUrLW6i.wav');
       const pieceCaptureSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/pieceCapture-tkzgPSppuXLlK9vkkFLBz0oXfDF2u1.wav');
+      const buttonClickSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/click-ZXjx3PMJuBv8DxfUFuTzQrQpYi2fwL.wav'); // New button sound
       // Preload audio
       piecePutDownSound.load();
       piecePickUpSound.load();
       pieceCaptureSound.load();
+      buttonClickSound.load(); // Preload button sound
       
       // Function to play the piece pickup sound
       function playPieceSound() {
@@ -1288,6 +1289,16 @@
           piecePickUpSound.play().catch(error => {
             // This catches errors like when the browser requires user interaction before playing audio
             console.log("Audio playback error:", error);
+          });
+        }
+      }
+
+      // Function to play the button click sound
+      function playButtonClickSound() {
+        if (!isMuted && buttonClickSound) {
+          buttonClickSound.currentTime = 0; // Allow rapid clicks
+          buttonClickSound.play().catch(error => {
+            console.log("Button click sound playback error:", error);
           });
         }
       }
@@ -3161,14 +3172,14 @@ document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS PL
         pgnModal.classList.remove('active');
       });
 
-      copyPgnButton.addEventListener('click', () => {
-        navigator.clipboard.writeText(chess.pgn()).then(() => {
-          copyPgnButton.textContent = 'COPIED!';
-          setTimeout(() => {
-            copyPgnButton.textContent = 'COPY PGN';
-          }, 2000);
-        });
-      });
+      // copyPgnButton.addEventListener('click', () => {
+      //   navigator.clipboard.writeText(chess.pgn()).then(() => {
+      //     copyPgnButton.textContent = 'COPIED!';
+      //     setTimeout(() => {
+      //       copyPgnButton.textContent = 'COPY PGN';
+      //     }, 2000);
+      //   });
+      // });
 
       // Background music setup
       const backgroundMusic = document.getElementById('background-music');
@@ -3220,6 +3231,11 @@ document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS PL
         welcomeOverlay.classList.remove("active");
         resetGame();
         startBackgroundMusic();
+      });
+
+      // Add click sound to all buttons
+      document.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', playButtonClickSound);
       });
     </script>
   </body>
