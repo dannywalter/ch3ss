@@ -3343,6 +3343,35 @@ document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS PL
       //   });
       // });
 
+      // Event listener for submit-final-score button in the scoring overlay
+      document.getElementById('submit-final-score').addEventListener('click', function() {
+        // Disable the button immediately to prevent multiple clicks
+        this.disabled = true;
+        this.textContent = "SUBMITTING...";
+        
+        // Call Farcade SDK gameOver using the updateFarcadeScore function
+        updateFarcadeScore();
+        
+        // Create and show a confirmation message
+        const confirmationMsg = document.createElement("div");
+        confirmationMsg.className = "winner";
+        confirmationMsg.style.fontSize = "0.7rem";
+        confirmationMsg.style.marginTop = "10px";
+        confirmationMsg.textContent = "SCORE SUBMITTED!";
+        document.getElementById('score-breakdown').appendChild(confirmationMsg);
+        
+        // Hide the button
+        this.style.display = "none";
+        
+        // Close the overlay after a short delay
+        setTimeout(() => {
+          document.getElementById('scoring-overlay').classList.remove('active');
+        }, 2000);
+        
+        // Trigger haptic feedback for confirmation
+        triggerHapticFeedback();
+      });
+
       // Background music setup
       const backgroundMusic = document.getElementById('background-music');
       
