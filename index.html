@@ -2076,33 +2076,40 @@
         let bestValue = isMaximizing ? -Infinity : Infinity;
         let alpha = -Infinity;
         let beta = Infinity;
-        const moveScores = [];
-      
-        // Evaluate all moves
-        for (const move of moves) {
+        
+        // Add randomness to move order evaluation for variety
+        shuffleArray(moves);
+        
+        for (let i = 0; i < moves.length; i++) {
+          const move = moves[i];
+          
+          // Make the move on a cloned chess instance
           const newChess = new Chess(chessInstance.fen());
           newChess.move(move);
+          
+          // Get value from minimax
           const value = minimax(depth - 1, newChess, !isMaximizing, alpha, beta);
-          moveScores.push({ move, value });
-      
+          
           if (isMaximizing) {
-            bestValue = Math.max(bestValue, value);
+            if (value > bestValue) {
+              bestValue = value;
+              bestMove = move;
+            }
             alpha = Math.max(alpha, bestValue);
           } else {
-            bestValue = Math.min(bestValue, value);
+            if (value < bestValue) {
+              bestValue = value;
+              bestMove = move;
+            }
             beta = Math.min(beta, bestValue);
           }
-      
-          if (beta <= alpha) break; // Alpha-beta pruning
+          
+          // Alpha-beta pruning
+          if (beta <= alpha) {
+            break;
+          }
         }
-      
-        // Sort moves by score
-        moveScores.sort((a, b) => (isMaximizing ? b.value - a.value : a.value - b.value));
-      
-        // Introduce randomness: pick a move from the top 3 (or fewer if fewer moves exist)
-        const randomIndex = Math.floor(Math.random() * Math.min(3, moveScores.length));
-        bestMove = moveScores[randomIndex].move;
-      
+        
         return bestMove;
       }
       
@@ -2140,6 +2147,7 @@
       
       // Position evaluation function - evaluates board state from AI's perspective
       function evaluatePosition(chessInstance) {
+        // If the game is over
         if (chessInstance.in_checkmate()) {
           return chessInstance.turn() === 'w' ? -10000 : 10000; // -10000 if white is checkmated, 10000 if black
         }
@@ -2313,9 +2321,6 @@
         // Small random factor to avoid deterministic play in equal positions
         score += Math.floor(Math.random() * 10) - 5;
         
-        // Add random noise to the score
-        score += Math.random() * 50 - 25; // Random value between -25 and 25
-
         return score;
       }
       
