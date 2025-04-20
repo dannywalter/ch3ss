@@ -410,14 +410,18 @@
       }
 
       .modal-header {
-        font-size: 0.9rem;
-        color: #00ffff;
-        text-shadow: 0 0 5px #00ffff;
-        text-align: center;
-        margin-bottom: 15px;
-        border-bottom: 1px solid #00ffff50;
-        padding-bottom: 10px;
-      }
+  font-size: 0.9rem;
+  color: #00ffff;
+  text-shadow: 0 0 5px #00ffff;
+  text-align: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #00ffff50;
+  padding-bottom: 10px;
+  position: relative; /* Add this for absolute positioning of the close button */
+  display: flex;     /* Use flex to align items */
+  justify-content: center; /* Center the text */
+  align-items: center;    /* Vertically align items */
+}
 
       .modal-section {
         margin-bottom: 15px;
@@ -471,6 +475,37 @@
       .modal-button.danger:hover {
         background: #ff00ff20;
         box-shadow: 0 0 8px #ff00ff;
+      }
+
+      .modal-close-button {
+        position: absolute;
+        right: 5px; 
+        bottom: 5px; 
+        width: 28px; 
+        height: 28px;
+        background: rgba(0, 255, 255, 0.1);
+        border: 1px solid #00ffff;
+        border-radius: 3px;
+        color: #00ffff;
+        font-size: 1.4rem; 
+        cursor: pointer;
+        text-shadow: 0 0 5px #00ffff;
+        transition: all 0.2s ease;
+        padding: 0; 
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        /* Restore flexbox for centering */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        line-height: 1; /* Can keep or remove, flexbox handles alignment */
+      }
+
+      .modal-close-button:hover {
+        background: rgba(0, 255, 255, 0.3);
+        color: #ffffff;
+        box-shadow: 0 0 8px #00ffff;
+        text-shadow: 0 0 8px #00ffff, 0 0 15px #ffffff;
       }
 
       /* Game mode options */
@@ -1013,7 +1048,10 @@
     <!-- Game Menu Modal -->
     <div id="menu-modal" class="modal-overlay">
       <div class="modal">
-        <div class="modal-header">CH3SS MENU</div>
+        <div class="modal-header">
+          CH3SS MENU
+          <button id="close-modal" class="modal-close-button">×</button>
+        </div>
 
         <div class="modal-section">
           <div class="modal-section-title">GAME OPTIONS</div>
@@ -1109,10 +1147,6 @@
             • Queen: 9 points<br />
             • King: Infinite (game lost if checkmate)
           </div>
-        </div>
-
-        <div class="modal-buttons">
-          <button id="close-modal" class="modal-button">CLOSE</button>
         </div>
       </div>
     </div>
@@ -2032,7 +2066,7 @@
           // Trigger haptic feedback
           triggerHapticFeedback();
           
-        }, 800); // AI "thinking" delay
+        }, 500); // AI "thinking" delay
       }
       
       // Minimax algorithm with alpha-beta pruning to find best move
