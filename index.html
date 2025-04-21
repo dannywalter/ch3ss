@@ -1072,27 +1072,37 @@
               </div>
               
               <div class="option-label" style="margin-top: 10px;">DIFFICULTY:</div>
-              <div class="difficulty-selector" style="opacity: 0.5; position: relative;">
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); padding: 5px 10px; border: 1px solid #00ffff; color: #00ffff; font-size: 0.5rem; z-index: 1;">COMING SOON</div>
-                <label class="difficulty-option" for="diff-easy">
+              <div class="difficulty-selector" style="position: relative;">
+                <!-- Add "Coming Soon" overlay -->
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                            background: rgba(0,0,0,0.7); z-index: 10; display: flex; 
+                            justify-content: center; align-items: center; border-radius: 3px;
+                            border: 1px dashed #ff00ff;">
+                  <span style="color: #ff00ff; font-size: 0.6rem; text-shadow: 0 0 5px #ff00ff;">
+                    COMING SOON
+                  </span>
+                </div>
+                
+                <!-- Keep existing difficulty options but they'll be covered by the overlay -->
+                <label class="difficulty-option active" for="diff-medium">
+                  <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" checked>
+                  <span class="difficulty-name">Medium</span>
+                  <span class="difficulty-multi">x1.5</span>
+                </label>
+                <label class="difficulty-option" style="opacity: 0.5;" for="diff-easy">
                   <input type="radio" id="diff-easy" name="ai-difficulty" value="easy" disabled>
                   <span class="difficulty-name">Easy</span>
                   <span class="difficulty-multi">x1.0</span>
                 </label>
-                <label class="difficulty-option active" for="diff-medium">
-                  <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" checked disabled>
-                  <span class="difficulty-name">Medium</span>
-                  <span class="difficulty-multi">x1.0</span>
-                </label>
-                <label class="difficulty-option" for="diff-hard">
+                <label class="difficulty-option" style="opacity: 0.5;" for="diff-hard">
                   <input type="radio" id="diff-hard" name="ai-difficulty" value="hard" disabled>
                   <span class="difficulty-name">Hard</span>
-                  <span class="difficulty-multi">x1.0</span>
+                  <span class="difficulty-multi">x2.0</span>
                 </label>
-                <label class="difficulty-option" for="diff-expert">
+                <label class="difficulty-option" style="opacity: 0.5;" for="diff-expert">
                   <input type="radio" id="diff-expert" name="ai-difficulty" value="expert" disabled>
                   <span class="difficulty-name">Expert</span>
-                  <span class="difficulty-multi">x1.0</span>
+                  <span class="difficulty-multi">x3.0</span>
                 </label>
               </div>
             </div>
@@ -1342,6 +1352,7 @@
       let aiColor = "black"; // AI will play as black by default
       let aiThinking = false; // Flag to prevent interactions while AI is thinking
       let aiDifficulty = "medium"; // easy, medium, hard, expert
+      let aiWorker = null; // Web Worker for AI calculations
       
       // Farcade SDK variables
       let isMuted = false; // Track if sound is muted
@@ -1996,343 +2007,585 @@
       
       // AI OPPONENT FUNCTIONS
       
-      // Make AI move
-      function makeAIMove() {
-        // Prevent AI move if game is over or it's not AI's turn
-        if (chess.game_over() || chess.turn() !== (aiColor === "black" ? 'b' : 'w')) {
-          return;
+      // Opening book - mapping common positions to strong moves
+      const openingBook = {
+        // Starting position
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -": [
+          "e4", "d4", "Nf3", "c4" // Common first moves for white
+        ],
+        // Common responses to e4
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -": [
+          "e5", "c5", "e6", "c6" // Responses to e4: Open game, Sicilian, French, Caro-Kann
+        ],
+        // Common responses to d4
+        "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq -": [
+          "d5", "Nf6", "e6", "f5" // Responses to d4: Queen's pawn, Indian defenses, Dutch
+        ],
+        // After 1.e4 e5
+        "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -": [
+          "Nf3", "Nc3", "Bc4" // Common second moves for white after e4 e5
+        ],
+        // After 1.e4 c5 (Sicilian)
+        "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -": [
+          "Nf3", "Nc3", "c3" // Common responses to Sicilian
+        ],
+        // After 1.d4 d5
+        "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq -": [
+          "c4", "Nf3", "e3", "Bf4" // Queen's Gambit and others
+        ],
+        // After 1.Nf3
+        "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq -": [
+          "d5", "Nf6", "c5", "g6" // Common responses to Nf3
+        ],
+        // King's Gambit
+        "rnbqkbnr/pppp1ppp/8/4p3/4PP2/8/PPPP2PP/RNBQKBNR b KQkq -": [
+          "exf4", "d5", "Nc6" // King's Gambit responses
+        ],
+        // Queen's Gambit
+        "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq -": [
+          "e6", "c6", "dxc4", "Nc6" // Queen's Gambit responses
+        ],
+        // Ruy Lopez
+        "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq -": [
+          "a6", "Nf6", "Bc5" // Common responses to Ruy Lopez
+        ],
+        // Italian Game
+        "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq -": [
+          "Bc5", "Nf6", "d6" // Common responses to Italian Game
+        ]
+      };
+      
+      // Function to check opening book
+      function getOpeningBookMove(chess) {
+        const maxOpeningPlies = 10; // Use the opening book only for the first 10 plies
+        if (chess.history().length >= maxOpeningPlies) {
+          return null; // Stop using the opening book after 10 plies
         }
-        
-        debugLog("AI starting move evaluation");
-        aiThinking = true;
-        selectedPiece = null; // Ensure no piece selection interferes
-        validMoves = []; // Clear any leftover valid moves display
-        renderBoard(); // Update board to show AI is thinking
-        
-        // Use setTimeout to simulate thinking time and prevent blocking the UI
-        setTimeout(() => {
-          // Double-check game status hasn't changed
-          if (chess.game_over() || chess.turn() !== (aiColor === "black" ? 'b' : 'w')) {
-            debugLog("AI move aborted, game ended during thinking time.");
-            aiThinking = false;
-            renderBoard();
-            return;
-          }
-          
-          // Find best move using minimax with alpha-beta pruning
-          const depth = 2; // 2-ply search depth (AI move + player response)
-          const bestMove = minimaxRoot(depth, chess, true);
-          
-          if (!bestMove) {
-            aiThinking = false;
-            renderBoard();
-            return;
-          }
-          
-          debugLog("AI selected move:", bestMove);
-          
-          // Make the selected move
-          const moveResult = chess.move(bestMove);
-          
-          // Play the appropriate sound based on if it was a capture
-          if (moveResult.captured) {
-            // Play capture sound for captures
-            pieceCaptureSound.currentTime = 0;
-            pieceCaptureSound.play().catch(error => {
-              console.log("Audio playback error:", error);
-            });
-          } else {
-            // Play regular put down sound for non-captures
-            playPutDownSound();
-          }
-          
-          // Update last move for highlighting
-          lastMove = {
-            from: squareToCoords(moveResult.from),
-            to: squareToCoords(moveResult.to)
-          };
-          
-          // Update captured pieces
-          updateCapturedPiecesFromMove(moveResult);
-          
-          // Update PGN display
-          updatePgnDisplay();
-          
-          aiThinking = false;
-          
-          // Render the updated board
-          renderBoard();
-          
-          // Trigger haptic feedback
-          triggerHapticFeedback();
-          
-        }, 500); // AI "thinking" delay
+      
+        const fen = chess.fen().split(" ").slice(0, 4).join(" "); // Get position part of FEN
+        const bookMoves = openingBook[fen];
+      
+        if (bookMoves && bookMoves.length > 0) {
+          const randomIndex = Math.floor(Math.random() * bookMoves.length);
+          return bookMoves[randomIndex]; // Return a random book move
+        }
+      
+        return null; // No book move found
       }
       
-      // Minimax algorithm with alpha-beta pruning to find best move
-      function minimaxRoot(depth, chessInstance, isMaximizing) {
-        const moves = chessInstance.moves({ verbose: true });
-        let bestMove = null;
-        let bestValue = isMaximizing ? -Infinity : Infinity;
-        let alpha = -Infinity;
-        let beta = Infinity;
+      // Initialize the AI worker
+      function initializeAIWorker() {
+        // Terminate existing worker if it exists
+        if (aiWorker) {
+          aiWorker.terminate();
+        }
         
-        // Add randomness to move order evaluation for variety
-        shuffleArray(moves);
-        
-        for (let i = 0; i < moves.length; i++) {
-          const move = moves[i];
-          
-          // Make the move on a cloned chess instance
-          const newChess = new Chess(chessInstance.fen());
-          newChess.move(move);
-          
-          // Get value from minimax
-          const value = minimax(depth - 1, newChess, !isMaximizing, alpha, beta);
-          
-          if (isMaximizing) {
-            if (value > bestValue) {
-              bestValue = value;
-              bestMove = move;
-            }
-            alpha = Math.max(alpha, bestValue);
-          } else {
-            if (value < bestValue) {
-              bestValue = value;
-              bestMove = move;
-            }
-            beta = Math.min(beta, bestValue);
+        // Worker code as a string - paste your entire ai-worker.js content here
+        const workerCode = `
+              // AI Worker for CH3SS
+              
+              // Import chess.js (Web Worker version)
+              importScripts('https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js');
+              
+              // Global transposition table for caching evaluations
+              // Replace plain transposition table with size-limited Map and helper functions  
+              const MAX_TT_SIZE = 100000;  
+              const transpositionTable = new Map();  
+              function getTT(key) { return transpositionTable.get(key); }  
+              function setTT(key, entry) {  
+                if (transpositionTable.size >= MAX_TT_SIZE) {  
+                  const firstKey = transpositionTable.keys().next().value;  
+                  transpositionTable.delete(firstKey);  
+                }  
+                transpositionTable.set(key, entry);  
+              }  
+              
+              // Global killer moves table - stores moves that caused beta cutoffs
+              const killerMoves = Array(20).fill().map(() => Array(2).fill(null));
+              
+              // Keep track of search statistics
+              const searchStats = {
+                nodesSearched: 0,
+                quiescenceNodes: 0,
+                transpositionHits: 0,
+                startTime: 0,
+                endTime: 0
+              };
+              
+              // Listen for messages from the main thread
+              self.addEventListener('message', (event) => {
+                const { fen, depth = 4, aiColor = 'black', action = 'move' } = event.data;
+                
+                if (action === 'move') {
+                  // Reset search statistics
+                  resetSearchStats();
+                  searchStats.startTime = performance.now();
+                  
+                  // Create a chess instance with the current position
+                  const chess = new Chess(fen);
+                  
+                  // Find the best move
+                  const bestMove = findBestMove(chess, depth, aiColor);
+                  
+                  // Calculate search time
+                  searchStats.endTime = performance.now();
+                  const searchTime = searchStats.endTime - searchStats.startTime;
+                  
+                  // Send the move back to the main thread
+                  self.postMessage({
+                    bestMove,
+                    stats: {
+                      ...searchStats,
+                      searchTime,
+                      nodesPerSecond: Math.round(searchStats.nodesSearched / (searchTime / 1000))
+                    }
+                  });
+                }
+              });
+              
+              // Reset search statistics
+              function resetSearchStats() {
+                searchStats.nodesSearched = 0;
+                searchStats.quiescenceNodes = 0;
+                searchStats.transpositionHits = 0;
+                searchStats.startTime = 0;
+                searchStats.endTime = 0;
+              }
+              
+              // Find the best move for the current position
+              function findBestMove(chessInstance, depth, aiColor) {
+                const isMaximizing = aiColor === 'black';
+                const moves = chessInstance.moves({ verbose: true });
+                let bestMove = null;
+                let bestScore = isMaximizing ? -Infinity : Infinity;
+                
+                // Alpha-beta bounds
+                let alpha = -Infinity;
+                let beta = Infinity;
+                
+                // Sort moves to improve pruning (check, captures, then others)
+                moves.sort((a, b) => {
+                  // Prioritize checks
+                  if (a.san.includes('+') && !b.san.includes('+')) return -1;
+                  if (!a.san.includes('+') && b.san.includes('+')) return 1;
+                  
+                  // Then prioritize captures by victim value - attacker value
+                  if (a.captured && !b.captured) return -1;
+                  if (!a.captured && b.captured) return 1;
+                  
+                  if (a.captured && b.captured) {
+                    const pieceValue = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+                    const aValue = pieceValue[a.captured] - pieceValue[a.piece];
+                    const bValue = pieceValue[b.captured] - pieceValue[b.piece];
+                    return bValue - aValue; // Higher victim-attacker differential first
+                  }
+                  
+                  return 0;
+                });
+                
+                // Search each move
+                for (const move of moves) {
+                  // Make move
+                  chessInstance.move(move);
+                  
+                  // Search further with alpha-beta pruning
+                  const score = alphaBeta(chessInstance, depth - 1, alpha, beta, !isMaximizing);
+                  
+                  // Undo move
+                  chessInstance.undo();
+                  
+                  // Update best score and move
+                  if (isMaximizing) {
+                    if (score > bestScore) {
+                      bestScore = score;
+                      bestMove = move;
+                    }
+                    alpha = Math.max(alpha, bestScore);
+                  } else {
+                    if (score < bestScore) {
+                      bestScore = score;
+                      bestMove = move;
+                    }
+                    beta = Math.min(beta, bestScore);
+                  }
+                }
+                
+                // Return the move in SAN format
+                return bestMove ? bestMove.san : null;
+              }
+              
+              // Alpha-Beta pruning search algorithm
+              function alphaBeta(chessInstance, depth, alpha, beta, isMaximizing) {
+                searchStats.nodesSearched++;
+                
+                // Position signature (FEN without move counters)
+                const fenParts = chessInstance.fen().split(' ');
+                const positionKey = fenParts.slice(0, 4).join(' ');
+                
+                // Check transposition table
+                const entry = getTT(positionKey);  
+                if (entry && entry.depth >= depth) {  
+                  searchStats.transpositionHits++;  
+                  return entry.score;  
+                }  
+              
+                // Base case: depth reached or game over
+                if (depth === 0 || chessInstance.game_over()) {
+                  // Use quiescence search to handle horizon effect
+                  return quiescenceSearch(chessInstance, alpha, beta, isMaximizing);
+                }
+                
+                const moves = chessInstance.moves({ verbose: true });
+                
+                // Sort moves to improve pruning (checks, captures, killers, then others)
+                moves.sort((a, b) => {
+                  // First prioritize checks
+                  if (a.san.includes('+') && !b.san.includes('+')) return -1;
+                  if (!a.san.includes('+') && b.san.includes('+')) return 1;
+                  
+                  // Then prioritize captures by MVV-LVA (Most Valuable Victim - Least Valuable Attacker)
+                  if (a.captured && !b.captured) return -1;
+                  if (!a.captured && b.captured) return 1;
+                  
+                  if (a.captured && b.captured) {
+                    const pieceValue = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+                    const aValue = pieceValue[a.captured] - pieceValue[a.piece];
+                    const bValue = pieceValue[b.captured] - pieceValue[b.piece];
+                    return bValue - aValue; // Higher victim-attacker differential first
+                  }
+                  
+                  // Then prioritize killer moves
+                  const isAKiller = killerMoves[depth].includes(a.san);
+                  const isBKiller = killerMoves[depth].includes(b.san);
+                  
+                  if (isAKiller && !isBKiller) return -1;
+                  if (!isAKiller && isBKiller) return 1;
+                  
+                  return 0;
+                });
+                
+                if (isMaximizing) {
+                  let maxEval = -Infinity;
+                  
+                  for (const move of moves) {
+                    chessInstance.move(move);
+                    const eval = alphaBeta(chessInstance, depth - 1, alpha, beta, false);
+                    chessInstance.undo();
+                    
+                    maxEval = Math.max(maxEval, eval);
+                    alpha = Math.max(alpha, eval);
+                    
+                    // Beta cutoff
+                    if (beta <= alpha) {
+                      // Store killer move
+                      if (!move.captured && !killerMoves[depth].includes(move.san)) {
+                        killerMoves[depth].shift();
+                        killerMoves[depth][1] = move.san;
+                      }
+                      break;
+                    }
+                  }
+                  
+                  // Store in transposition table
+                  setTT(positionKey, { score: maxEval, depth });  
+              
+                  return maxEval;
+                  
+                } else {
+                  let minEval = Infinity;
+                  
+                  for (const move of moves) {
+                    chessInstance.move(move);
+                    const eval = alphaBeta(chessInstance, depth - 1, alpha, beta, true);
+                    chessInstance.undo();
+                    
+                    minEval = Math.min(minEval, eval);
+                    beta = Math.min(beta, eval);
+                    
+                    // Alpha cutoff
+                    if (beta <= alpha) {
+                      // Store killer move
+                      if (!move.captured && !killerMoves[depth].includes(move.san)) {
+                        killerMoves[depth].shift();
+                        killerMoves[depth][1] = move.san;
+                      }
+                      break;
+                    }
+                  }
+                  
+                  // Store in transposition table
+                  setTT(positionKey, { score: minEval, depth });  
+              
+                  return minEval;
+                }
+              }
+              
+              // Quiescence search to avoid horizon effect
+              function quiescenceSearch(chessInstance, alpha, beta, isMaximizing, qDepth = 2) {  
+                searchStats.quiescenceNodes++;  
+                const standPat = evaluatePosition(chessInstance);  
+                if (qDepth === 0) {  
+                  return standPat;  
+                }  
+                if (isMaximizing) {  
+                  if (standPat >= beta) return beta;  
+                  if (alpha < standPat) alpha = standPat;  
+                  const captures = chessInstance.moves({ verbose: true }).filter(m => m.captured);  
+                  for (const move of captures) {  
+                    chessInstance.move(move);  
+                    const score = quiescenceSearch(chessInstance, alpha, beta, false, qDepth - 1);  
+                    chessInstance.undo();  
+                    if (score >= beta) return beta;  
+                    if (score > alpha) alpha = score;  
+                  }  
+                  return alpha;  
+                } else {  
+                  if (standPat <= alpha) return alpha;  
+                  if (beta > standPat) beta = standPat;  
+                  const captures = chessInstance.moves({ verbose: true }).filter(m => m.captured);  
+                  for (const move of captures) {  
+                    chessInstance.move(move);  
+                    const score = quiescenceSearch(chessInstance, alpha, beta, true, qDepth - 1);  
+                    chessInstance.undo();  
+                    if (score <= alpha) return alpha;  
+                    if (score < beta) beta = score;  
+                  }  
+                  return beta;  
+                }  
+              }  
+              
+              // Position evaluation function
+              function evaluatePosition(chessInstance) {
+                // Game-ending states
+                if (chessInstance.in_checkmate()) {
+                  return chessInstance.turn() === 'w' ? -9000 : 9000; // Whoever is in checkmate loses
+                }
+                
+                if (chessInstance.in_draw() || chessInstance.in_stalemate() || chessInstance.in_threefold_repetition()) {
+                  return 0; // Draws are neutral
+                }
+                
+                let score = 0;
+                
+                // Material value
+                const pieceValue = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+                
+                // Piece-Square tables for positional evaluation
+                const pstPawn = [
+                  [ 0,  0,  0,  0,  0,  0,  0,  0],
+                  [50, 50, 50, 50, 50, 50, 50, 50],
+                  [10, 10, 20, 30, 30, 20, 10, 10],
+                  [ 5,  5, 10, 25, 25, 10,  5,  5],
+                  [ 0,  0,  0, 20, 20,  0,  0,  0],
+                  [ 5, -5,-10,  0,  0,-10, -5,  5],
+                  [ 5, 10, 10,-20,-20, 10, 10,  5],
+                  [ 0,  0,  0,  0,  0,  0,  0,  0]
+                ];
+                
+                const pstKnight = [
+                  [-50,-40,-30,-30,-30,-30,-40,-50],
+                  [-40,-20,  0,  0,  0,  0,-20,-40],
+                  [-30,  0, 10, 15, 15, 10,  0,-30],
+                  [-30,  5, 15, 20, 20, 15,  5,-30],
+                  [-30,  0, 15, 20, 20, 15,  0,-30],
+                  [-30,  5, 10, 15, 15, 10,  5,-30],
+                  [-40,-20,  0,  5,  5,  0,-20,-40],
+                  [-50,-40,-30,-30,-30,-30,-40,-50]
+                ];
+                
+                const pstBishop = [
+                  [-20,-10,-10,-10,-10,-10,-10,-20],
+                  [-10,  0,  0,  0,  0,  0,  0,-10],
+                  [-10,  0, 10, 10, 10, 10,  0,-10],
+                  [-10,  5,  5, 10, 10,  5,  5,-10],
+                  [-10,  0,  5, 10, 10,  5,  0,-10],
+                  [-10,  5,  5,  5,  5,  5,  5,-10],
+                  [-10,  0,  5,  0,  0,  5,  0,-10],
+                  [-20,-10,-10,-10,-10,-10,-10,-20]
+                ];
+                
+                const pstRook = [
+                  [ 0,  0,  0,  0,  0,  0,  0,  0],
+                  [ 5, 10, 10, 10, 10, 10, 10,  5],
+                  [-5,  0,  0,  0,  0,  0,  0, -5],
+                  [-5,  0,  0,  0,  0,  0,  0, -5],
+                  [-5,  0,  0,  0,  0,  0,  0, -5],
+                  [-5,  0,  0,  0,  0,  0,  0, -5],
+                  [-5,  0,  0,  0,  0,  0,  0, -5],
+                  [ 0,  0,  0,  5,  5,  0,  0,  0]
+                ];
+                
+                const pstQueen = [
+                  [-20,-10,-10, -5, -5,-10,-10,-20],
+                  [-10,  0,  0,  0,  0,  0,  0,-10],
+                  [-10,  0,  5,  5,  5,  5,  0,-10],
+                  [ -5,  0,  5,  5,  5,  5,  0, -5],
+                  [  0,  0,  5,  5,  5,  5,  0, -5],
+                  [-10,  5,  5,  5,  5,  5,  0,-10],
+                  [-10,  0,  5,  0,  0,  0,  0,-10],
+                  [-20,-10,-10, -5, -5,-10,-10,-20]
+                ];
+                
+                const pstKingMid = [
+                  [-30,-40,-40,-50,-50,-40,-40,-30],
+                  [-30,-40,-40,-50,-50,-40,-40,-30],
+                  [-30,-40,-40,-50,-50,-40,-40,-30],
+                  [-30,-40,-40,-50,-50,-40,-40,-30],
+                  [-20,-30,-30,-40,-40,-30,-30,-20],
+                  [-10,-20,-20,-20,-20,-20,-20,-10],
+                  [ 20, 20,  0,  0,  0,  0, 20, 20],
+                  [ 20, 30, 10,  0,  0, 10, 30, 20]
+                ];
+                
+                // Count pieces and evaluate position
+                const board = chessInstance.board();
+                
+                for (let i = 0; i < 8; i++) {
+                  for (let j = 0; j < 8; j++) {
+                    const square = board[i][j];
+                    if (!square) continue;
+                    
+                    const piece = square.type;
+                    const color = square.color;
+                    const value = pieceValue[piece];
+                    
+                    // Add or subtract base piece value
+                    if (color === 'w') {
+                      score += value;
+                    } else {
+                      score -= value;
+                    }
+                    
+                    // Add position bonuses based on piece-square tables
+                    const posBonus = (() => {
+                      // For black pieces we need to flip the row index (8-i-1)
+                      const row = color === 'w' ? 7-i : i;
+                      
+                      switch(piece) {
+                        case 'p': return pstPawn[row][j];
+                        case 'n': return pstKnight[row][j];
+                        case 'b': return pstBishop[row][j];
+                        case 'r': return pstRook[row][j];
+                        case 'q': return pstQueen[row][j];
+                        case 'k': return pstKingMid[row][j];
+                        default: return 0;
+                      }
+                    })();
+                    
+                    if (color === 'w') {
+                      score += posBonus;
+                    } else {
+                      score -= posBonus;
+                    }
+                  }
+                }
+                
+                // Add a small random factor to the score to break ties
+                const randomFactor = Math.random() * 10 - 5; // Random value between -5 and +5
+                score += randomFactor;
+              
+                return score;
+              }
+              
+            `;
+            
+            // Create a blob URL from the worker code
+            const blob = new Blob([workerCode], {type: 'application/javascript'});
+            const blobURL = URL.createObjectURL(blob);
+            
+            // Create the worker using the blob URL
+            aiWorker = new Worker(blobURL);
+            
+            // Set up message handler
+            aiWorker.onmessage = function(e) {
+              const { bestMove, stats } = e.data;
+              
+              if (!bestMove) {
+                aiThinking = false;
+                renderBoard();
+                return;
+              }
+              
+              debugLog("AI selected move:", bestMove);
+              debugLog("AI stats:", stats);
+              
+              // Make the selected move
+              const moveResult = chess.move(bestMove);
+              
+              // Play the appropriate sound based on if it was a capture
+              if (moveResult.captured) {
+                // Play capture sound for captures
+                pieceCaptureSound.currentTime = 0;
+                pieceCaptureSound.play().catch(error => {
+                  console.log("Audio playback error:", error);
+                });
+              } else {
+                // Play regular put down sound for non-captures
+                playPutDownSound();
+              }
+              
+              // Update last move for highlighting
+              lastMove = {
+                from: squareToCoords(moveResult.from),
+                to: squareToCoords(moveResult.to)
+              };
+              
+              // Update captured pieces
+              updateCapturedPiecesFromMove(moveResult);
+              
+              // Update PGN display
+              updatePgnDisplay();
+              
+              // Update thinking status
+              aiThinking = false;
+              
+              // Render the updated board
+              renderBoard();
+              
+              // Trigger haptic feedback
+              triggerHapticFeedback();
+            };
           }
-          
-          // Alpha-beta pruning
-          if (beta <= alpha) {
-            break;
-          }
-        }
-        
-        return bestMove;
-      }
-      
-      // Minimax with alpha-beta pruning recursive function
-      function minimax(depth, chessInstance, isMaximizing, alpha, beta) {
-        // Base case: if depth is 0 or game is over, evaluate the position
-        if (depth === 0 || chessInstance.game_over()) {
-          return evaluatePosition(chessInstance);
-        }
-        
-        const moves = chessInstance.moves();
-        
-        if (isMaximizing) {
-          let bestValue = -Infinity;
-          for (const move of moves) {
-            const newChess = new Chess(chessInstance.fen());
-            newChess.move(move);
-            bestValue = Math.max(bestValue, minimax(depth - 1, newChess, false, alpha, beta));
-            alpha = Math.max(alpha, bestValue);
-            if (beta <= alpha) break; // Alpha-beta pruning
-          }
-          return bestValue;
-        } else {
-          let bestValue = Infinity;
-          for (const move of moves) {
-            const newChess = new Chess(chessInstance.fen());
-            newChess.move(move);
-            bestValue = Math.min(bestValue, minimax(depth - 1, newChess, true, alpha, beta));
-            beta = Math.min(beta, bestValue);
-            if (beta <= alpha) break; // Alpha-beta pruning
-          }
-          return bestValue;
-        }
-      }
-      
-      // Position evaluation function - evaluates board state from AI's perspective
-      function evaluatePosition(chessInstance) {
-        // If the game is over
-        if (chessInstance.in_checkmate()) {
-          return chessInstance.turn() === 'w' ? -10000 : 10000; // -10000 if white is checkmated, 10000 if black
-        }
-        if (chessInstance.in_draw()) {
-          return 0; // Draws are neutral
-        }
-        
-        const board = chessInstance.board();
-        let score = 0;
-        
-        // Piece values
-        const pieceValues = {
-          'p': 100,  // pawn
-          'n': 320,  // knight
-          'b': 330,  // bishop
-          'r': 500,  // rook
-          'q': 900,  // queen
-          'k': 20000 // king (not actually used for material calculation)
-        };
-        
-        // Position bonuses for different pieces
-        const pawnPositionBonus = [
-          [0,  0,  0,  0,  0,  0,  0,  0],
-          [50, 50, 50, 50, 50, 50, 50, 50],
-          [10, 10, 20, 30, 30, 20, 10, 10],
-          [5,  5, 10, 25, 25, 10,  5,  5],
-          [0,  0,  0, 20, 20,  0,  0,  0],
-          [5, -5,-10,  0,  0,-10, -5,  5],
-          [5, 10, 10,-20,-20, 10, 10,  5],
-          [0,  0,  0,  0,  0,  0,  0,  0]
-        ];
-        
-        const knightPositionBonus = [
-          [-50,-40,-30,-30,-30,-30,-40,-50],
-          [-40,-20,  0,  0,  0,  0,-20,-40],
-          [-30,  0, 10, 15, 15, 10,  0,-30],
-          [-30,  5, 15, 20, 20, 15,  5,-30],
-          [-30,  0, 15, 20, 20, 15,  0,-30],
-          [-30,  5, 10, 15, 15, 10,  5,-30],
-          [-40,-20,  0,  5,  5,  0,-20,-40],
-          [-50,-40,-30,-30,-30,-30,-40,-50]
-        ];
-        
-        const bishopPositionBonus = [
-          [-20,-10,-10,-10,-10,-10,-10,-20],
-          [-10,  0,  0,  0,  0,  0,  0,-10],
-          [-10,  0, 10, 10, 10, 10,  0,-10],
-          [-10,  5,  5, 10, 10,  5,  5,-10],
-          [-10,  0, 10, 10, 10, 10,  0,-10],
-          [-10, 10, 10, 10, 10, 10, 10,-10],
-          [-10,  5,  0,  0,  0,  0,  5,-10],
-          [-20,-10,-10,-10,-10,-10,-10,-20]
-        ];
-        
-        const rookPositionBonus = [
-          [0,  0,  0,  0,  0,  0,  0,  0],
-          [5, 10, 10, 10, 10, 10, 10,  5],
-          [-5,  0,  0,  0,  0,  0,  0, -5],
-          [-5,  0,  0,  0,  0,  0,  0, -5],
-          [-5,  0,  0,  0,  0,  0,  0, -5],
-          [-5,  0,  0,  0,  0,  0,  0, -5],
-          [-5,  0,  0,  0,  0,  0,  0, -5],
-          [0,  0,  0,  5,  5,  0,  0,  0]
-        ];
-        
-        const queenPositionBonus = [
-          [-20,-10,-10, -5, -5,-10,-10,-20],
-          [-10,  0,  0,  0,  0,  0,  0,-10],
-          [-10,  0,  5,  5,  5,  5,  0,-10],
-          [-5,  0,  5,  5,  5,  5,  0, -5],
-          [0,  0,  5,  5,  5,  5,  0, -5],
-          [-10,  5,  5,  5,  5,  5,  0,-10],
-          [-10,  0,  5,  0,  0,  0,  0,-10],
-          [-20,-10,-10, -5, -5,-10,-10,-20]
-        ];
-        
-        const kingMiddlegamePositionBonus = [
-          [-30,-40,-40,-50,-50,-40,-40,-30],
-          [-30,-40,-40,-50,-50,-40,-40,-30],
-          [-30,-40,-40,-50,-50,-40,-40,-30],
-          [-30,-40,-40,-50,-50,-40,-40,-30],
-          [-20,-30,-30,-40,-40,-30,-30,-20],
-          [-10,-20,-20,-20,-20,-20,-20,-10],
-          [20, 20,  0,  0,  0,  0, 20, 20],
-          [20, 30, 10,  0,  0, 10, 30, 20]
-        ];
 
-        // Analyze the board
-        for (let i = 0; i < 8; i++) {
-          for (let j = 0; j < 8; j++) {
-            const piece = board[i][j];
-            if (piece) {
-              const value = pieceValues[piece.type.toLowerCase()];
-              
-              // Material value: positive for AI pieces, negative for opponent pieces
-              // AI is playing as aiColor
-              const isAIPiece = (piece.color === 'b' && aiColor === 'black') || 
-                                (piece.color === 'w' && aiColor === 'white');
-              
-              if (isAIPiece) {
-                score += value;
-              } else {
-                score -= value;
-              }
-              
-              // Position bonus
-              let positionBonus = 0;
-              
-              if (piece.type === 'p') { // Pawn
-                positionBonus = piece.color === 'w' ? pawnPositionBonus[i][j] : pawnPositionBonus[7-i][j];
-              }
-              else if (piece.type === 'n') { // Knight
-                positionBonus = piece.color === 'w' ? knightPositionBonus[i][j] : knightPositionBonus[7-i][j];
-              }
-              else if (piece.type === 'b') { // Bishop
-                positionBonus = piece.color === 'w' ? bishopPositionBonus[i][j] : bishopPositionBonus[7-i][j];
-              }
-              else if (piece.type === 'r') { // Rook
-                positionBonus = piece.color === 'w' ? rookPositionBonus[i][j] : rookPositionBonus[7-i][j];
-              }
-              else if (piece.type === 'q') { // Queen
-                positionBonus = piece.color === 'w' ? queenPositionBonus[i][j] : queenPositionBonus[7-i][j];
-              }
-              else if (piece.type === 'k') { // King
-                positionBonus = piece.color === 'w' ? kingMiddlegamePositionBonus[i][j] : kingMiddlegamePositionBonus[7-i][j];
-              }
-              
-              // Apply position bonus (positive for AI, negative for opponent)
-              if (isAIPiece) {
-                score += positionBonus;
-              } else {
-                score -= positionBonus;
-              }
-            }
-          }
-        }
-        
-        // Mobility is important: count legal moves
-        const origTurn = chessInstance.turn();
-        let aiMoveCount = 0;
-        let opponentMoveCount = 0;
-        
-        // Count AI moves
-        if ((origTurn === 'b' && aiColor === 'black') || (origTurn === 'w' && aiColor === 'white')) {
-          aiMoveCount = chessInstance.moves().length;
-          
-          // Flip the turn to count opponent moves
-          const fen = chessInstance.fen();
-          const fenParts = fen.split(' ');
-          fenParts[1] = fenParts[1] === 'w' ? 'b' : 'w'; // Toggle turn
-          const oppTurnFen = fenParts.join(' ');
-          
-          const tempChess = new Chess(oppTurnFen);
-          opponentMoveCount = tempChess.moves().length;
+      // Remove these functions as they're now handled in the worker
+      // minimax(), minimaxRoot(), evaluatePosition(), etc.
+
+      // Function to make an AI move
+      function makeAIMove() {
+        if (chess.game_over()) return;
+
+        aiThinking = true;
+        gameStatusElement.textContent = "THINKING...";
+
+        const bookMove = getOpeningBookMove(chess);
+
+        if (bookMove) {
+          console.log("Using opening book move:", bookMove);
+          setTimeout(() => {
+            chess.move(bookMove);
+            aiThinking = false;
+            renderBoard();
+          }, 100); // Reduced delay
         } else {
-          opponentMoveCount = chessInstance.moves().length;
-          
-          // Flip the turn to count AI moves
-          const fen = chessInstance.fen();
-          const fenParts = fen.split(' ');
-          fenParts[1] = fenParts[1] === 'w' ? 'b' : 'w'; // Toggle turn
-          const aiTurnFen = fenParts.join(' ');
-          
-          const tempChess = new Chess(aiTurnFen);
-          aiMoveCount = tempChess.moves().length;
+          const searchDepth = chess.history().length < 10 ? 2 : 3; // Use depth 2 for early moves
+          aiWorker.postMessage({
+            fen: chess.fen(),
+            depth: searchDepth,
+            aiColor: aiColor,
+            action: 'move',
+          });
         }
-        
-        // Mobility: approximately 10 points per move difference
-        score += (aiMoveCount - opponentMoveCount) * 10;
-        
-        // Small random factor to avoid deterministic play in equal positions
-        score += Math.floor(Math.random() * 10) - 5;
-        
-        return score;
       }
+
+      // Initialize the game
+      renderBoard();
       
-      // Helper function to shuffle array for move ordering
-      function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-      }
+      // Initialize the AI worker
+      initializeAIWorker();
       
+      // Set initial UI state for AI options
+      // ...existing code...
+
       // Reset the game to the initial state
       function resetGame(fullReset = false) {
         chess = new Chess(); // Reset chess instance
@@ -2705,6 +2958,9 @@ if (lastPgnMoves) {
       
       // Initialize the game
       renderBoard();
+      
+      // Initialize the AI worker
+      initializeAIWorker();
       
       // Set initial UI state for AI options
       aiOptionsContainer.style.display = gameMode === "ai" ? "block" : "none";
@@ -3188,10 +3444,24 @@ document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS PL
       
       // Setup difficulty selector
       const difficultySelector = document.querySelector(".difficulty-selector");
+      const difficultyOptions = document.querySelectorAll(".difficulty-option");
+      const difficultyInputs = document.querySelectorAll('input[name="ai-difficulty"]');
       
-      // Difficulty selector disabled - "Coming Soon"
-      // No event listeners for the disabled difficulty options
-
+      // Add event listeners to difficulty radios
+      difficultyInputs.forEach(input => {
+        input.addEventListener('change', function() {
+          // Update difficulty setting
+          aiDifficulty = this.value;
+          console.log("Difficulty changed to:", aiDifficulty);
+          
+          // Update visual active state
+          difficultyOptions.forEach(option => {
+            option.classList.remove('active');
+          });
+          this.closest('.difficulty-option').classList.add('active');
+        });
+      });
+      
       // Reset all player stats
       function resetAllStats() {
         // Reset core stats
