@@ -1996,78 +1996,132 @@
       
       // AI OPPONENT FUNCTIONS
       
-      // Make AI move
-      function makeAIMove() {
-        // Prevent AI move if game is over or it's not AI's turn
-        if (chess.game_over() || chess.turn() !== (aiColor === "black" ? 'b' : 'w')) {
-          return;
+      // Modified makeAIMove function to use Stockfish when available, but fallback to minimax
+// Add this to your index.html file, replacing the existing makeAIMove function
+// filepath: /workspaces/ch3ss/index.html
+function makeAIMove() {
+  // Prevent AI move if game is over or it's not AI's turn
+  if (chess.game_over() || chess.turn() !== (aiColor === "black" ? 'b' : 'w')) {
+    return;
+  }
+  
+  debugLog("AI starting move evaluation");
+  aiThinking = true;
+  selectedPiece = null; // Ensure no piece selection interferes
+  validMoves = []; // Clear any leftover valid moves display
+  renderBoard(); // Update board to show AI is thinking
+  
+  // Check if Stockfish is loaded and ready to use
+  if (window.CH3SS && window.CH3SS.stockfish && window.CH3SS.stockfish.isReady()) {
+    debugLog("Using Stockfish for AI move");
+    
+    // Get the current position in FEN notation
+    const fen = chess.fen();
+    
+    // Request a move from Stockfish
+    const success = window.CH3SS.stockfish.requestMove(fen, aiDifficulty, (bestMove) => {
+      // This callback will be executed when Stockfish returns its move choice
+      debugLog("Stockfish selected move:", bestMove);
+      
+      // Make the move
+      const moveResult = window.CH3SS.stockfish.makeMove(bestMove, chess);
+      
+      if (moveResult) {
+        // Play appropriate sound
+        if (moveResult.captured) {
+          pieceCaptureSound.currentTime = 0;
+          pieceCaptureSound.play().catch(error => {
+            console.log("Audio playback error:", error);
+          });
+        } else {
+          playPutDownSound();
         }
         
-        debugLog("AI starting move evaluation");
-        aiThinking = true;
-        selectedPiece = null; // Ensure no piece selection interferes
-        validMoves = []; // Clear any leftover valid moves display
-        renderBoard(); // Update board to show AI is thinking
+        // Update last move for highlighting
+        lastMove = {
+          from: squareToCoords(moveResult.from),
+          to: squareToCoords(moveResult.to)
+        };
         
-        // Use setTimeout to simulate thinking time and prevent blocking the UI
-        setTimeout(() => {
-          // Double-check game status hasn't changed
-          if (chess.game_over() || chess.turn() !== (aiColor === "black" ? 'b' : 'w')) {
-            debugLog("AI move aborted, game ended during thinking time.");
-            aiThinking = false;
-            renderBoard();
-            return;
-          }
-          
-          // Find best move using minimax with alpha-beta pruning
-          const depth = 2; // 2-ply search depth (AI move + player response)
-          const bestMove = minimaxRoot(depth, chess, true);
-          
-          if (!bestMove) {
-            aiThinking = false;
-            renderBoard();
-            return;
-          }
-          
-          debugLog("AI selected move:", bestMove);
-          
-          // Make the selected move
-          const moveResult = chess.move(bestMove);
-          
-          // Play the appropriate sound based on if it was a capture
-          if (moveResult.captured) {
-            // Play capture sound for captures
-            pieceCaptureSound.currentTime = 0;
-            pieceCaptureSound.play().catch(error => {
-              console.log("Audio playback error:", error);
-            });
-          } else {
-            // Play regular put down sound for non-captures
-            playPutDownSound();
-          }
-          
-          // Update last move for highlighting
-          lastMove = {
-            from: squareToCoords(moveResult.from),
-            to: squareToCoords(moveResult.to)
-          };
-          
-          // Update captured pieces
-          updateCapturedPiecesFromMove(moveResult);
-          
-          // Update PGN display
-          updatePgnDisplay();
-          
-          aiThinking = false;
-          
-          // Render the updated board
-          renderBoard();
-          
-          // Trigger haptic feedback
-          triggerHapticFeedback();
-          
-        }, 500); // AI "thinking" delay
+        // Update captured pieces and PGN display
+        updateCapturedPiecesFromMove(moveResult);
+        updatePgnDisplay();
+        
+        aiThinking = false;
+        renderBoard();
+        triggerHapticFeedback();
+      } else {
+        console.error("Stockfish suggested an invalid move:", bestMove);
+        // Fallback to minimax
+        performMinimaxMove();
       }
+    });
+    
+    // If Stockfish request failed, fall back to minimax
+    if (!success) {
+      performMinimaxMove();
+    }
+  } else {
+    // If Stockfish is not ready, use minimax
+    performMinimaxMove();
+  }
+  
+  // Helper function for the existing minimax algorithm
+  function performMinimaxMove() {
+    debugLog("Using minimax for AI move (Stockfish not available)");
+    
+    setTimeout(() => {
+      // Double-check game status hasn't changed
+      if (chess.game_over() || chess.turn() !== (aiColor === "black" ? 'b' : 'w')) {
+        debugLog("AI move aborted, game ended during thinking time.");
+        aiThinking = false;
+        renderBoard();
+        return;
+      }
+      
+      // Find best move using minimax with alpha-beta pruning
+      const depth = 2; // 2-ply search depth (AI move + player response)
+      const bestMove = minimaxRoot(depth, chess, true);
+      
+      if (!bestMove) {
+        aiThinking = false;
+        renderBoard();
+        return;
+      }
+      
+      debugLog("AI selected move:", bestMove);
+      
+      // Make the selected move
+      const moveResult = chess.move(bestMove);
+      
+      // Play the appropriate sound based on if it was a capture
+      if (moveResult.captured) {
+        pieceCaptureSound.currentTime = 0;
+        pieceCaptureSound.play().catch(error => {
+          console.log("Audio playback error:", error);
+        });
+      } else {
+        playPutDownSound();
+      }
+      
+      // Update last move for highlighting
+      lastMove = {
+        from: squareToCoords(moveResult.from),
+        to: squareToCoords(moveResult.to)
+      };
+      
+      // Update captured pieces
+      updateCapturedPiecesFromMove(moveResult);
+      
+      // Update PGN display
+      updatePgnDisplay();
+      
+      aiThinking = false;
+      renderBoard();
+      triggerHapticFeedback();
+    }, 500); // AI "thinking" delay
+  }
+}
       
       // Minimax algorithm with alpha-beta pruning to find best move
       function minimaxRoot(depth, chessInstance, isMaximizing) {
@@ -3468,5 +3522,6 @@ document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS PL
         button.addEventListener('click', playButtonClickSound);
       });
     </script>
+    <script src="https://dannywalter.github.io/ch3ss-puzzles/stockfish-integration.js"></script>
   </body>
 </html>
