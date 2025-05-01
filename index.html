@@ -9,9 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=block" rel="stylesheet" />
     <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
+
     <!-- Background music element -->
     <audio id="background-music" loop preload="auto">
-      <source src="https://dannywalter.github.io/ch3ss-puzzles/checkmate-in-neon-extended.mp3" type="audio/mpeg">
+      <source src="https://dannywalter.github.io/ch3ss-puzzles/checkmate-in-neon-extended.mp3" type="audio/mpeg" />
     </audio>
     <style>
       /* Global Styles */
@@ -158,8 +159,7 @@
 
       .last-move-from {
         background: rgba(255, 255, 255, 0.1) !important;
-        box-shadow:
-          0 0 10px #ffffff inset !important;
+        box-shadow: 0 0 10px #ffffff inset !important;
       }
 
       .last-move-to {
@@ -410,18 +410,18 @@
       }
 
       .modal-header {
-  font-size: 0.9rem;
-  color: #00ffff;
-  text-shadow: 0 0 5px #00ffff;
-  text-align: center;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #00ffff50;
-  padding-bottom: 10px;
-  position: relative; /* Add this for absolute positioning of the close button */
-  display: flex;     /* Use flex to align items */
-  justify-content: center; /* Center the text */
-  align-items: center;    /* Vertically align items */
-}
+        font-size: 0.9rem;
+        color: #00ffff;
+        text-shadow: 0 0 5px #00ffff;
+        text-align: center;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #00ffff50;
+        padding-bottom: 10px;
+        position: relative; /* Add this for absolute positioning of the close button */
+        display: flex; /* Use flex to align items */
+        justify-content: center; /* Center the text */
+        align-items: center; /* Vertically align items */
+      }
 
       .modal-section {
         margin-bottom: 15px;
@@ -479,19 +479,19 @@
 
       .modal-close-button {
         position: absolute;
-        right: 5px; 
-        bottom: 5px; 
-        width: 28px; 
+        right: 5px;
+        bottom: 5px;
+        width: 28px;
         height: 28px;
         background: rgba(0, 255, 255, 0.1);
         border: 1px solid #00ffff;
         border-radius: 3px;
         color: #00ffff;
-        font-size: 1.4rem; 
+        font-size: 1.4rem;
         cursor: pointer;
         text-shadow: 0 0 5px #00ffff;
         transition: all 0.2s ease;
-        padding: 0; 
+        padding: 0;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
         /* Restore flexbox for centering */
@@ -505,7 +505,9 @@
         background: rgba(0, 255, 255, 0.3);
         color: #ffffff;
         box-shadow: 0 0 8px #00ffff;
-        text-shadow: 0 0 8px #00ffff, 0 0 15px #ffffff;
+        text-shadow:
+          0 0 8px #00ffff,
+          0 0 15px #ffffff;
       }
 
       /* Game mode options */
@@ -577,8 +579,7 @@
         color: #ff00ff;
         font-size: 1.2rem;
         font-weight: bold;
-        text-shadow:
-          0 0 10px #ff00ff;
+        text-shadow: 0 0 10px #ff00ff;
         padding: 15px;
         border: 2px solid #ff00ff;
         border-radius: 5px;
@@ -734,14 +735,14 @@
         display: flex;
         flex-direction: column;
       }
-      
+
       .achievement-title {
         color: #00ffff;
         font-size: 0.5rem;
         font-weight: bold;
         text-shadow: 0 0 7px #00ffff;
       }
-      
+
       .achievement-bonus {
         color: #ff00ff;
         font-size: 0.5rem;
@@ -749,13 +750,13 @@
         right: 5px;
         top: 5px;
       }
-      
+
       .achievement-desc {
         color: #dddddd;
         font-size: 0.4rem;
         margin-top: 3px;
       }
-      
+
       /* Score tracker styles */
       .score-tracker {
         position: fixed;
@@ -772,13 +773,13 @@
         pointer-events: none;
         box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
       }
-      
+
       .score-value {
         color: #ff00ff;
         font-size: 1rem;
         text-shadow: 0 0 5px #ff00ff;
       }
-      
+
       .score-notification {
         font-family: monospace;
         color: #00ffff;
@@ -789,7 +790,7 @@
         letter-spacing: 0.1em;
         text-align: center;
       }
-      
+
       @keyframes fadeUp {
         from {
           opacity: 1;
@@ -800,7 +801,7 @@
           transform: translateY(-10px);
         }
       }
-      
+
       /* Difficulty selector */
       .difficulty-selector {
         display: flex;
@@ -808,7 +809,7 @@
         gap: 5px;
         margin-top: 10px;
       }
-      
+
       .difficulty-option {
         display: flex;
         align-items: center;
@@ -817,20 +818,20 @@
         border: 1px solid #444;
         border-radius: 3px;
       }
-      
+
       .difficulty-option.active {
         border-color: #00ffff;
         background: rgba(0, 255, 255, 0.1);
       }
-      
+
       .difficulty-option input {
         margin-right: 5px;
       }
-      
+
       .difficulty-name {
         flex: 1;
       }
-      
+
       .difficulty-multi {
         color: #ff00ff;
       }
@@ -886,9 +887,19 @@
               <div class="display">
                 <div class="display-header">CAPTURES SCORE</div>
                 <div class="display-content rules-content">
-                  <div id="current-game-score" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between">
-                    <div class="score-value" style="font-size: 1.2rem; color: #ff00ff; text-shadow: 0 0 5px #ff00ff; padding-left: 5px;">000</div>
-                    <div id="score-notification" class="score-notification" style="font-size: .65rem;">No Captures Yet</div>
+                  <div
+                    id="current-game-score"
+                    style="display: flex; flex-direction: row; align-items: center; justify-content: space-between"
+                  >
+                    <div
+                      class="score-value"
+                      style="font-size: 1.2rem; color: #ff00ff; text-shadow: 0 0 5px #ff00ff; padding-left: 5px"
+                    >
+                      000
+                    </div>
+                    <div id="score-notification" class="score-notification" style="font-size: 0.65rem">
+                      No Captures Yet
+                    </div>
                   </div>
                 </div>
               </div>
@@ -897,12 +908,17 @@
               <div class="display">
                 <div class="display-header">MENU</div>
                 <div class="display-content menu-content">
-                  <div style="display: flex; justify-content: space-between; width: 100%; margin: 2px 0 0 0;">
-                    <button id="pgn-button" class="menu-inline-button" style="flex-grow: 1; margin-right: 5px; text-shadow: none;" title="View PGN notation">
-                      <span id="last-pgn-moves" style="font-family: monospace; font-size: 0.7rem; ">Last Moves</span>
+                  <div style="display: flex; justify-content: space-between; width: 100%; margin: 2px 0 0 0">
+                    <button
+                      id="pgn-button"
+                      class="menu-inline-button"
+                      style="flex-grow: 1; margin-right: 5px; text-shadow: none"
+                      title="View PGN notation"
+                    >
+                      <span id="last-pgn-moves" style="font-family: monospace; font-size: 0.7rem">Last Moves</span>
                     </button>
-                    <button id="menu-button" class="menu-inline-button" style="padding: 4px 8px;" title="Options">
-                      <span style="font-size: 0.7rem;">⚙️</span>
+                    <button id="menu-button" class="menu-inline-button" style="padding: 4px 8px" title="Options">
+                      <span style="font-size: 0.7rem">⚙️</span>
                     </button>
                   </div>
                 </div>
@@ -915,11 +931,23 @@
 
     <!-- Welcome Screen Overlay -->
     <div id="welcome-overlay" class="modal-overlay active">
-      <div class="modal welcome-modal" style="max-width: 380px;">
-        <div class="modal-header" style="font-size: .8rem; color: #ffffff; font-weight: bold; text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff;">Welcome, Ch3ss Mast3r</div>
+      <div class="modal welcome-modal" style="max-width: 380px">
+        <div
+          class="modal-header"
+          style="
+            font-size: 0.8rem;
+            color: #ffffff;
+            font-weight: bold;
+            text-shadow:
+              0 0 5px #00ffff,
+              0 0 10px #00ffff;
+          "
+        >
+          Welcome, Ch3ss Mast3r
+        </div>
 
-        <div id="welcome-ai-options" class="modal-section" style="border-bottom: none;">
-          <div class="modal-content" style="text-align: left; font-size: 0.5rem; line-height: 1.6; margin-bottom: 10px;">
+        <div id="welcome-ai-options" class="modal-section" style="border-bottom: none">
+          <div class="modal-content" style="text-align: left; font-size: 0.5rem; line-height: 1.6; margin-bottom: 10px">
             Read the scoring instructions below or jump right into battle!
           </div>
 
@@ -927,122 +955,125 @@
             <button id="welcome-color-black" class="option-button active">WHITE (YOU PLAY FIRST)</button>
             <button id="welcome-color-white" class="option-button">BLACK (AI PLAYS FIRST)</button>
           </div>
-        
 
-       <div class="modal-buttons" style="justify-content: center; margin-top: 25px;">
-         <button id="start-game" class="modal-button" style="font-size: 0.7rem; padding: 10px 20px;">
-           > START GAME <
-         </button>
-       </div>
-       </div>
-
-       <div class="modal-section">
-        <div class="modal-content" style="text-align: left; font-size: 0.5rem; line-height: 1.6;">
-          Think beyond the checkmate.<br>
-          Dominate the Farcade leaderboard strategically!
+          <div class="modal-buttons" style="justify-content: center; margin-top: 25px">
+            <button id="start-game" class="modal-button" style="font-size: 0.7rem; padding: 10px 20px">
+              > START GAME <
+            </button>
+          </div>
         </div>
-      </div>
 
-        <div class="modal-section" style="padding-bottom: 0px; margin-bottom: 0px; border-bottom: none;">
+        <div class="modal-section">
+          <div class="modal-content" style="text-align: left; font-size: 0.5rem; line-height: 1.6">
+            Think beyond the checkmate.<br />
+            Dominate the Farcade leaderboard strategically!
+          </div>
+        </div>
+
+        <div class="modal-section" style="padding-bottom: 0px; margin-bottom: 0px; border-bottom: none">
           <div class="modal-section-title">// DATA PERSISTENCE //</div>
-          <div id="welcome-score-persistence" class="modal-content" style="font-size:0.5rem;">
-            <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-              <tbody><tr>
-                <td>Your score <strong style="color: #ffffff; text-shadow: 0px 0px 6px #00ffff;">accumulates across games</strong> until you hit 'SUBMIT SCORE' and your total score is sent to Farcade for final analysis.
-                </td>
-              </tr>
-            </tbody></table>
+          <div id="welcome-score-persistence" class="modal-content" style="font-size: 0.5rem">
+            <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
+              <tbody>
+                <tr>
+                  <td>
+                    Your score
+                    <strong style="color: #ffffff; text-shadow: 0px 0px 6px #00ffff">accumulates across games</strong>
+                    until you hit 'SUBMIT SCORE' and your total score is sent to Farcade for final analysis.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-              <div class="modal-section-title">// CH3SS SCORE PROTOCOL //</div>
-              <div id="welcome-score-protocol" class="modal-content" style="font-size:0.5rem;">
-                <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-                  <tbody>
-                    <tr>
-                      <td strong style="color:#00ffff;">» CORE DIRECTIVES</td>
-                    </tr>
-                    <tr>
-                      <td>Checkmate</td>
-                      <td style="text-align:right;">+100</td>
-                    </tr>
-                    <tr>
-                      <td>Stalemate/Draw</td>
-                      <td style="text-align:right;">+30</td>
-                    </tr>
-                </tbody>
-              </table>
-
-              <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-                <tbody>
-                  <tr>
-                    <td strong style="color:#00ffff;">» ENEMY TARGETS</td>
-                  </tr>
-                  <tr>
-                    <td>Pawn</td>
-                    <td style="text-align:right;">+2</td>
-                  </tr>
-                  <tr>
-                    <td>Knight/Bishop</td>
-                    <td style="text-align:right;">+6</td>
-                  </tr>
-                  <tr>
-                    <td>Rook</td>
-                    <td style="text-align:right;">+10</td>
-                  </tr>
-                  <tr>
-                    <td>Queen</td>
-                    <td style="text-align:right;">+20</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <table style="width:100%; border-collapse:collapse; margin:10px 0;">
-                <tbody>
-                  <tr>
-                    <td strong style="color:#00ffff;">» SYSTEM OVERRIDES</td>
-                  </tr>
-                  <tr>
-                    <td>Win Streak Multiplier</td>
-                    <td style="text-align:right;">+0.5x</td>
-                  </tr>
-                  <tr>
-                    <td>Blitz Win (under 20 moves)</td>
-                    <td style="text-align:right;">+75</td>
-                  </tr>
-                  <tr>
-                    <td>Quick Win (under 5 minutes)</td>
-                    <td style="text-align:right;">+50</td>
-                  </tr>
+          <div class="modal-section-title">// CH3SS SCORE PROTOCOL //</div>
+          <div id="welcome-score-protocol" class="modal-content" style="font-size: 0.5rem">
+            <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
+              <tbody>
+                <tr>
+                  <td strong style="color: #00ffff">» CORE DIRECTIVES</td>
+                </tr>
+                <tr>
+                  <td>Checkmate</td>
+                  <td style="text-align: right">+100</td>
+                </tr>
+                <tr>
+                  <td>Stalemate/Draw</td>
+                  <td style="text-align: right">+30</td>
+                </tr>
               </tbody>
             </table>
 
-              </div>
+            <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
+              <tbody>
+                <tr>
+                  <td strong style="color: #00ffff">» ENEMY TARGETS</td>
+                </tr>
+                <tr>
+                  <td>Pawn</td>
+                  <td style="text-align: right">+2</td>
+                </tr>
+                <tr>
+                  <td>Knight/Bishop</td>
+                  <td style="text-align: right">+6</td>
+                </tr>
+                <tr>
+                  <td>Rook</td>
+                  <td style="text-align: right">+10</td>
+                </tr>
+                <tr>
+                  <td>Queen</td>
+                  <td style="text-align: right">+20</td>
+                </tr>
+              </tbody>
+            </table>
 
-              <div class="modal-section-title">// ACHIEVEMENTS //</div>
-              <div id="welcome-achievements-list" class="modal-content">
-                <div class="achievement-item">
-                  <span class="achievement-title">Queen Protector</span>
-                  <span class="achievement-bonus">+100</span>
-                  <div class="achievement-desc">Win without losing your Queen</div>
-                  </div>
-                  <div class="achievement-item">
-                    <span class="achievement-title">Pawn Slayer</span>
-                    <span class="achievement-bonus">+150</span>
-                    <div class="achievement-desc">Deliver checkmate using a Pawn</div>
-                  </div>
-                  <div class="achievement-item">
-                    <span class="achievement-title">Speed Demon</span>
-                    <span class="achievement-bonus">+200</span>
-                    <div class="achievement-desc">Win 5 games within 30 moves</div>
-                  </div>
-                  <div class="achievement-item">
-                    <span class="achievement-title">Unstoppable</span>
-                    <span class="achievement-bonus">+500</span>
-                    <div class="achievement-desc">Win 10 consecutive games</div>
-                  </div>
-              </div>
+            <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
+              <tbody>
+                <tr>
+                  <td strong style="color: #00ffff">» SYSTEM OVERRIDES</td>
+                </tr>
+                <tr>
+                  <td>Win Streak Multiplier</td>
+                  <td style="text-align: right">+0.5x</td>
+                </tr>
+                <tr>
+                  <td>Blitz Win (under 20 moves)</td>
+                  <td style="text-align: right">+75</td>
+                </tr>
+                <tr>
+                  <td>Quick Win (under 5 minutes)</td>
+                  <td style="text-align: right">+50</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="modal-section-title">// ACHIEVEMENTS //</div>
+          <div id="welcome-achievements-list" class="modal-content">
+            <div class="achievement-item">
+              <span class="achievement-title">Queen Protector</span>
+              <span class="achievement-bonus">+100</span>
+              <div class="achievement-desc">Win without losing your Queen</div>
             </div>
-              </div>
+            <div class="achievement-item">
+              <span class="achievement-title">Pawn Slayer</span>
+              <span class="achievement-bonus">+150</span>
+              <div class="achievement-desc">Deliver checkmate using a Pawn</div>
+            </div>
+            <div class="achievement-item">
+              <span class="achievement-title">Speed Demon</span>
+              <span class="achievement-bonus">+200</span>
+              <div class="achievement-desc">Win 5 games within 30 moves</div>
+            </div>
+            <div class="achievement-item">
+              <span class="achievement-title">Unstoppable</span>
+              <span class="achievement-bonus">+500</span>
+              <div class="achievement-desc">Win 10 consecutive games</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Game Menu Modal -->
@@ -1070,27 +1101,42 @@
                 <button id="ai-color-black" class="option-button active">WHITE (YOU PLAY FIRST)</button>
                 <button id="ai-color-white" class="option-button">BLACK (AI PLAYS FIRST)</button>
               </div>
-              
-              <div class="option-label" style="margin-top: 10px;">DIFFICULTY:</div>
-              <div class="difficulty-selector" style="opacity: 0.5; position: relative;">
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); padding: 5px 10px; border: 1px solid #00ffff; color: #00ffff; font-size: 0.5rem; z-index: 1;">COMING SOON</div>
+
+              <div class="option-label" style="margin-top: 10px">DIFFICULTY:</div>
+              <div class="difficulty-selector" style="opacity: 0.5; position: relative">
+                <div
+                  style="
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 0, 0, 0.7);
+                    padding: 5px 10px;
+                    border: 1px solid #00ffff;
+                    color: #00ffff;
+                    font-size: 0.5rem;
+                    z-index: 1;
+                  "
+                >
+                  COMING SOON
+                </div>
                 <label class="difficulty-option" for="diff-easy">
-                  <input type="radio" id="diff-easy" name="ai-difficulty" value="easy" disabled>
+                  <input type="radio" id="diff-easy" name="ai-difficulty" value="easy" disabled />
                   <span class="difficulty-name">Easy</span>
                   <span class="difficulty-multi">x1.0</span>
                 </label>
                 <label class="difficulty-option active" for="diff-medium">
-                  <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" checked disabled>
+                  <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" checked disabled />
                   <span class="difficulty-name">Medium</span>
                   <span class="difficulty-multi">x1.0</span>
                 </label>
                 <label class="difficulty-option" for="diff-hard">
-                  <input type="radio" id="diff-hard" name="ai-difficulty" value="hard" disabled>
+                  <input type="radio" id="diff-hard" name="ai-difficulty" value="hard" disabled />
                   <span class="difficulty-name">Hard</span>
                   <span class="difficulty-multi">x1.0</span>
                 </label>
                 <label class="difficulty-option" for="diff-expert">
-                  <input type="radio" id="diff-expert" name="ai-difficulty" value="expert" disabled>
+                  <input type="radio" id="diff-expert" name="ai-difficulty" value="expert" disabled />
                   <span class="difficulty-name">Expert</span>
                   <span class="difficulty-multi">x1.0</span>
                 </label>
@@ -1152,59 +1198,85 @@
     </div>
 
     <!-- PGN Modal -->
-<div id="pgn-modal" class="modal-overlay">
-  <div class="modal" style="max-width: 350px;">
-    <div class="modal-header">GAME NOTATION</div>
-    
-    <div class="modal-section">
-      <div class="modal-section-title">PGN</div>
-      <div class="modal-content">
-        <div id="full-pgn-output" style="font-family: monospace; font-size: 0.75rem; color: #00ffff; white-space: pre-wrap; max-height: 200px; overflow-y: auto; text-align: left; font-family: monospace; padding: 5px; background: rgba(0,0,0,0.3);"></div>
+    <div id="pgn-modal" class="modal-overlay">
+      <div class="modal" style="max-width: 350px">
+        <div class="modal-header">GAME NOTATION</div>
+
+        <div class="modal-section">
+          <div class="modal-section-title">PGN</div>
+          <div class="modal-content">
+            <div
+              id="full-pgn-output"
+              style="
+                font-family: monospace;
+                font-size: 0.75rem;
+                color: #00ffff;
+                white-space: pre-wrap;
+                max-height: 200px;
+                overflow-y: auto;
+                text-align: left;
+                font-family: monospace;
+                padding: 5px;
+                background: rgba(0, 0, 0, 0.3);
+              "
+            ></div>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button id="close-pgn-modal" class="modal-button">CLOSE</button>
+        </div>
       </div>
     </div>
-    
-    <div class="modal-buttons">
-      <button id="close-pgn-modal" class="modal-button">CLOSE</button>
-    </div>
-  </div>
-</div>
 
     <!-- Scoring System Overlay -->
     <div id="scoring-overlay" class="modal-overlay">
-      <div class="modal" style="max-width: 380px; max-height: 90vh;">
+      <div class="modal" style="max-width: 380px; max-height: 90vh">
         <div class="modal-header">CH3SS SCOREBOARD</div>
-        
+
         <div class="modal-section">
           <div class="modal-section-title">YOUR SCORE</div>
-          <div id="final-score-display" class="modal-content" style="text-align:center; font-size:1.5rem; color:#ff00ff; margin:10px 0; text-shadow: 0 0 10px #ff00ff;">
+          <div
+            id="final-score-display"
+            class="modal-content"
+            style="text-align: center; font-size: 1.5rem; color: #ff00ff; margin: 10px 0; text-shadow: 0 0 10px #ff00ff"
+          >
             437
           </div>
-          <div id="score-breakdown" class="modal-content" style="font-size:0.5rem;">
-            <table style="width:100%; border-collapse:collapse; margin:10px 0;">
+          <div id="score-breakdown" class="modal-content" style="font-size: 0.5rem">
+            <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
               <tr>
                 <td>Base (Win)</td>
-                <td style="text-align:right;">+100</td>
+                <td style="text-align: right">+100</td>
               </tr>
               <tr>
                 <td>Quick Win (Less than 5 min)</td>
-                <td style="text-align:right;">+50</td>
+                <td style="text-align: right">+50</td>
               </tr>
               <tr>
                 <td>Captures (Pawn x3, Bishop x1, Rook x2, Queen x1)</td>
-                <td style="text-align:right;">+52</td>
+                <td style="text-align: right">+52</td>
               </tr>
               <tr>
                 <td>Win Streak Bonus (x1.2)</td>
-                <td style="text-align:right;">x1.2</td>
+                <td style="text-align: right">x1.2</td>
               </tr>
-              <tr style="border-top: 1px solid #ff00ff80; margin-top:5px; padding-top:5px; color:#ff00ff; font-weight:bold;">
+              <tr
+                style="
+                  border-top: 1px solid #ff00ff80;
+                  margin-top: 5px;
+                  padding-top: 5px;
+                  color: #ff00ff;
+                  font-weight: bold;
+                "
+              >
                 <td>TOTAL SCORE</td>
-                <td style="text-align:right;">437</td>
+                <td style="text-align: right">437</td>
               </tr>
             </table>
           </div>
         </div>
-        
+
         <div class="modal-section">
           <div class="modal-section-title">ACHIEVEMENTS</div>
           <div id="achievements-list" class="modal-content">
@@ -1215,1987 +1287,125 @@
             </div>
           </div>
         </div>
-        
+
         <div class="modal-section">
           <div class="modal-section-title">STATS</div>
           <div id="player-stats" class="modal-content">
-            <table style="width:100%; border-collapse:collapse; font-size:0.45rem;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.45rem">
               <tr>
                 <td>Games Played</td>
-                <td style="text-align:right;">12</td>
+                <td style="text-align: right">12</td>
               </tr>
               <tr>
                 <td>Wins / Draws / Losses</td>
-                <td style="text-align:right;">8 / 3 / 1</td>
+                <td style="text-align: right">8 / 3 / 1</td>
               </tr>
               <tr>
                 <td>Current Win Streak</td>
-                <td style="text-align:right;">3</td>
+                <td style="text-align: right">3</td>
               </tr>
               <tr>
                 <td>Highest Win Streak</td>
-                <td style="text-align:right;">5</td>
+                <td style="text-align: right">5</td>
               </tr>
               <tr>
                 <td>Total Score</td>
-                <td style="text-align:right;">2,534</td>
+                <td style="text-align: right">2,534</td>
               </tr>
             </table>
           </div>
         </div>
-        
+
         <div class="modal-buttons">
-          <button id="keep-playing-scoring" class="modal-button">KEEP PLAYING</button> <!-- Renamed from close-scoring -->
+          <button id="keep-playing-scoring" class="modal-button">KEEP PLAYING</button>
+          <!-- Renamed from close-scoring -->
           <button id="submit-final-score" class="modal-button">SUBMIT SCORE</button>
           <!-- Removed Share Button -->
         </div>
       </div>
     </div>
-    
+
     <!-- Real-time Score Display -->
-    <div id="current-score-display" class="score-tracker" style="display: none;">
+    <div id="current-score-display" class="score-tracker" style="display: none">
       <div class="score-value">0</div>
       <div id="score-notification" class="score-notification"></div>
     </div>
 
     <script>
-      // Chess Game Logic using chess.js
-      
-      // Create a new chess instance
-      let chess = new Chess();
-      
-      // Unicode mapping for chess pieces
-      const pieceMapping = {
-        k: "♚",
-        q: "♛",
-        r: "♖",
-        b: "♗",
-        n: "♞",
-        p: "♙",
-        K: "♚",
-        Q: "♛",
-        R: "♖",
-        B: "♗",
-        N: "♞",
-        P: "♙",
-      };
+      // Wrap main game logic in a scope to avoid polluting global namespace
+      (function () {
+        // Chess Game Logic using chess.js (available globally from the initial script tag)
+        // Create a new chess instance for the main thread
+        let chess = new Chess();
 
-      // Game state variables
-      let selectedPiece = null;
-      let validMoves = [];
-      let lastMove = {
-        from: null,
-        to: null,
-      };
-      
-      // Audio for piece interactions
-      const piecePutDownSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/up-lVnF69uvGB7LxfHd4xQNXPvjHNuhzm.wav');
-      const piecePickUpSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/down-3NEqSVwCnAIyxHw3rEt0K7xdUrLW6i.wav');
-      const pieceCaptureSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/pieceCapture-tkzgPSppuXLlK9vkkFLBz0oXfDF2u1.wav');
-      const buttonClickSound = new Audio('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/click-ZXjx3PMJuBv8DxfUFuTzQrQpYi2fwL.wav'); // New button sound
-      // Preload audio
-      piecePutDownSound.load();
-      piecePickUpSound.load();
-      pieceCaptureSound.load();
-      buttonClickSound.load(); // Preload button sound
-      
-      // Function to play the piece pickup sound
-      function playPieceSound() {
-        // Only play if the game is not muted
-        if (!isMuted && piecePutDownSound) {
-          // Reset the audio to the beginning (in case it's still playing)
-          piecePutDownSound.currentTime = 0;
-          // Play the sound
-          piecePutDownSound.play().catch(error => {
-            // This catches errors like when the browser requires user interaction before playing audio
-            console.log("Audio playback error:", error);
-          });
-        }
-      }
-      
-      // Function to play the piece put down sound
-      function playPutDownSound() {
-        // Only play if the game is not muted
-        if (!isMuted && piecePickUpSound) {
-          // Reset the audio to the beginning (in case it's still playing)
-          piecePickUpSound.currentTime = 0;
-          // Play the sound
-          piecePickUpSound.play().catch(error => {
-            // This catches errors like when the browser requires user interaction before playing audio
-            console.log("Audio playback error:", error);
-          });
-        }
-      }
-
-      // Function to play the button click sound
-      function playButtonClickSound() {
-        if (!isMuted && buttonClickSound) {
-          buttonClickSound.currentTime = 0; // Allow rapid clicks
-          buttonClickSound.play().catch(error => {
-            console.log("Button click sound playback error:", error);
-          });
-        }
-      }
-      
-      // AI variables
-      let gameMode = "ai"; // human, ai
-      let aiColor = "black"; // AI will play as black by default
-      let aiThinking = false; // Flag to prevent interactions while AI is thinking
-      let aiDifficulty = "medium"; // easy, medium, hard, expert
-      
-      // Farcade SDK variables
-      let isMuted = false; // Track if sound is muted
-      
-      // Enhanced scoring system
-      let gameScore = 0; // Final calculated score
-      let scoringSystem = {
-        // Base points
-        base: {
-          win: 100,
-          draw: 30,
-          loss: 10
-        },
-        // Quick play bonuses
-        quickPlay: {
-          movesUnder20: 75,
-          movesUnder30: 30,
-          timeUnder5Min: 50
-        },
-        // Piece capture values
-        captures: {
-          p: 2,  // pawn
-          n: 6,  // knight
-          b: 6,  // bishop
-          r: 10, // rook
-          q: 20  // queen
-        },
-        // Difficulty multipliers
-        difficultyMultiplier: {
-          easy: 1.0,
-          medium: 1.5,
-          hard: 2.0,
-          expert: 3.0
-        },
-        // Achievements
-        achievements: {
-          unstoppable: { title: "Unstoppable", bonus: 250, description: "Win 10 consecutive games" },
-          queenProtector: { title: "Queen Protector", bonus: 100, description: "Win without losing your Queen" },
-          pawnSlayer: { title: "Pawn Slayer", bonus: 150, description: "Deliver checkmate using a Pawn" },
-          speedDemon: { title: "Speed Demon", bonus: 200, description: "Win 5 games within 30 moves" }
-        },
-        // Penalties
-        penalties: {
-          earlyLoss: -15,
-          timeout: -10
-        }
-      };
-      
-      // Player stats
-      let playerStats = {
-        gamesPlayed: 0,
-        wins: 0,
-        draws: 0,
-        losses: 0,
-        currentWinStreak: 0,
-        highestWinStreak: 0,
-        quickWinsUnder30Moves: 0,
-        capturedPieces: { p: 0, n: 0, b: 0, r: 0, q: 0 },
-        capturedPieceValue: 0,
-        totalScore: 0,
-        achievements: [],
-        startTime: null,
-        consecutiveCaptures: 0,
-        lastCaptureMove: -1,
-        queenLost: false,
-        checkmateWithPawn: false,
-        moveHistory: []
-      };
-      
-      // Track captured pieces
-      let capturedPieces = {
-        white: [], // Pieces captured by white player
-        black: [], // Pieces captured by black player
-      };
-      
-      // DOM Elements
-      const boardElement = document.getElementById("board");
-      const currentPlayerElement = document.getElementById("current-player");
-      const gameStatusElement = document.getElementById("game-status");
-      const menuButton = document.getElementById("menu-button");
-      const menuModal = document.getElementById("menu-modal");
-      const newGameModalButton = document.getElementById("new-game-modal");
-      const closeModalButton = document.getElementById("close-modal");
-      const whiteCapturedElement = document.getElementById("white-captured");
-      const blackCapturedElement = document.getElementById("black-captured");
-      const whiteScoreElement = document.getElementById("white-score");
-      const blackScoreElement = document.getElementById("black-score");
-
-      // Helper Functions
-      
-      // Returns the color of a piece ('white', 'black', or null if empty)
-      function getPieceColor(piece) {
-        if (!piece) return null;
-        return piece === piece.toUpperCase() ? "white" : "black";
-      }
-      
-      // Get piece notation from chess.js piece object
-      function getPieceNotation(piece) {
-        if (!piece) return null;
-        return piece.color === 'w' ? piece.type.toUpperCase() : piece.type.toLowerCase();
-      }
-      
-      // Convert algebraic notation (e.g., "e4") to row/col coordinates
-      function squareToCoords(square) {
-        const col = square.charCodeAt(0) - 'a'.charCodeAt(0);
-        const row = 8 - parseInt(square.charAt(1));
-        return [row, col];
-      }
-      
-      // Convert row/col coordinates to algebraic notation
-      function coordsToSquare(row, col) {
-        const file = String.fromCharCode('a'.charCodeAt(0) + col);
-        const rank = 8 - row;
-        return file + rank;
-      }
-      
-      // Debugging function
-      function debugLog(message, data = null) {
-        const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
-        console.log(`[${timestamp}] ${message}`, data ? data : "");
-      }
-      
-      // Convert chess.js board to our UI representation
-      function convertChessJsBoard() {
-        const board = chess.board();
-        const convertedBoard = Array(8).fill().map(() => Array(8).fill(null));
-        
-        for (let row = 0; row < 8; row++) {
-          for (let col = 0; col < 8; col++) {
-            const piece = board[row][col];
-            if (piece) {
-              // Convert chess.js piece to our notation (uppercase for white, lowercase for black)
-              convertedBoard[row][col] = piece.color === 'w' ? piece.type.toUpperCase() : piece.type.toLowerCase();
-            }
-          }
-        }
-        
-        return convertedBoard;
-      }
-      
-      // Function to get valid moves for a specific square
-      function getValidMovesForSquare(row, col) {
-        const square = coordsToSquare(row, col);
-        const moves = chess.moves({
-          square: square,
-          verbose: true
-        });
-        
-        // Convert moves to our format [row, col]
-        return moves.map(move => squareToCoords(move.to));
-      }
-      
-      // Update captured pieces based on move with scoring
-      function updateCapturedPiecesFromMove(move) {
-        if (move.captured) {
-          const capturedPiece = move.color === 'w' ? move.captured.toLowerCase() : move.captured.toUpperCase();
-          
-          // Add to the UI captured pieces list
-          if (move.color === 'w') {
-            capturedPieces.white.push(capturedPiece);
-          } else {
-            capturedPieces.black.push(capturedPiece);
-          }
-          
-          // Only track player captures for scoring
-          const playerColor = aiColor === "black" ? "w" : "b";
-          
-          // Check if this is a player's capture (not AI)
-          if (move.color === playerColor) {
-            // Player made this capture, update stats
-            playerStats.capturedPieces[move.captured]++;
-            const captureValue = scoringSystem.captures[move.captured];
-            playerStats.capturedPieceValue += captureValue;
-            
-            // Check if this is consecutive capture
-            const currentMoveNumber = chess.history().length;
-            if (playerStats.lastCaptureMove === currentMoveNumber - 2) {
-              // Last move was also a capture, award combo points
-              playerStats.consecutiveCaptures++;
-              
-              // Award combo points (5 points for each additional capture in a row)
-              const comboPoints = 5;
-              playerStats.capturedPieceValue += comboPoints;
-              
-              // Show combo notification
-              showScoreNotification(`COMBO x${playerStats.consecutiveCaptures}`, comboPoints);
-            } else {
-              // Reset consecutive captures
-              playerStats.consecutiveCaptures = 1;
-            }
-            
-            // Update last capture move number
-            playerStats.lastCaptureMove = currentMoveNumber;
-            
-            // Show capture notification with points
-            showScoreNotification(`Captured ${move.captured.toUpperCase()}`, captureValue);
-          }
-          
-          // Check if player lost their queen (for achievement tracking)
-          if (move.captured === 'q' && move.color !== playerColor) {
-            playerStats.queenLost = true;
-          }
-        }
-      }
-
-      // Render the chessboard on the screen
-      function renderBoard() {
-        boardElement.innerHTML = "";
-        
-        const boardState = convertChessJsBoard();
-        
-        for (let row = 0; row < 8; row++) {
-          const rowElement = document.createElement("div");
-          rowElement.className = "row";
-          
-          for (let col = 0; col < 8; col++) {
-            const squareElement = document.createElement("div");
-            const isLightSquare = (row + col) % 2 === 0;
-            
-            squareElement.className = `square ${isLightSquare ? "light-square" : "dark-square"}`;
-            squareElement.dataset.row = row;
-            squareElement.dataset.col = col;
-            
-            const piece = boardState[row][col];
-            if (piece) {
-              const pieceElement = document.createElement("div");
-              const pieceColor = getPieceColor(piece);
-              
-              pieceElement.className = `piece ${pieceColor}-piece`;
-              pieceElement.textContent = pieceMapping[piece];
-              squareElement.appendChild(pieceElement);
-            }
-            
-            // Visual highlights
-            if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
-              squareElement.classList.add("selected");
-            }
-            
-            if (validMoves.some(([r, c]) => r === row && c === col)) {
-              squareElement.classList.add("valid-move");
-            }
-            
-            if (lastMove.from && row === lastMove.from[0] && col === lastMove.from[1]) {
-              squareElement.classList.add("last-move-from");
-            }
-            
-            if (lastMove.to && row === lastMove.to[0] && col === lastMove.to[1]) {
-              squareElement.classList.add("last-move-to");
-            }
-            
-            squareElement.addEventListener("click", () => handleSquareClick(row, col));
-            rowElement.appendChild(squareElement);
-          }
-          
-          boardElement.appendChild(rowElement);
-        }
-        
-        updateGameStatus();
-        updateCapturedPieces();
-      }
-      
-      // Handle square clicks for moving pieces
-      function handleSquareClick(row, col) {
-        // Don't allow moves if the game is over or if it's AI's turn and AI is thinking
-        if (chess.game_over() || (gameMode === "ai" && chess.turn() === (aiColor === "black" ? 'b' : 'w') && aiThinking)) {
-          return;
-        }
-        
-        const currentPlayerColor = chess.turn() === 'w' ? "white" : "black";
-        const square = coordsToSquare(row, col);
-        const piece = chess.get(square);
-        
-        // If no piece is selected yet, try to select one
-        if (!selectedPiece) {
-          // Can only select pieces of the current player's color
-          if (piece && piece.color === chess.turn()) {
-            // Play sound when a piece is selected
-            playPieceSound();
-            
-            selectedPiece = { row, col, piece: getPieceNotation(piece), square };
-            
-            // Calculate valid moves for the selected piece
-            validMoves = getValidMovesForSquare(row, col);
-            
-            renderBoard();
-          }
-          return;
-        }
-        
-        // If a piece is already selected, try to move it
-        const isValidMove = validMoves.some(([r, c]) => r === row && c === col);
-        
-        if (isValidMove) {
-          // Make the move
-          const moveResult = chess.move({
-            from: selectedPiece.square,
-            to: square,
-            promotion: 'q' // Auto-promote to queen for simplicity
-          });
-          
-          if (moveResult) {
-            // Play the appropriate sound based on if it was a capture
-            if (moveResult.captured) {
-              // Play capture sound for captures
-              pieceCaptureSound.currentTime = 0;
-              pieceCaptureSound.play().catch(error => {
-                console.log("Audio playback error:", error);
-              });
-            } else {
-              // Play regular put down sound for non-captures
-              playPutDownSound();
-            }
-            
-            // Update last move for highlighting
-            lastMove = {
-              from: squareToCoords(moveResult.from),
-              to: squareToCoords(moveResult.to)
-            };
-            
-            // Update captured pieces
-            updateCapturedPiecesFromMove(moveResult);
-            
-            // Trigger haptic feedback
-            triggerHapticFeedback();
-            
-            // Update PGN display
-            updatePgnDisplay();
-            
-            // Clear selection and valid moves
-            selectedPiece = null;
-            validMoves = [];
-            
-            // Render the updated board
-            renderBoard();
-            
-            // If the game is in AI mode and it's AI's turn, make the AI move
-            if (gameMode === "ai" && !chess.game_over() && chess.turn() === (aiColor === "black" ? 'b' : 'w')) {
-              makeAIMove();
-            }
-          }
-        } else {
-          // If clicking on another one of the player's pieces, select that piece instead
-          if (piece && piece.color === chess.turn()) {
-            // Play sound when switching to a different piece
-            playPieceSound();
-            
-            selectedPiece = { row, col, piece: getPieceNotation(piece), square };
-            validMoves = getValidMovesForSquare(row, col);
-          } else {
-            // Otherwise, deselect
-            selectedPiece = null;
-            validMoves = [];
-          }
-          
-          renderBoard();
-        }
-      }
-      
-      // Update the game status display
-      function updateGameStatus() {
-        const currentTurn = chess.turn() === 'w' ? "WHITE" : "BLACK";
-        currentPlayerElement.textContent = currentTurn;
-        
-        if (chess.in_checkmate()) {
-          gameStatusElement.textContent = "CHECKMATE";
-          const winner = currentTurn === "WHITE" ? "BLACK" : "WHITE";
-          const winnerElement = document.createElement("div");
-          winnerElement.className = "winner";
-          winnerElement.textContent = `${winner} WINS!`;
-          gameStatusElement.appendChild(winnerElement);
-          
-          // Calculate player result for game over
-          if (gameMode === "ai") {
-            let gameResult;
-            
-            // Check if player won
-            if ((winner === "WHITE" && aiColor === "black") || 
-                (winner === "BLACK" && aiColor === "white")) {
-              gameResult = "win";
-              
-              // Check if the last move was a checkmate with a pawn
-              const history = chess.history({ verbose: true });
-              if (history.length > 0) {
-                const lastMove = history[history.length - 1];
-                if (lastMove.piece === 'p') {
-                  playerStats.checkmateWithPawn = true;
-                }
-              }
-            } else {
-              gameResult = "loss";
-            }
-            
-            // Calculate the score using our advanced scoring system
-            const scoreResult = calculateGameScore(gameResult);
-            gameScore = scoreResult.score;
-            
-            // Show the advanced scoring overlay with detailed breakdown
-            showScoringOverlay(scoreResult);
-          }
-          
-          // Add game over overlay with Submit Score button
-          showGameOverOverlay("CHECKMATE", winner);
-          
-        } else if (chess.in_stalemate()) {
-          gameStatusElement.textContent = "DRAW";
-          const drawElement = document.createElement("div");
-          drawElement.className = "winner";
-          drawElement.textContent = "STALEMATE";
-          gameStatusElement.appendChild(drawElement);
-          
-          // Calculate draw score if in AI mode
-          if (gameMode === "ai") {
-            const scoreResult = calculateGameScore("draw");
-            gameScore = scoreResult.score;
-            showScoringOverlay(scoreResult);
-          } else {
-            gameScore = 0;
-          }
-          
-          showGameOverOverlay("DRAW", "STALEMATE");
-          
-        } else if (chess.in_threefold_repetition()) {
-          gameStatusElement.textContent = "DRAW";
-          const drawElement = document.createElement("div");
-          drawElement.className = "winner";
-          drawElement.textContent = "REPETITION";
-          gameStatusElement.appendChild(drawElement);
-          
-          // Calculate draw score if in AI mode
-          if (gameMode === "ai") {
-            const scoreResult = calculateGameScore("draw");
-            gameScore = scoreResult.score;
-            showScoringOverlay(scoreResult);
-          } else {
-            gameScore = 0;
-          }
-          
-          showGameOverOverlay("DRAW", "Same position repeated 3 times");
-          
-        } else if (chess.insufficient_material()) {
-          gameStatusElement.textContent = "DRAW";
-          const drawElement = document.createElement("div");
-          drawElement.className = "winner";
-          drawElement.textContent = "INSUFFICIENT MATERIAL";
-          gameStatusElement.appendChild(drawElement);
-          
-          // Calculate draw score if in AI mode
-          if (gameMode === "ai") {
-            const scoreResult = calculateGameScore("draw");
-            gameScore = scoreResult.score;
-            showScoringOverlay(scoreResult);
-          } else {
-            gameScore = 0;
-          }
-          
-          showGameOverOverlay("DRAW", "Insufficient material to checkmate");
-          
-        } else if (chess.in_draw()) {
-          gameStatusElement.textContent = "DRAW";
-          const drawElement = document.createElement("div");
-          drawElement.className = "winner";
-          drawElement.textContent = "DRAW";
-          gameStatusElement.appendChild(drawElement);
-          
-          // Calculate draw score if in AI mode
-          if (gameMode === "ai") {
-            const scoreResult = calculateGameScore("draw");
-            gameScore = scoreResult.score;
-            showScoringOverlay(scoreResult);
-          } else {
-            gameScore = 0;
-          }
-          
-          showGameOverOverlay("DRAW", "50 moves without a capture or pawn move");
-          
-        } else if (chess.in_check()) {
-          gameStatusElement.textContent = "CHECK";
-        } else {
-          gameStatusElement.textContent = gameMode === "ai" ? "PLAYING vs AI" : "PLAYING";
-        }
-      }
-      
-      // Show Game Over Overlay
-      function showGameOverOverlay(title, winner) { // Changed subtext to winner
-        const overlay = document.createElement("div");
-        overlay.className = "checkmate-overlay";
-        
-        const content = document.createElement("div");
-        content.style.display = "flex";
-        content.style.flexDirection = "column";
-        content.style.alignItems = "center";
-        content.style.gap = "10px";
-        
-        const titleElement = document.createElement("div");
-        titleElement.className = "checkmate-text";
-        // Include winner in the main title
-        titleElement.textContent = `${title}`; 
-        if (title === "DRAW") { // Adjust title for draws
-           titleElement.textContent = title; // Just show DRAW, STALEMATE etc.
-        }
-
-        const subtextElement = document.createElement("div");
-        subtextElement.className = "scoreboard-text";
-        subtextElement.style.fontSize = "0.6rem"; // Slightly smaller for stats
-        subtextElement.style.lineHeight = "1.5"; // Adjust line height
-        subtextElement.style.textAlign = "left"; // Align stats left
-        subtextElement.style.padding = "5px 15px"; // Adjust padding
-
-        // --- Calculate Stats ---
-        const totalMoves = Math.ceil(chess.history().length / 2); // Number of move pairs
-        const playerCapturesCount = Object.values(playerStats.capturedPieces).reduce((sum, count) => sum + count, 0);
-        
-        let timePlayed = "N/A";
-        if (playerStats.startTime) {
-            const durationSeconds = Math.floor((Date.now() - playerStats.startTime) / 1000);
-            const minutes = Math.floor(durationSeconds / 60);
-            const seconds = durationSeconds % 60;
-            timePlayed = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-        // --- End Calculate Stats ---
-
-        // Populate subtext with stats
-        subtextElement.innerHTML = `
-          Moves: ${totalMoves}<br>
-          Captures: ${playerCapturesCount}<br>
-          Time: ${timePlayed}<br>
-          Game Score: ${gameScore}<br>
-          Total Score: ${playerStats.totalScore.toLocaleString()}
-        `;
-        
-        const buttonContainer = document.createElement("div");
-        buttonContainer.style.display = "flex";
-        buttonContainer.style.flexDirection = "column";
-        buttonContainer.style.gap = "10px";
-        
-        const newGameButton = document.createElement("button");
-        newGameButton.className = "modal-button";
-        newGameButton.textContent = "CONTINUE PLAYING";
-        newGameButton.id = "new-game-checkmate";
-        newGameButton.addEventListener("click", () => resetGame(false)); // Explicitly set fullReset to false
-        
-        const submitScoreButton = document.createElement("button");
-        submitScoreButton.className = "modal-button";
-        submitScoreButton.textContent = "SUBMIT FINAL SCORE";
-        submitScoreButton.addEventListener("click", () => {
-          // Disable the button immediately to prevent multiple clicks
-          submitScoreButton.disabled = true;
-          submitScoreButton.textContent = "SUBMITTING...";
-          
-          // Call Farcade SDK gameOver using the updateFarcadeScore function
-          updateFarcadeScore();
-          
-          // Create and show a confirmation message
-          const confirmationMsg = document.createElement("div");
-          confirmationMsg.className = "winner";
-          confirmationMsg.style.fontSize = "0.7rem";
-          confirmationMsg.style.marginTop = "10px";
-          confirmationMsg.textContent = "SCORE SUBMITTED!";
-          content.appendChild(confirmationMsg);
-          
-          // Hide the button
-          submitScoreButton.style.display = "none";
-          
-          // Trigger haptic feedback for confirmation
-          triggerHapticFeedback();
-        });
-        
-        content.appendChild(titleElement);
-        // Only add subtext if it's not a draw (draw reasons are handled differently)
-        if (title !== "DRAW") {
-             content.appendChild(subtextElement);
-        } else {
-             // For draws, show the reason (stalemate, repetition etc.)
-             const drawReasonElement = document.createElement("div");
-             drawReasonElement.className = "scoreboard-text";
-             drawReasonElement.textContent = winner; // 'winner' variable holds the draw reason here
-             content.appendChild(drawReasonElement);
-        }
-        buttonContainer.appendChild(newGameButton);
-        // Only show Submit Score button for AI games
-        if (gameMode === "ai") {
-            buttonContainer.appendChild(submitScoreButton);
-        }
-        content.appendChild(buttonContainer);
-        overlay.appendChild(content);
-        boardElement.appendChild(overlay);
-        
-        triggerHapticFeedback();
-      }
-      
-      // Calculate the score difference between captured pieces
-      function calculateScoreDifference() {
-        const pieceValues = {
-          p: 1, // pawn
-          n: 3, // knight
-          b: 3, // bishop
-          r: 5, // rook
-          q: 9, // queen
-          k: 0, // king (not factored in material evaluation)
+        // Unicode mapping for chess pieces
+        const pieceMapping = {
+          k: "♚",
+          q: "♛",
+          r: "♖",
+          b: "♗",
+          n: "♞",
+          p: "♙",
+          K: "♚",
+          Q: "♛",
+          R: "♖",
+          B: "♗",
+          N: "♞",
+          P: "♙",
         };
-        
-        let whiteScore = 0;
-        let blackScore = 0;
-        
-        // Calculate score from captured pieces
-        capturedPieces.white.forEach((piece) => {
-          whiteScore += pieceValues[piece.toLowerCase()];
-        });
-        
-        capturedPieces.black.forEach((piece) => {
-          blackScore += pieceValues[piece.toLowerCase()];
-        });
-        
-        return { whiteScore, blackScore };
-      }
-      
-      // Update the captured pieces display
-      function updateCapturedPieces() {
-        // Clear current display
-        whiteCapturedElement.innerHTML = "";
-        blackCapturedElement.innerHTML = "";
-        
-        // Add each captured piece to the display
-        capturedPieces.white.forEach((piece) => {
-          const pieceSpan = document.createElement("span");
-          pieceSpan.textContent = pieceMapping[piece];
-          pieceSpan.className = "black-piece"; // These are black pieces captured by white
-          whiteCapturedElement.appendChild(pieceSpan);
-        });
-        
-        capturedPieces.black.forEach((piece) => {
-          const pieceSpan = document.createElement("span");
-          pieceSpan.textContent = pieceMapping[piece];
-          pieceSpan.className = "white-piece"; // These are white pieces captured by black
-          blackCapturedElement.appendChild(pieceSpan);
-        });
-        
-        // Update score display
-        const { whiteScore, blackScore } = calculateScoreDifference();
-        
-        if (whiteScore > blackScore) {
-          whiteScoreElement.textContent = `+${whiteScore - blackScore}`;
-          blackScoreElement.textContent = "+0";
-        } else if (blackScore > whiteScore) {
-          blackScoreElement.textContent = `+${blackScore - whiteScore}`;
-          whiteScoreElement.textContent = "+0";
-        } else {
-          whiteScoreElement.textContent = "+0";
-          blackScoreElement.textContent = "+0";
-        }
-      }
-      
-      // AI OPPONENT FUNCTIONS
-      
-      // Make AI move
-      function makeAIMove() {
-        // Prevent AI move if game is over or it's not AI's turn
-        if (chess.game_over() || chess.turn() !== (aiColor === "black" ? 'b' : 'w')) {
-          return;
-        }
-        
-        debugLog("AI starting move evaluation");
-        aiThinking = true;
-        selectedPiece = null; // Ensure no piece selection interferes
-        validMoves = []; // Clear any leftover valid moves display
-        renderBoard(); // Update board to show AI is thinking
-        
-        // Use setTimeout to simulate thinking time and prevent blocking the UI
-        setTimeout(() => {
-          // Double-check game status hasn't changed
-          if (chess.game_over() || chess.turn() !== (aiColor === "black" ? 'b' : 'w')) {
-            debugLog("AI move aborted, game ended during thinking time.");
-            aiThinking = false;
-            renderBoard();
-            return;
-          }
-          
-          // Find best move using minimax with alpha-beta pruning
-          const depth = 2; // 2-ply search depth (AI move + player response)
-          const bestMove = minimaxRoot(depth, chess, true);
-          
-          if (!bestMove) {
-            aiThinking = false;
-            renderBoard();
-            return;
-          }
-          
-          debugLog("AI selected move:", bestMove);
-          
-          // Make the selected move
-          const moveResult = chess.move(bestMove);
-          
-          // Play the appropriate sound based on if it was a capture
-          if (moveResult.captured) {
-            // Play capture sound for captures
-            pieceCaptureSound.currentTime = 0;
-            pieceCaptureSound.play().catch(error => {
-              console.log("Audio playback error:", error);
-            });
-          } else {
-            // Play regular put down sound for non-captures
-            playPutDownSound();
-          }
-          
-          // Update last move for highlighting
-          lastMove = {
-            from: squareToCoords(moveResult.from),
-            to: squareToCoords(moveResult.to)
-          };
-          
-          // Update captured pieces
-          updateCapturedPiecesFromMove(moveResult);
-          
-          // Update PGN display
-          updatePgnDisplay();
-          
-          aiThinking = false;
-          
-          // Render the updated board
-          renderBoard();
-          
-          // Trigger haptic feedback
-          triggerHapticFeedback();
-          
-        }, 500); // AI "thinking" delay
-      }
-      
-      // Minimax algorithm with alpha-beta pruning to find best move
-      function minimaxRoot(depth, chessInstance, isMaximizing) {
-        const moves = chessInstance.moves({ verbose: true });
-        let bestMove = null;
-        let bestValue = isMaximizing ? -Infinity : Infinity;
-        let alpha = -Infinity;
-        let beta = Infinity;
-        
-        // Add randomness to move order evaluation for variety
-        shuffleArray(moves);
-        
-        for (let i = 0; i < moves.length; i++) {
-          const move = moves[i];
-          
-          // Make the move on a cloned chess instance
-          const newChess = new Chess(chessInstance.fen());
-          newChess.move(move);
-          
-          // Get value from minimax
-          const value = minimax(depth - 1, newChess, !isMaximizing, alpha, beta);
-          
-          if (isMaximizing) {
-            if (value > bestValue) {
-              bestValue = value;
-              bestMove = move;
-            }
-            alpha = Math.max(alpha, bestValue);
-          } else {
-            if (value < bestValue) {
-              bestValue = value;
-              bestMove = move;
-            }
-            beta = Math.min(beta, bestValue);
-          }
-          
-          // Alpha-beta pruning
-          if (beta <= alpha) {
-            break;
-          }
-        }
-        
-        return bestMove;
-      }
-      
-      // Minimax with alpha-beta pruning recursive function
-      function minimax(depth, chessInstance, isMaximizing, alpha, beta) {
-        // Base case: if depth is 0 or game is over, evaluate the position
-        if (depth === 0 || chessInstance.game_over()) {
-          return evaluatePosition(chessInstance);
-        }
-        
-        const moves = chessInstance.moves();
-        
-        if (isMaximizing) {
-          let bestValue = -Infinity;
-          for (const move of moves) {
-            const newChess = new Chess(chessInstance.fen());
-            newChess.move(move);
-            bestValue = Math.max(bestValue, minimax(depth - 1, newChess, false, alpha, beta));
-            alpha = Math.max(alpha, bestValue);
-            if (beta <= alpha) break; // Alpha-beta pruning
-          }
-          return bestValue;
-        } else {
-          let bestValue = Infinity;
-          for (const move of moves) {
-            const newChess = new Chess(chessInstance.fen());
-            newChess.move(move);
-            bestValue = Math.min(bestValue, minimax(depth - 1, newChess, true, alpha, beta));
-            beta = Math.min(beta, bestValue);
-            if (beta <= alpha) break; // Alpha-beta pruning
-          }
-          return bestValue;
-        }
-      }
-      
-      // Position evaluation function - evaluates board state from AI's perspective
-      function evaluatePosition(chessInstance) {
-        // If the game is over
-        if (chessInstance.in_checkmate()) {
-          return chessInstance.turn() === 'w' ? -10000 : 10000; // -10000 if white is checkmated, 10000 if black
-        }
-        if (chessInstance.in_draw()) {
-          return 0; // Draws are neutral
-        }
-        
-        const board = chessInstance.board();
-        let score = 0;
-        
-        // Piece values
-        const pieceValues = {
-          'p': 100,  // pawn
-          'n': 320,  // knight
-          'b': 330,  // bishop
-          'r': 500,  // rook
-          'q': 900,  // queen
-          'k': 20000 // king (not actually used for material calculation)
+
+        // Game state variables
+        let selectedPiece = null;
+        let validMoves = [];
+        let lastMove = { from: null, to: null };
+
+        // Audio for piece interactions
+        const piecePutDownSound = new Audio(
+          "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/up-lVnF69uvGB7LxfHd4xQNXPvjHNuhzm.wav",
+        );
+        const piecePickUpSound = new Audio(
+          "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/down-3NEqSVwCnAIyxHw3rEt0K7xdUrLW6i.wav",
+        );
+        const pieceCaptureSound = new Audio(
+          "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/pieceCapture-tkzgPSppuXLlK9vkkFLBz0oXfDF2u1.wav",
+        );
+        const buttonClickSound = new Audio(
+          "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/robIosgxHOhq/click-ZXjx3PMJuBv8DxfUFuTzQrQpYi2fwL.wav",
+        );
+        // Preload audio
+        piecePutDownSound.load();
+        piecePickUpSound.load();
+        pieceCaptureSound.load();
+        buttonClickSound.load();
+
+        // Farcade SDK variables
+        let isMuted = false;
+
+        // AI variables
+        let gameMode = "ai"; // default to AI
+        let aiColor = "black"; // default AI plays black
+        let aiThinking = false;
+        let aiDifficulty = "medium"; // Placeholder
+        let aiWorker = null; // Variable to hold the AI worker instance
+
+        // Scoring system (kept in main thread for now)
+        let gameScore = 0;
+        let scoringSystem = {
+          base: { win: 100, draw: 30, loss: 10 },
+          quickPlay: { movesUnder20: 75, movesUnder30: 30, timeUnder5Min: 50 },
+          captures: { p: 2, n: 6, b: 6, r: 10, q: 20 },
+          difficultyMultiplier: { easy: 1.0, medium: 1.5, hard: 2.0, expert: 3.0 },
+          achievements: {
+            unstoppable: { title: "Unstoppable", bonus: 250, description: "Win 10 consecutive games" },
+            queenProtector: { title: "Queen Protector", bonus: 100, description: "Win without losing your Queen" },
+            pawnSlayer: { title: "Pawn Slayer", bonus: 150, description: "Deliver checkmate using a Pawn" },
+            speedDemon: { title: "Speed Demon", bonus: 200, description: "Win 5 games within 30 moves" },
+          },
+          penalties: { earlyLoss: -15, timeout: -10 },
         };
-        
-        // Position bonuses for different pieces
-        const pawnPositionBonus = [
-          [0,  0,  0,  0,  0,  0,  0,  0],
-          [50, 50, 50, 50, 50, 50, 50, 50],
-          [10, 10, 20, 30, 30, 20, 10, 10],
-          [5,  5, 10, 25, 25, 10,  5,  5],
-          [0,  0,  0, 20, 20,  0,  0,  0],
-          [5, -5,-10,  0,  0,-10, -5,  5],
-          [5, 10, 10,-20,-20, 10, 10,  5],
-          [0,  0,  0,  0,  0,  0,  0,  0]
-        ];
-        
-        const knightPositionBonus = [
-          [-50,-40,-30,-30,-30,-30,-40,-50],
-          [-40,-20,  0,  0,  0,  0,-20,-40],
-          [-30,  0, 10, 15, 15, 10,  0,-30],
-          [-30,  5, 15, 20, 20, 15,  5,-30],
-          [-30,  0, 15, 20, 20, 15,  0,-30],
-          [-30,  5, 10, 15, 15, 10,  5,-30],
-          [-40,-20,  0,  5,  5,  0,-20,-40],
-          [-50,-40,-30,-30,-30,-30,-40,-50]
-        ];
-        
-        const bishopPositionBonus = [
-          [-20,-10,-10,-10,-10,-10,-10,-20],
-          [-10,  0,  0,  0,  0,  0,  0,-10],
-          [-10,  0, 10, 10, 10, 10,  0,-10],
-          [-10,  5,  5, 10, 10,  5,  5,-10],
-          [-10,  0, 10, 10, 10, 10,  0,-10],
-          [-10, 10, 10, 10, 10, 10, 10,-10],
-          [-10,  5,  0,  0,  0,  0,  5,-10],
-          [-20,-10,-10,-10,-10,-10,-10,-20]
-        ];
-        
-        const rookPositionBonus = [
-          [0,  0,  0,  0,  0,  0,  0,  0],
-          [5, 10, 10, 10, 10, 10, 10,  5],
-          [-5,  0,  0,  0,  0,  0,  0, -5],
-          [-5,  0,  0,  0,  0,  0,  0, -5],
-          [-5,  0,  0,  0,  0,  0,  0, -5],
-          [-5,  0,  0,  0,  0,  0,  0, -5],
-          [-5,  0,  0,  0,  0,  0,  0, -5],
-          [0,  0,  0,  5,  5,  0,  0,  0]
-        ];
-        
-        const queenPositionBonus = [
-          [-20,-10,-10, -5, -5,-10,-10,-20],
-          [-10,  0,  0,  0,  0,  0,  0,-10],
-          [-10,  0,  5,  5,  5,  5,  0,-10],
-          [-5,  0,  5,  5,  5,  5,  0, -5],
-          [0,  0,  5,  5,  5,  5,  0, -5],
-          [-10,  5,  5,  5,  5,  5,  0,-10],
-          [-10,  0,  5,  0,  0,  0,  0,-10],
-          [-20,-10,-10, -5, -5,-10,-10,-20]
-        ];
-        
-        const kingMiddlegamePositionBonus = [
-          [-30,-40,-40,-50,-50,-40,-40,-30],
-          [-30,-40,-40,-50,-50,-40,-40,-30],
-          [-30,-40,-40,-50,-50,-40,-40,-30],
-          [-30,-40,-40,-50,-50,-40,-40,-30],
-          [-20,-30,-30,-40,-40,-30,-30,-20],
-          [-10,-20,-20,-20,-20,-20,-20,-10],
-          [20, 20,  0,  0,  0,  0, 20, 20],
-          [20, 30, 10,  0,  0, 10, 30, 20]
-        ];
 
-        // Analyze the board
-        for (let i = 0; i < 8; i++) {
-          for (let j = 0; j < 8; j++) {
-            const piece = board[i][j];
-            if (piece) {
-              const value = pieceValues[piece.type.toLowerCase()];
-              
-              // Material value: positive for AI pieces, negative for opponent pieces
-              // AI is playing as aiColor
-              const isAIPiece = (piece.color === 'b' && aiColor === 'black') || 
-                                (piece.color === 'w' && aiColor === 'white');
-              
-              if (isAIPiece) {
-                score += value;
-              } else {
-                score -= value;
-              }
-              
-              // Position bonus
-              let positionBonus = 0;
-              
-              if (piece.type === 'p') { // Pawn
-                positionBonus = piece.color === 'w' ? pawnPositionBonus[i][j] : pawnPositionBonus[7-i][j];
-              }
-              else if (piece.type === 'n') { // Knight
-                positionBonus = piece.color === 'w' ? knightPositionBonus[i][j] : knightPositionBonus[7-i][j];
-              }
-              else if (piece.type === 'b') { // Bishop
-                positionBonus = piece.color === 'w' ? bishopPositionBonus[i][j] : bishopPositionBonus[7-i][j];
-              }
-              else if (piece.type === 'r') { // Rook
-                positionBonus = piece.color === 'w' ? rookPositionBonus[i][j] : rookPositionBonus[7-i][j];
-              }
-              else if (piece.type === 'q') { // Queen
-                positionBonus = piece.color === 'w' ? queenPositionBonus[i][j] : queenPositionBonus[7-i][j];
-              }
-              else if (piece.type === 'k') { // King
-                positionBonus = piece.color === 'w' ? kingMiddlegamePositionBonus[i][j] : kingMiddlegamePositionBonus[7-i][j];
-              }
-              
-              // Apply position bonus (positive for AI, negative for opponent)
-              if (isAIPiece) {
-                score += positionBonus;
-              } else {
-                score -= positionBonus;
-              }
-            }
-          }
-        }
-        
-        // Mobility is important: count legal moves
-        const origTurn = chessInstance.turn();
-        let aiMoveCount = 0;
-        let opponentMoveCount = 0;
-        
-        // Count AI moves
-        if ((origTurn === 'b' && aiColor === 'black') || (origTurn === 'w' && aiColor === 'white')) {
-          aiMoveCount = chessInstance.moves().length;
-          
-          // Flip the turn to count opponent moves
-          const fen = chessInstance.fen();
-          const fenParts = fen.split(' ');
-          fenParts[1] = fenParts[1] === 'w' ? 'b' : 'w'; // Toggle turn
-          const oppTurnFen = fenParts.join(' ');
-          
-          const tempChess = new Chess(oppTurnFen);
-          opponentMoveCount = tempChess.moves().length;
-        } else {
-          opponentMoveCount = chessInstance.moves().length;
-          
-          // Flip the turn to count AI moves
-          const fen = chessInstance.fen();
-          const fenParts = fen.split(' ');
-          fenParts[1] = fenParts[1] === 'w' ? 'b' : 'w'; // Toggle turn
-          const aiTurnFen = fenParts.join(' ');
-          
-          const tempChess = new Chess(aiTurnFen);
-          aiMoveCount = tempChess.moves().length;
-        }
-        
-        // Mobility: approximately 10 points per move difference
-        score += (aiMoveCount - opponentMoveCount) * 10;
-        
-        // Small random factor to avoid deterministic play in equal positions
-        score += Math.floor(Math.random() * 10) - 5;
-        
-        return score;
-      }
-      
-      // Helper function to shuffle array for move ordering
-      function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-      }
-      
-      // Reset the game to the initial state
-      function resetGame(fullReset = false) {
-        chess = new Chess(); // Reset chess instance
-        selectedPiece = null;
-        validMoves = [];
-        lastMove = { from: null, to: null };
-        aiThinking = false;
-        gameScore = 0;
-        capturedPieces = { white: [], black: [] };
-        
-        // Reset game-specific player stats for a fresh game
-        playerStats.capturedPieces = { p: 0, n: 0, b: 0, r: 0, q: 0 };
-        playerStats.capturedPieceValue = 0;
-        playerStats.startTime = Date.now();
-        playerStats.consecutiveCaptures = 0;
-        playerStats.lastCaptureMove = -1;
-        playerStats.queenLost = false;
-        playerStats.checkmateWithPawn = false;
-        
-        // If this is a full reset (from play_again handler), reset all cumulative stats too
-        if (fullReset) {
-          console.log("Full stats reset (new session)");
-          playerStats.gamesPlayed = 0;
-          playerStats.wins = 0;
-          playerStats.draws = 0;
-          playerStats.losses = 0;
-          playerStats.currentWinStreak = 0;
-          playerStats.highestWinStreak = 0;
-          playerStats.quickWinsUnder30Moves = 0;
-          playerStats.totalScore = 0;
-          playerStats.achievements = [];
-        }
-        
-        // Reset current score display (just the current game display, not cumulative)
-        const scoreValue = document.querySelector('.score-value');
-        if (scoreValue) {
-          scoreValue.textContent = "000";
-        }
-
-        // Clear the score notification text
-const scoreNotification = document.querySelector('.score-notification');
-if (scoreNotification) {
-  scoreNotification.textContent = "No Captures Yet";
-}
-
-// Reset the submit final score button
-const submitFinalScoreButton = document.getElementById('submit-final-score');
-  if (submitFinalScoreButton) {
-    submitFinalScoreButton.disabled = false;
-    submitFinalScoreButton.textContent = 'SUBMIT SCORE';
-    submitFinalScoreButton.style.backgroundColor = '';
-    submitFinalScoreButton.style.opacity = '';
-  }
-        
-        // Clear PGN display
-        const pgnOutput = document.getElementById("pgn-output");
-        if (pgnOutput) {
-          pgnOutput.textContent = "";
-        }
-
-        // Reset the last moves display in the info section
-const lastPgnMoves = document.getElementById("last-pgn-moves");
-if (lastPgnMoves) {
-  lastPgnMoves.textContent = "Last Moves";
-}
-        
-        renderBoard();
-        
-        // If it's an AI game and AI plays as white, make the first move
-        if (gameMode === "ai" && aiColor === "white") {
-          setTimeout(() => {
-            makeAIMove();
-          }, 500);
-        }
-        
-        // Remove any existing game over overlay
-        const existingOverlay = boardElement.querySelector(".checkmate-overlay");
-        if (existingOverlay) {
-          boardElement.removeChild(existingOverlay);
-        }
-      }
-      
-      // Haptic feedback with Farcade SDK
-      function triggerHapticFeedback() {
-        if (window.FarcadeSDK && typeof window.FarcadeSDK.singlePlayer?.actions?.hapticFeedback === 'function') {
-          window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
-        }
-      }
-      
-      // Update Farcade score
-      function updateFarcadeScore() {
-        if (window.FarcadeSDK) {
-          // Submit the player's total cumulative score to Farcade
-          window.FarcadeSDK.singlePlayer.actions.gameOver({
-            score: playerStats.totalScore,
-          });
-          
-          console.log(`Submitted score to Farcade: ${playerStats.totalScore}`);
-        }
-      }
-
-      // Touch event handlers
-      // Add touch drag and drop functionality similar to original implementation
-      let activeGhost = null;
-      let isPieceBeingDragged = false;
-      
-      boardElement.addEventListener("touchstart", (e) => {
-        if (chess.game_over() || aiThinking) {
-          return;
-        }
-        
-        const touch = e.touches[0];
-        const element = document.elementFromPoint(touch.clientX, touch.clientY);
-        
-        if (!element || !element.classList.contains("piece")) return;
-        
-        const square = element.parentElement;
-        const row = parseInt(square.dataset.row);
-        const col = parseInt(square.dataset.col);
-        const algebraicSquare = coordsToSquare(row, col);
-        const piece = chess.get(algebraicSquare);
-        
-        if (!piece || piece.color !== chess.turn()) return;
-        
-        // Play sound when a piece is touched/dragged
-        playPieceSound();
-        
-        e.preventDefault();
-        isPieceBeingDragged = true;
-        
-        // Use the same selection system as click handling
-        selectedPiece = { 
-          row, col, 
-          piece: getPieceNotation(piece), 
-          square: algebraicSquare 
-        };
-        
-        validMoves = getValidMovesForSquare(row, col);
-        
-        // Create ghost piece
-        activeGhost = element.cloneNode(true);
-        activeGhost.classList.add("ghost-piece");
-        activeGhost.style.left = `${touch.clientX}px`;
-        activeGhost.style.top = `${touch.clientY}px`;
-        document.body.appendChild(activeGhost);
-        
-        // Add dragging state to original piece
-        element.classList.add("dragging");
-        
-        // Highlight valid moves
-        validMoves.forEach(([r, c]) => {
-          const targetSquare = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
-          if (targetSquare) {
-            const targetAlgebraicSquare = coordsToSquare(r, c);
-            const targetPiece = chess.get(targetAlgebraicSquare);
-            
-            if (targetPiece) {
-              targetSquare.classList.add("capture-highlight");
-            } else {
-              targetSquare.classList.add("valid-drop");
-            }
-          }
-        });
-      });
-      
-      document.addEventListener("touchmove", (e) => {
-        if (!activeGhost || !isPieceBeingDragged) return;
-        
-        e.preventDefault();
-        const touch = e.touches[0];
-        activeGhost.style.left = `${touch.clientX}px`;
-        activeGhost.style.top = `${touch.clientY}px`;
-        
-        // Update highlights based on current touch position
-        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (targetElement) {
-          const square = targetElement.closest(".square");
-          if (square) {
-            const row = parseInt(square.dataset.row);
-            const col = parseInt(square.dataset.col);
-            
-            // Remove all current highlights
-            document.querySelectorAll(".square").forEach((s) => {
-              s.classList.remove("valid-drop", "capture-highlight");
-            });
-            
-            // Add appropriate highlight if it's a valid move
-            const isValid = validMoves.some(([r, c]) => r === row && c === col);
-            if (isValid) {
-              const targetAlgebraicSquare = coordsToSquare(row, col);
-              const targetPiece = chess.get(targetAlgebraicSquare);
-              
-              if (targetPiece) {
-                square.classList.add("capture-highlight");
-              } else {
-                square.classList.add("valid-drop");
-              }
-            }
-          }
-        }
-      });
-      
-      document.addEventListener("touchend", (e) => {
-        if (!activeGhost || !isPieceBeingDragged || !selectedPiece) {
-          return;
-        }
-        
-        e.preventDefault();
-        isPieceBeingDragged = false;
-        
-        // Remove ghost piece
-        document.body.removeChild(activeGhost);
-        activeGhost = null;
-        
-        // Remove dragging class from original piece
-        const originalPiece = document.querySelector(".piece.dragging");
-        if (originalPiece) {
-          originalPiece.classList.remove("dragging");
-        }
-        
-        // Find the square under the touch position
-        const touch = e.changedTouches[0];
-        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (!targetElement) return;
-        
-        const square = targetElement.closest(".square");
-        if (!square) {
-          // If not dropped on a square, clean up
-          selectedPiece = null;
-          validMoves = [];
-          renderBoard();
-          return;
-        }
-        
-        const toRow = parseInt(square.dataset.row);
-        const toCol = parseInt(square.dataset.col);
-        const toSquare = coordsToSquare(toRow, toCol);
-        
-        // Check if this is a valid move
-        const isValid = validMoves.some(([r, c]) => r === toRow && c === toCol);
-        
-        if (isValid) {
-          const isCapture = chess.get(toSquare) !== null;
-          
-          // Make the move
-          const moveResult = chess.move({
-            from: selectedPiece.square,
-            to: toSquare,
-            promotion: 'q' // Auto-promote to queen for simplicity
-          });
-          
-          if (moveResult) {
-            // Play the appropriate sound based on if it was a capture
-            if (moveResult.captured) {
-              // Play capture sound for captures
-              pieceCaptureSound.currentTime = 0;
-              pieceCaptureSound.play().catch(error => {
-                console.log("Audio playback error:", error);
-              });
-            } else {
-              // Play regular put down sound for non-captures
-              playPutDownSound();
-            }
-            
-            // Update last move for highlighting
-            lastMove = {
-              from: squareToCoords(moveResult.from),
-              to: squareToCoords(moveResult.to)
-            };
-            
-            // Update captured pieces
-            updateCapturedPiecesFromMove(moveResult);
-            
-            // Update PGN display
-            updatePgnDisplay();
-            
-            // Clear selection and valid moves
-            selectedPiece = null;
-            validMoves = [];
-            
-            // Render the updated board
-            renderBoard();
-            
-            // Trigger haptic feedback
-            triggerHapticFeedback();
-            
-            // If it's an AI game and it's AI's turn, schedule the AI move
-            if (gameMode === "ai" && !chess.game_over() && chess.turn() === (aiColor === "black" ? 'b' : 'w')) {
-              setTimeout(() => {
-                makeAIMove();
-              }, 500);
-            }
-          }
-        } else {
-          // Invalid move, clean up
-          selectedPiece = null;
-          validMoves = [];
-          renderBoard();
-        }
-      });
-      
-      // Event listeners
-      
-      // Modal controls
-      menuButton.addEventListener("click", () => {
-        menuModal.classList.add("active");
-        
-        // Sync menu options with current game mode
-        if (gameMode === "human") {
-          modeHumanButton.classList.add("active");
-          modeAIButton.classList.remove("active");
-          aiOptionsContainer.style.display = "none";
-        } else {
-          modeAIButton.classList.add("active");
-          modeHumanButton.classList.remove("active");
-          aiOptionsContainer.style.display = "block";
-          
-          // Sync AI color selection
-          if (aiColor === "white") {
-            aiColorWhiteButton.classList.add("active");
-            aiColorBlackButton.classList.remove("active");
-          
-          } else {
-          aiColorBlackButton.classList.add("active");
-          aiColorWhiteButton.classList.remove("active");        }
-        }
-      });
-      
-      closeModalButton.addEventListener("click", () => {
-        menuModal.classList.remove("active");
-      });
-      
-      newGameModalButton.addEventListener("click", () => {
-        resetGame(false); // Explicitly set fullReset to false for in-session new games
-        menuModal.classList.remove("active");
-      });
-      
-      // Game mode buttons
-      const modeHumanButton = document.getElementById("mode-human");
-      const modeAIButton = document.getElementById("mode-ai");
-      const aiOptionsContainer = document.getElementById("ai-options");
-      const aiColorWhiteButton = document.getElementById("ai-color-white");
-      const aiColorBlackButton = document.getElementById("ai-color-black");
-      
-      modeHumanButton.addEventListener("click", () => {
-        gameMode = "human";
-        modeHumanButton.classList.add("active");
-        modeAIButton.classList.remove("active");
-        aiOptionsContainer.style.display = "none";
-      });
-      
-      modeAIButton.addEventListener("click", () => {
-        gameMode = "ai";
-        modeAIButton.classList.add("active");
-        modeHumanButton.classList.remove("active");
-        aiOptionsContainer.style.display = "block";
-      });
-      
-      aiColorWhiteButton.addEventListener("click", () => {
-        aiColor = "white";
-        aiColorWhiteButton.classList.add("active");
-        aiColorBlackButton.classList.remove("active");
-      });
-      
-      aiColorBlackButton.addEventListener("click", () => {
-        aiColor = "black";
-        aiColorWhiteButton.classList.remove("active");
-        aiColorBlackButton.classList.add("active");
-      });
-      
-      // Initialize the game
-      renderBoard();
-      
-      // Set initial UI state for AI options
-      aiOptionsContainer.style.display = gameMode === "ai" ? "block" : "none";
-      
-      // Set initial button states to match default game mode
-      if (gameMode === "ai") {
-        modeAIButton.classList.add("active");
-        modeHumanButton.classList.remove("active");
-      } else {
-        modeHumanButton.classList.add("active");
-        modeAIButton.classList.remove("active");
-      }
-      
-      // Set AI color button states
-      if (aiColor === "black") {
-        aiColorBlackButton.classList.add("active");
-        aiColorWhiteButton.classList.remove("active");
-      } else {
-        aiColorWhiteButton.classList.add("active");
-        aiColorBlackButton.classList.remove("active");
-      }
-      
-      // Re-run the makeAIMove function in case AI should move first
-      if (gameMode === "ai" && aiColor === "white") {
-        setTimeout(() => {
-          makeAIMove();
-        }, 500);
-      }
-
-      // Listen for Farcade SDK events
-      if (window.FarcadeSDK) {
-        // Handle play_again event - use fullReset=true to reset cumulative stats
-        window.FarcadeSDK.on("play_again", () => {
-          // Reset the game state with full reset (true)
-          resetGame(true);
-        });
-        
-        // Handle toggle_mute event
-        window.FarcadeSDK.on("toggle_mute", (data) => {
-          // Set muted state based on data.isMuted
-          isMuted = data.isMuted;
-          // No actual sounds in the game, but track the mute state
-          console.log("Game " + (isMuted ? "muted" : "unmuted"));
-        });
-      }
-
-      // Farcade SDK Integration
-      window.addEventListener("DOMContentLoaded", () => {
-        if (window.FarcadeSDK) {
-          // Signal that the game is ready to play
-          window.FarcadeSDK.singlePlayer.actions.ready();
-        }
-      });
-
-      // Welcome Screen Controls
-      const welcomeOverlay = document.getElementById("welcome-overlay");
-      const welcomeModeAIButton = document.getElementById("welcome-mode-ai");
-      const welcomeModeHumanButton = document.getElementById("welcome-mode-human");
-      const welcomeAIOptions = document.getElementById("welcome-ai-options");
-      const welcomeColorWhiteButton = document.getElementById("welcome-color-white");
-      const welcomeColorBlackButton = document.getElementById("welcome-color-black");
-      const startGameButton = document.getElementById("start-game");
-      
-      // Configure welcome screen based on current game mode
-      function updateWelcomeScreen() {
-        if (aiColor === "white") {
-          welcomeColorWhiteButton.classList.add("active");
-            welcomeColorBlackButton.classList.remove("active");
-          
-          } else {
-          welcomeColorBlackButton.classList.add("active");
-          welcomeColorWhiteButton.classList.remove("active");        }
-      }
-      
-      // Set up welcome screen buttons      
-      welcomeColorWhiteButton.addEventListener("click", () => {
-        aiColor = "white";
-        updateWelcomeScreen();
-      });
-      
-      welcomeColorBlackButton.addEventListener("click", () => {
-        aiColor = "black";
-        updateWelcomeScreen();
-      });
-      
-      startGameButton.addEventListener("click", () => {
-        welcomeOverlay.classList.remove("active");
-        resetGame();
-        startBackgroundMusic();
-      });
-      
-      // Initialize welcome screen with current settings
-      updateWelcomeScreen();
-
-      // Scoring System Functions
-      
-      // Start tracking game time
-      function startGameTimer() {
-        playerStats.startTime = Date.now();
-      }
-      
-      // Calculate time elapsed in minutes
-      function getGameTimeInMinutes() {
-        if (!playerStats.startTime) return 0;
-        const timeElapsed = (Date.now() - playerStats.startTime) / (1000 * 60); // Convert ms to minutes
-        return timeElapsed;
-      }
-      
-      // Show a score notification
-function showScoreNotification(text, points) {
-  // Get both score value elements (new location and original location)
-  const scoreValueElements = document.querySelectorAll('.score-value');
-  const scoreNotifications = document.querySelectorAll('.score-notification');
-  
-  // Update all score displays
-  let currentScore = parseInt(scoreValueElements[0].textContent) || 0;
-  currentScore += points;
-  
-  // Format the score with leading zeros (always showing 3 digits)
-  const formattedScore = currentScore.toString().padStart(3, '0');
-  
-  // Update all score value displays with the formatted score
-  scoreValueElements.forEach(element => {
-    element.textContent = formattedScore;
-  });
-  
-  // Show notification in all locations
-  const prefix = points > 0 ? '+' : '';
-  scoreNotifications.forEach(notification => {
-    
-          // Add highlight styling to make new notifications stand out
-          notification.textContent = `${text} ${prefix}${points}`;
-          notification.style.color = points > 0 ? '#00ffff' : '#ff5050';
-          
-          // Apply a simple highlight effect that doesn't make text disappear
-          
-          notification.style.opacity = '1';
-          
-          // Reset the highlight after a delay without removing the text
-          setTimeout(() => {
-            notification.style.transition = 'color 1s, opacity 1s';
-            notification.style.color = '';  // Return to default color
-            notification.style.opacity = '0.7'; // Fade but remain visible
-            
-          }, 1000);
-          
-          // For combos, add additional visual emphasis
-          if (text.includes('COMBO')) {
-            notification.style.fontSize = '0.65rem'; // Make combos slightly larger
-            notification.style.textShadow = 'none';
-          }
-        });
-      }
-      
-      // Calculate and update score after a game
-      function calculateGameScore(gameResult) {
-        let score = 0;
-        let scoreBreakdown = [];
-        let achievementsEarned = [];
-        const totalMoves = chess.history().length;
-        const timeSpent = getGameTimeInMinutes();
-        
-        // Only calculate score for AI games
-        if (gameMode !== "ai") return { score: 0, breakdown: [] };
-        
-        // 1. Base points for game results
-        if (gameResult === "win") {
-          score += scoringSystem.base.win;
-          scoreBreakdown.push({
-            description: "Base (Win)",
-            points: scoringSystem.base.win
-          });
-          playerStats.wins++;
-          playerStats.currentWinStreak++;
-        } else if (gameResult === "draw") {
-          score += scoringSystem.base.draw;
-          scoreBreakdown.push({
-            description: "Base (Draw)",
-            points: scoringSystem.base.draw
-          });
-          playerStats.draws++;
-          playerStats.currentWinStreak = 0;
-        } else {
-          score += scoringSystem.base.loss;
-          scoreBreakdown.push({
-            description: "Base (Loss)",
-            points: scoringSystem.base.loss
-          });
-          playerStats.losses++;
-          playerStats.currentWinStreak = 0;
-          
-          // Apply early loss penalty if applicable
-          if (totalMoves < 15 && gameResult === "loss") {
-            score += scoringSystem.penalties.earlyLoss;
-            scoreBreakdown.push({
-              description: "Early Loss Penalty",
-              points: scoringSystem.penalties.earlyLoss
-            });
-          }
-        }
-        
-        // Update highest win streak
-        if (playerStats.currentWinStreak > playerStats.highestWinStreak) {
-          playerStats.highestWinStreak = playerStats.currentWinStreak;
-        }
-        
-        // 2. Bonuses for quick and efficient play
-        if (gameResult === "win") {
-          if (totalMoves < 20) {
-            score += scoringSystem.quickPlay.movesUnder20;
-            scoreBreakdown.push({
-              description: "Quick Win (under 20 moves)",
-              points: scoringSystem.quickPlay.movesUnder20
-            });
-            playerStats.quickWinsUnder30Moves++;
-          } else if (totalMoves < 30) {
-            score += scoringSystem.quickPlay.movesUnder30;
-            scoreBreakdown.push({
-              description: "Quick Win (under 30 moves)",
-              points: scoringSystem.quickPlay.movesUnder30
-            });
-            playerStats.quickWinsUnder30Moves++;
-          }
-          
-          if (timeSpent < 5) {
-            score += scoringSystem.quickPlay.timeUnder5Min;
-            scoreBreakdown.push({
-              description: "Quick Win (under 5 minutes)",
-              points: scoringSystem.quickPlay.timeUnder5Min
-            });
-          }
-        }
-        
-        // 3. Calculate capture rewards
-        const capturePoints = playerStats.capturedPieceValue;
-        if (capturePoints > 0) {
-          score += capturePoints;
-          
-          // Create a description of captures
-          const captureDesc = Object.entries(playerStats.capturedPieces)
-            .filter(([piece, count]) => count > 0)
-            .map(([piece, count]) => {
-              const pieceName = {
-                'p': 'Pawn',
-                'n': 'Knight',
-                'b': 'Bishop',
-                'r': 'Rook',
-                'q': 'Queen'
-              }[piece];
-              return `${pieceName}${count > 1 ? ` x${count}` : ''}`;
-            })
-            .join(", ");
-          
-          scoreBreakdown.push({
-            description: `Captures (${captureDesc})`,
-            points: capturePoints
-          });
-        }
-        
-        // 4. Apply streak multipliers
-        let streakMultiplier = 1;
-        if (playerStats.currentWinStreak > 1) { // Bonus starts from the 2nd consecutive win
-          streakMultiplier = 1 + (playerStats.currentWinStreak - 1) * 0.5;
-          scoreBreakdown.push({
-            description: `${playerStats.currentWinStreak} Win Streak Bonus`, // Dynamic description
-            multiplier: streakMultiplier.toFixed(1) // Show multiplier like 1.5, 2.0 etc.
-          });
-        }
-        
-        // Apply streak multiplier only (removed difficulty multiplier)
-        const baseScore = score;
-        score = Math.round(baseScore * streakMultiplier);
-        
-        // 6. Check for achievements
-        console.log("--- Achievement Check ---");
-        console.log("Result:", gameResult);
-        console.log("Queen Lost:", playerStats.queenLost);
-        console.log("Checkmate w/ Pawn:", playerStats.checkmateWithPawn);
-        console.log("Quick Wins (<30):", playerStats.quickWinsUnder30Moves);
-        console.log("Current Win Streak:", playerStats.currentWinStreak);
-        console.log("Already Earned (Cumulative):", playerStats.achievements);
-
-        // Unstoppable - 10 consecutive wins
-        if (playerStats.currentWinStreak >= 10 &&
-            !playerStats.achievements.includes("unstoppable")) {
-          console.log("AWARDING: Unstoppable");
-          playerStats.achievements.push("unstoppable");
-          const achievementData = scoringSystem.achievements.unstoppable;
-          achievementsEarned.push({ id: "unstoppable", ...achievementData });
-          score += achievementData.bonus;
-        }
-        
-        // Queen Protector - Win without losing Queen
-        if (gameResult === "win" && !playerStats.queenLost &&
-            !playerStats.achievements.includes("queenProtector")) {
-          console.log("AWARDING: Queen Protector");
-          playerStats.achievements.push("queenProtector");
-          const achievementData = scoringSystem.achievements.queenProtector;
-          achievementsEarned.push({ id: "queenProtector", ...achievementData });
-          score += achievementData.bonus;
-        }
-        
-        // Pawn Slayer - Deliver checkmate with a pawn
-        if (gameResult === "win" && playerStats.checkmateWithPawn &&
-            !playerStats.achievements.includes("pawnSlayer")) {
-          console.log("AWARDING: Pawn Slayer");
-          playerStats.achievements.push("pawnSlayer");
-          const achievementData = scoringSystem.achievements.pawnSlayer;
-          achievementsEarned.push({ id: "pawnSlayer", ...achievementData });
-          score += achievementData.bonus;
-        }
-        
-        // Speed Demon - Win 5 games within 30 moves
-        if (playerStats.quickWinsUnder30Moves >= 5 &&
-            !playerStats.achievements.includes("speedDemon")) {
-          console.log("AWARDING: Speed Demon");
-          playerStats.achievements.push("speedDemon");
-          const achievementData = scoringSystem.achievements.speedDemon;
-          achievementsEarned.push({ id: "speedDemon", ...achievementData });
-          score += achievementData.bonus;
-        }
-
-        console.log("Achievements earned this game:", achievementsEarned.map(a => a.id));
-        console.log("Updated cumulative achievements:", playerStats.achievements);
-        console.log("--- End Achievement Check ---");
-
-        
-        // Update total score
-        playerStats.totalScore += score;
-        playerStats.gamesPlayed++;
-        
-        // Save stats to localStorage
-        savePlayerStats();
-        
-        return {
-          score,
-          breakdown: scoreBreakdown,
-          achievements: achievementsEarned
-        };
-      }
-      
-      // Save player stats to localStorage
-      function savePlayerStats() {
-        // Intentionally empty - arcade mode doesn't persist stats between sessions
-        console.log("Stats not saved (arcade mode)");
-        // Note: In arcade mode, stats are only kept for the current session
-      }
-      
-      // Load player stats from localStorage
-      function loadPlayerStats() {
-        // Intentionally empty - arcade mode initializes fresh stats each session
-        console.log("Stats not loaded (arcade mode)");
-        // Player starts with clean stats each new browser session
-      }
-      
-      // Show the scoring overlay with detailed score breakdown
-function showScoringOverlay(scoreResult) {
-  const scoringOverlay = document.getElementById('scoring-overlay');
-  const finalScoreDisplay = document.getElementById('final-score-display');
-  const scoreBreakdown = document.getElementById('score-breakdown');
-  const achievementsList = document.getElementById('achievements-list');
-  const playerStatsElement = document.getElementById('player-stats');
-  
-  // Set final score
-  finalScoreDisplay.textContent = scoreResult.score;
-  
-  // Generate score breakdown HTML
-  let breakdownHtml = '<table style="width:100%; border-collapse:collapse; margin:10px 0;">';
-  
-  // Add each score breakdown item
-  if (scoreResult.breakdown && scoreResult.breakdown.length > 0) {
-    scoreResult.breakdown.forEach(item => {
-      if (item.multiplier) {
-        breakdownHtml += `
-          <tr>
-            <td>${item.description}</td>
-            <td style="text-align:right;">x${item.multiplier}</td>
-          </tr>
-        `;
-      } else {
-        breakdownHtml += `
-          <tr>
-            <td>${item.description}</td>
-            <td style="text-align:right;">${item.points >= 0 ? '+' : ''}${item.points}</td>
-          </tr>
-        `;
-      }
-    });
-  }
-  
-  // Add total
-  breakdownHtml += `
-    <tr style="border-top: 1px solid #ff00ff80; margin-top:5px; padding-top:5px; color:#ff00ff; font-weight:bold;">
-      <td>TOTAL SCORE</td>
-      <td style="text-align:right;">${scoreResult.score}</td>
-    </tr>
-  `;
-  
-  breakdownHtml += '</table>';
-  
-  // Add a call-to-action message based on win streak and game result
-  if (playerStats.currentWinStreak > 0) {
-    breakdownHtml += `
-      <div style="margin-top:15px; text-align:center; padding:8px; border:1px dashed #ff00ff; border-radius:5px; background:rgba(255,0,255,0.1);">
-        <span style="color:#ff00ff; font-weight:bold;">WIN STREAK: ${playerStats.currentWinStreak}</span><br>
-        <span style="font-size:0.45rem; color:#00ffff;">Keep playing to increase your streak multiplier!<br>Each win makes the next one worth more points!</span>
-      </div>
-    `;
-  } else {
-    breakdownHtml += `
-      <div style="margin-top:15px; text-align:center; padding:8px; border:1px dashed #00ffff; border-radius:5px; background:rgba(0,255,255,0.1);">
-        <span style="color:#00ffff; font-weight:bold;">SUBMIT YOUR SCORE</span><br>
-        <span style="font-size:0.45rem;">Submit your total score of ${playerStats.totalScore} points to the leaderboard!</span>
-      </div>
-    `;
-  }
-  
-  scoreBreakdown.innerHTML = breakdownHtml;
-  
-  // Generate achievements HTML
-  if (scoreResult.achievements && scoreResult.achievements.length > 0) {
-    let achievementsHtml = '';
-    scoreResult.achievements.forEach(achievement => {
-      achievementsHtml += `
-        <div class="achievement-item">
-          <span class="achievement-title">${achievement.title}</span>
-          <span class="achievement-bonus">+${achievement.bonus}</span>
-          <div class="achievement-desc">${achievement.description}</div>
-        </div>
-      `;
-    });
-    achievementsList.innerHTML = achievementsHtml;
-  } else {
-    achievementsList.innerHTML = '<div style="text-align:center; opacity:0.7; font-style:italic;">No new achievements</div>';
-  }
-  
-  // Update player stats
-  playerStatsElement.innerHTML = `
-    <table style="width:100%; border-collapse:collapse; font-size:0.45rem;">
-      <tr>
-        <td>Games Played</td>
-        <td style="text-align:right;">${playerStats.gamesPlayed}</td>
-      </tr>
-      <tr>
-        <td>Wins / Draws / Losses</td>
-        <td style="text-align:right;">${playerStats.wins} / ${playerStats.draws} / ${playerStats.losses}</td>
-      </tr>
-      <tr>
-        <td>Current Win Streak</td>
-        <td style="text-align:right;">${playerStats.currentWinStreak}</td>
-      </tr>
-      <tr>
-        <td>Highest Win Streak</td>
-        <td style="text-align:right;">${playerStats.highestWinStreak}</td>
-      </tr>
-      <tr>
-        <td>Total Score</td>
-        <td style="text-align:right;">${playerStats.totalScore.toLocaleString()}</td>
-      </tr>
-    </table>
-  `;
-  
-// Change the header text to indicate stats view
-document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS PLAYER STATS"; // Target header specifically
-        
-        // Set up buttons
-        const closeButton = document.getElementById('keep-playing-scoring'); // Use the correct ID
-        // Ensure we don't add multiple listeners if called again
-        const newCloseButton = closeButton.cloneNode(true);
-        closeButton.parentNode.replaceChild(newCloseButton, closeButton);
-
-        newCloseButton.addEventListener('click', () => {
-          scoringOverlay.classList.remove('active');
-          // Reset header text when closing
-          document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS SCOREBOARD"; // Target header specifically
-        });
-        
-        // Show overlay
-        scoringOverlay.classList.add('active');
-      }
-      
-      // Setup difficulty selector
-      const difficultySelector = document.querySelector(".difficulty-selector");
-      
-      // Difficulty selector disabled - "Coming Soon"
-      // No event listeners for the disabled difficulty options
-
-      // Reset all player stats
-      function resetAllStats() {
-        // Reset core stats
-        playerStats = {
+        // Player stats
+        let playerStats = {
           gamesPlayed: 0,
           wins: 0,
           draws: 0,
@@ -3207,266 +1417,1404 @@ document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS PL
           capturedPieceValue: 0,
           totalScore: 0,
           achievements: [],
-          startTime: Date.now(),
+          startTime: null,
           consecutiveCaptures: 0,
           lastCaptureMove: -1,
           queenLost: false,
           checkmateWithPawn: false,
-          moveHistory: []
+          moveHistory: [], // Should likely be PGN string or array of moves
         };
-        
-        // Save empty stats to localStorage
-        localStorage.removeItem('ch3ss_playerStats');
-        
-        // Reset current game score display
-        const scoreValue = document.querySelector('.score-value');
-        if (scoreValue) {
-          scoreValue.textContent = "0";
+
+        // Track captured pieces
+        let capturedPieces = { white: [], black: [] };
+
+        // DOM Elements
+        const boardElement = document.getElementById("board");
+        const currentPlayerElement = document.getElementById("current-player");
+        const gameStatusElement = document.getElementById("game-status");
+        const menuButton = document.getElementById("menu-button");
+        const menuModal = document.getElementById("menu-modal");
+        const newGameModalButton = document.getElementById("new-game-modal");
+        const closeModalButton = document.getElementById("close-modal");
+        const whiteCapturedElement = document.getElementById("white-captured");
+        const blackCapturedElement = document.getElementById("black-captured");
+        const whiteScoreElement = document.getElementById("white-score");
+        const blackScoreElement = document.getElementById("black-score");
+        const modeHumanButton = document.getElementById("mode-human");
+        const modeAIButton = document.getElementById("mode-ai");
+        const aiOptionsContainer = document.getElementById("ai-options");
+        const aiColorWhiteButton = document.getElementById("ai-color-white");
+        const aiColorBlackButton = document.getElementById("ai-color-black");
+        const welcomeOverlay = document.getElementById("welcome-overlay");
+        const welcomeColorWhiteButton = document.getElementById("welcome-color-white");
+        const welcomeColorBlackButton = document.getElementById("welcome-color-black");
+        const startGameButton = document.getElementById("start-game");
+        const pgnButton = document.getElementById("pgn-button");
+        const pgnModal = document.getElementById("pgn-modal");
+        const fullPgnOutput = document.getElementById("full-pgn-output");
+        const lastPgnMoves = document.getElementById("last-pgn-moves");
+        const closePgnModal = document.getElementById("close-pgn-modal");
+        const backgroundMusic = document.getElementById("background-music");
+
+        // --- Helper Functions (Mostly Unchanged) ---
+        function playPieceSound() {
+          /* ... unchanged ... */
+          if (!isMuted && piecePutDownSound) {
+            piecePutDownSound.currentTime = 0;
+            piecePutDownSound.play().catch((error) => console.log("Audio playback error:", error));
+          }
         }
-        
-        // Show confirmation message
-        alert("All player stats and achievements have been reset!");
-        
-        // Close modal
-        menuModal.classList.remove('active');
-        
-        // Restart game with fresh state
-        resetGame();
-      }
-      
-      // Event listeners for stats buttons
-      document.getElementById('reset-stats-button').addEventListener('click', () => {
-        if (confirm("Are you sure you want to reset ALL stats and achievements? This cannot be undone!")) {
-          resetAllStats();
+        function playPutDownSound() {
+          /* ... unchanged ... */
+          if (!isMuted && piecePickUpSound) {
+            piecePickUpSound.currentTime = 0;
+            piecePickUpSound.play().catch((error) => console.log("Audio playback error:", error));
+          }
         }
-      });
-      
-      document.getElementById('view-stats-button').addEventListener('click', () => {
-        // Show the scoring overlay with current stats
-        showStatsOverlay();
-        menuModal.classList.remove('active');
-      });
-      
-      // Show stats overlay without needing a game result
-      function showStatsOverlay() {
-        const scoringOverlay = document.getElementById('scoring-overlay');
-        const finalScoreDisplay = document.getElementById('final-score-display');
-        const scoreBreakdown = document.getElementById('score-breakdown');
-        const achievementsList = document.getElementById('achievements-list');
-        const playerStatsElement = document.getElementById('player-stats');
-        
-        // Set cumulative score total
-        finalScoreDisplay.textContent = playerStats.totalScore;
-        
-        // Show a simple breakdown
-        scoreBreakdown.innerHTML = '<div style="text-align:center; margin: 10px 0;">View your current CH3SS statistics below</div>';
-        
-        // Show all achievements earned
-        if (playerStats.achievements && playerStats.achievements.length > 0) {
-          let achievementsHtml = '';
-          playerStats.achievements.forEach(achievementId => {
-            const achievement = scoringSystem.achievements[achievementId];
-            if (achievement) {
-              achievementsHtml += `
-                <div class="achievement-item">
-                  <span class="achievement-title">${achievement.title}</span>
-                  <span class="achievement-bonus">+${achievement.bonus}</span>
-                  <div class="achievement-desc">${achievement.description}</div>
-                </div>
-              `;
+        function playButtonClickSound() {
+          /* ... unchanged ... */
+          if (!isMuted && buttonClickSound) {
+            buttonClickSound.currentTime = 0;
+            buttonClickSound.play().catch((error) => console.log("Button click sound playback error:", error));
+          }
+        }
+        function getPieceColor(piece) {
+          /* ... unchanged ... */
+          if (!piece) return null;
+          return piece === piece.toUpperCase() ? "white" : "black";
+        }
+        function getPieceNotation(piece) {
+          /* ... unchanged ... */
+          if (!piece) return null;
+          return piece.color === "w" ? piece.type.toUpperCase() : piece.type.toLowerCase();
+        }
+        function squareToCoords(square) {
+          /* ... unchanged ... */
+          const col = square.charCodeAt(0) - "a".charCodeAt(0);
+          const row = 8 - parseInt(square.charAt(1));
+          return [row, col];
+        }
+        function coordsToSquare(row, col) {
+          /* ... unchanged ... */
+          const file = String.fromCharCode("a".charCodeAt(0) + col);
+          const rank = 8 - row;
+          return file + rank;
+        }
+        function debugLog(message, data = null) {
+          /* ... unchanged ... */
+          const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
+          console.log(`[${timestamp}] ${message}`, data ? data : "");
+        }
+        function convertChessJsBoard() {
+          /* ... unchanged ... */
+          const board = chess.board();
+          const convertedBoard = Array(8)
+            .fill()
+            .map(() => Array(8).fill(null));
+          for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+              const piece = board[row][col];
+              if (piece) {
+                convertedBoard[row][col] = piece.color === "w" ? piece.type.toUpperCase() : piece.type.toLowerCase();
+              }
+            }
+          }
+          return convertedBoard;
+        }
+        function getValidMovesForSquare(row, col) {
+          /* ... unchanged ... */
+          const square = coordsToSquare(row, col);
+          const moves = chess.moves({ square: square, verbose: true });
+          return moves.map((move) => squareToCoords(move.to));
+        }
+        function updateCapturedPiecesFromMove(move) {
+          /* ... unchanged ... */
+          if (move.captured) {
+            const capturedPiece = move.color === "w" ? move.captured.toLowerCase() : move.captured.toUpperCase();
+            if (move.color === "w") {
+              capturedPieces.white.push(capturedPiece);
+            } else {
+              capturedPieces.black.push(capturedPiece);
+            }
+            const playerColor = aiColor === "black" ? "w" : "b";
+            if (move.color === playerColor) {
+              playerStats.capturedPieces[move.captured]++;
+              const captureValue = scoringSystem.captures[move.captured];
+              playerStats.capturedPieceValue += captureValue;
+              const currentMoveNumber = chess.history().length;
+              if (playerStats.lastCaptureMove === currentMoveNumber - 2) {
+                playerStats.consecutiveCaptures++;
+                const comboPoints = 5;
+                playerStats.capturedPieceValue += comboPoints;
+                showScoreNotification(`COMBO x${playerStats.consecutiveCaptures}`, comboPoints);
+              } else {
+                playerStats.consecutiveCaptures = 1;
+              }
+              playerStats.lastCaptureMove = currentMoveNumber;
+              showScoreNotification(`Captured ${move.captured.toUpperCase()}`, captureValue);
+            }
+            if (move.captured === "q" && move.color !== playerColor) {
+              playerStats.queenLost = true;
+            }
+          }
+        }
+        function calculateScoreDifference() {
+          /* ... unchanged ... */
+          const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+          let whiteScore = 0,
+            blackScore = 0;
+          capturedPieces.white.forEach((piece) => {
+            whiteScore += pieceValues[piece.toLowerCase()];
+          });
+          capturedPieces.black.forEach((piece) => {
+            blackScore += pieceValues[piece.toLowerCase()];
+          });
+          return { whiteScore, blackScore };
+        }
+        function updateCapturedPieces() {
+          /* ... unchanged ... */
+          whiteCapturedElement.innerHTML = "";
+          blackCapturedElement.innerHTML = "";
+          capturedPieces.white.forEach((piece) => {
+            const pieceSpan = document.createElement("span");
+            pieceSpan.textContent = pieceMapping[piece];
+            pieceSpan.className = "black-piece";
+            whiteCapturedElement.appendChild(pieceSpan);
+          });
+          capturedPieces.black.forEach((piece) => {
+            const pieceSpan = document.createElement("span");
+            pieceSpan.textContent = pieceMapping[piece];
+            pieceSpan.className = "white-piece";
+            blackCapturedElement.appendChild(pieceSpan);
+          });
+          const { whiteScore, blackScore } = calculateScoreDifference();
+          if (whiteScore > blackScore) {
+            whiteScoreElement.textContent = `+${whiteScore - blackScore}`;
+            blackScoreElement.textContent = "+0";
+          } else if (blackScore > whiteScore) {
+            blackScoreElement.textContent = `+${blackScore - whiteScore}`;
+            whiteScoreElement.textContent = "+0";
+          } else {
+            whiteScoreElement.textContent = "+0";
+            blackScoreElement.textContent = "+0";
+          }
+        }
+        function triggerHapticFeedback() {
+          /* ... unchanged ... */
+          if (window.FarcadeSDK && typeof window.FarcadeSDK.singlePlayer?.actions?.hapticFeedback === "function") {
+            window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
+          }
+        }
+        function updateFarcadeScore() {
+          /* ... unchanged ... */
+          if (window.FarcadeSDK) {
+            window.FarcadeSDK.singlePlayer.actions.gameOver({ score: playerStats.totalScore });
+            console.log(`Submitted score to Farcade: ${playerStats.totalScore}`);
+          }
+        }
+        function startGameTimer() {
+          /* ... unchanged ... */ playerStats.startTime = Date.now();
+        }
+        function getGameTimeInMinutes() {
+          /* ... unchanged ... */
+          if (!playerStats.startTime) return 0;
+          return (Date.now() - playerStats.startTime) / (1000 * 60);
+        }
+        function showScoreNotification(text, points) {
+          /* ... unchanged ... */
+          const scoreValueElements = document.querySelectorAll(".score-value");
+          const scoreNotifications = document.querySelectorAll(".score-notification");
+          let currentScore = parseInt(scoreValueElements[0].textContent) || 0;
+          currentScore += points;
+          const formattedScore = currentScore.toString().padStart(3, "0");
+          scoreValueElements.forEach((element) => {
+            element.textContent = formattedScore;
+          });
+          const prefix = points > 0 ? "+" : "";
+          scoreNotifications.forEach((notification) => {
+            notification.textContent = `${text} ${prefix}${points}`;
+            notification.style.color = points > 0 ? "#00ffff" : "#ff5050";
+            notification.style.opacity = "1";
+            setTimeout(() => {
+              notification.style.transition = "color 1s, opacity 1s";
+              notification.style.color = "";
+              notification.style.opacity = "0.7";
+            }, 1000);
+            if (text.includes("COMBO")) {
+              notification.style.fontSize = "0.65rem";
+              notification.style.textShadow = "none";
             }
           });
-          achievementsList.innerHTML = achievementsHtml;
-        } else {
-          achievementsList.innerHTML = '<div style="text-align:center; opacity:0.7; font-style:italic;">No achievements yet</div>';
         }
-        
-        // Update player stats
-        playerStatsElement.innerHTML = `
-          <table style="width:100%; border-collapse:collapse; font-size:0.45rem;">
-            <tr>
-              <td>Games Played</td>
-              <td style="text-align:right;">${playerStats.gamesPlayed}</td>
-            </tr>
-            <tr>
-              <td>Wins / Draws / Losses</td>
-              <td style="text-align:right;">${playerStats.wins} / ${playerStats.draws} / ${playerStats.losses}</td>
-            </tr>
-            <tr>
-              <td>Win Rate</td>
-              <td style="text-align:right;">${playerStats.gamesPlayed > 0 ? Math.round((playerStats.wins / playerStats.gamesPlayed) * 100) : 0}%</td>
-            </tr>
-            <tr>
-              <td>Current Win Streak</td>
-              <td style="text-align:right;">${playerStats.currentWinStreak}</td>
-            </tr>
-            <tr>
-              <td>Highest Win Streak</td>
-              <td style="text-align:right;">${playerStats.highestWinStreak}</td>
-            </tr>
-            <tr>
-              <td>Total Score</td>
-              <td style="text-align:right;">${playerStats.totalScore.toLocaleString()}</td>
-            </tr>
-          </table>
-        `;
-        
-// Change the header text to indicate stats view
-document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS PLAYER STATS"; // Target header specifically
-        
-        // Set up buttons
-        const closeButton = document.getElementById('keep-playing-scoring'); // Use the correct ID
-        // Ensure we don't add multiple listeners if called again
-        const newCloseButton = closeButton.cloneNode(true);
-        closeButton.parentNode.replaceChild(newCloseButton, closeButton);
-
-        newCloseButton.addEventListener('click', () => {
-          scoringOverlay.classList.remove('active');
-          // Reset header text when closing
-          document.querySelector('#scoring-overlay .modal-header').textContent = "CH3SS SCOREBOARD"; // Target header specifically
-        });
-        
-        // Show overlay
-        scoringOverlay.classList.add('active');
-      }
-
-      // Load player stats on game init
-      loadPlayerStats();
-
-      // PGN functionality
-      const pgnButton = document.getElementById('pgn-button');
-      const pgnModal = document.getElementById('pgn-modal');
-      const fullPgnOutput = document.getElementById('full-pgn-output');
-      const lastPgnMoves = document.getElementById('last-pgn-moves');
-      const closePgnModal = document.getElementById('close-pgn-modal');
-      const copyPgnButton = document.getElementById('copy-pgn');
-
-      // Update PGN display after each move
-      function updatePgnDisplay() {
-        const history = chess.history();
-        const fullPgn = chess.pgn();
-        
-        // Update the button to show the last couple of moves
-        if (history.length > 0) {
-          // Show last 2-3 moves, depends on space
-          const lastMoves = history.slice(-3);
-          lastPgnMoves.textContent = lastMoves.join(' ');
-        } else {
-          lastPgnMoves.textContent = 'Last Moves';
+        function calculateGameScore(gameResult) {
+          /* ... unchanged ... */
+          let score = 0;
+          let scoreBreakdown = [];
+          let achievementsEarned = [];
+          const totalMoves = chess.history().length;
+          const timeSpent = getGameTimeInMinutes();
+          if (gameMode !== "ai") return { score: 0, breakdown: [], achievements: [] };
+          if (gameResult === "win") {
+            /* ... base points ... */
+            score += scoringSystem.base.win;
+            scoreBreakdown.push({ description: "Base (Win)", points: scoringSystem.base.win });
+            playerStats.wins++;
+            playerStats.currentWinStreak++;
+          } else if (gameResult === "draw") {
+            /* ... base points ... */
+            score += scoringSystem.base.draw;
+            scoreBreakdown.push({ description: "Base (Draw)", points: scoringSystem.base.draw });
+            playerStats.draws++;
+            playerStats.currentWinStreak = 0;
+          } else {
+            /* ... base points ... */
+            score += scoringSystem.base.loss;
+            scoreBreakdown.push({ description: "Base (Loss)", points: scoringSystem.base.loss });
+            playerStats.losses++;
+            playerStats.currentWinStreak = 0;
+            if (totalMoves < 15) {
+              /* ... penalty ... */
+              score += scoringSystem.penalties.earlyLoss;
+              scoreBreakdown.push({ description: "Early Loss Penalty", points: scoringSystem.penalties.earlyLoss });
+            }
+          }
+          if (playerStats.currentWinStreak > playerStats.highestWinStreak)
+            playerStats.highestWinStreak = playerStats.currentWinStreak;
+          if (gameResult === "win") {
+            /* ... quick play bonuses ... */
+            if (totalMoves < 20) {
+              score += scoringSystem.quickPlay.movesUnder20;
+              scoreBreakdown.push({
+                description: "Quick Win (under 20 moves)",
+                points: scoringSystem.quickPlay.movesUnder20,
+              });
+              playerStats.quickWinsUnder30Moves++;
+            } else if (totalMoves < 30) {
+              score += scoringSystem.quickPlay.movesUnder30;
+              scoreBreakdown.push({
+                description: "Quick Win (under 30 moves)",
+                points: scoringSystem.quickPlay.movesUnder30,
+              });
+              playerStats.quickWinsUnder30Moves++;
+            }
+            if (timeSpent < 5) {
+              score += scoringSystem.quickPlay.timeUnder5Min;
+              scoreBreakdown.push({
+                description: "Quick Win (under 5 minutes)",
+                points: scoringSystem.quickPlay.timeUnder5Min,
+              });
+            }
+          }
+          const capturePoints = playerStats.capturedPieceValue;
+          if (capturePoints > 0) {
+            /* ... capture rewards ... */
+            score += capturePoints;
+            const captureDesc = Object.entries(playerStats.capturedPieces)
+              .filter(([pc, ct]) => ct > 0)
+              .map(
+                ([pc, ct]) =>
+                  ({ p: "Pawn", n: "Knight", b: "Bishop", r: "Rook", q: "Queen" })[pc] + (ct > 1 ? ` x${ct}` : ""),
+              )
+              .join(", ");
+            scoreBreakdown.push({ description: `Captures (${captureDesc})`, points: capturePoints });
+          }
+          let streakMultiplier = 1;
+          if (playerStats.currentWinStreak > 1) {
+            /* ... streak multiplier ... */
+            streakMultiplier = 1 + (playerStats.currentWinStreak - 1) * 0.5;
+            scoreBreakdown.push({
+              description: `${playerStats.currentWinStreak} Win Streak Bonus`,
+              multiplier: streakMultiplier.toFixed(1),
+            });
+          }
+          const baseScore = score;
+          score = Math.round(baseScore * streakMultiplier);
+          /* ... achievement checks ... */
+          if (playerStats.currentWinStreak >= 10 && !playerStats.achievements.includes("unstoppable")) {
+            playerStats.achievements.push("unstoppable");
+            const a = scoringSystem.achievements.unstoppable;
+            achievementsEarned.push({ id: "unstoppable", ...a });
+            score += a.bonus;
+          }
+          if (gameResult === "win" && !playerStats.queenLost && !playerStats.achievements.includes("queenProtector")) {
+            playerStats.achievements.push("queenProtector");
+            const a = scoringSystem.achievements.queenProtector;
+            achievementsEarned.push({ id: "queenProtector", ...a });
+            score += a.bonus;
+          }
+          if (
+            gameResult === "win" &&
+            playerStats.checkmateWithPawn &&
+            !playerStats.achievements.includes("pawnSlayer")
+          ) {
+            playerStats.achievements.push("pawnSlayer");
+            const a = scoringSystem.achievements.pawnSlayer;
+            achievementsEarned.push({ id: "pawnSlayer", ...a });
+            score += a.bonus;
+          }
+          if (playerStats.quickWinsUnder30Moves >= 5 && !playerStats.achievements.includes("speedDemon")) {
+            playerStats.achievements.push("speedDemon");
+            const a = scoringSystem.achievements.speedDemon;
+            achievementsEarned.push({ id: "speedDemon", ...a });
+            score += a.bonus;
+          }
+          playerStats.totalScore += score;
+          playerStats.gamesPlayed++;
+          savePlayerStats();
+          return { score, breakdown: scoreBreakdown, achievements: achievementsEarned };
         }
-        
-        // Also update the full PGN output in the modal
-        fullPgnOutput.textContent = fullPgn || 'No moves yet';
-      }
+        function savePlayerStats() {
+          /* ... unchanged ... */ console.log("Stats not saved (arcade mode)");
+        }
+        function loadPlayerStats() {
+          /* ... unchanged ... */ console.log("Stats not loaded (arcade mode)");
+        }
+        function showScoringOverlay(scoreResult) {
+          /* ... unchanged, uses calculateGameScore result ... */
+          const scoringOverlay = document.getElementById("scoring-overlay");
+          const finalScoreDisplay = document.getElementById("final-score-display");
+          const scoreBreakdownEl = document.getElementById("score-breakdown");
+          const achievementsList = document.getElementById("achievements-list");
+          const playerStatsElement = document.getElementById("player-stats");
+          finalScoreDisplay.textContent = scoreResult.score;
+          let breakdownHtml = '<table style="width:100%; border-collapse:collapse; margin:10px 0;">';
+          if (scoreResult.breakdown && scoreResult.breakdown.length > 0) {
+            scoreResult.breakdown.forEach((item) => {
+              if (item.multiplier) {
+                breakdownHtml += `<tr><td>${item.description}</td><td style="text-align:right;">x${item.multiplier}</td></tr>`;
+              } else {
+                breakdownHtml += `<tr><td>${item.description}</td><td style="text-align:right;">${item.points >= 0 ? "+" : ""}${item.points}</td></tr>`;
+              }
+            });
+          }
+          breakdownHtml += `<tr style="border-top: 1px solid #ff00ff80; margin-top:5px; padding-top:5px; color:#ff00ff; font-weight:bold;"><td>TOTAL SCORE</td><td style="text-align:right;">${scoreResult.score}</td></tr></table>`;
+          if (playerStats.currentWinStreak > 0) {
+            breakdownHtml += `<div style="margin-top:15px; text-align:center; padding:8px; border:1px dashed #ff00ff; border-radius:5px; background:rgba(255,0,255,0.1);"><span style="color:#ff00ff; font-weight:bold;">WIN STREAK: ${playerStats.currentWinStreak}</span><br><span style="font-size:0.45rem; color:#00ffff;">Keep playing to increase your streak multiplier!<br>Each win makes the next one worth more points!</span></div>`;
+          } else {
+            breakdownHtml += `<div style="margin-top:15px; text-align:center; padding:8px; border:1px dashed #00ffff; border-radius:5px; background:rgba(0,255,255,0.1);"><span style="color:#00ffff; font-weight:bold;">SUBMIT YOUR SCORE</span><br><span style="font-size:0.45rem;">Submit your total score of ${playerStats.totalScore} points to the leaderboard!</span></div>`;
+          }
+          scoreBreakdownEl.innerHTML = breakdownHtml;
+          if (scoreResult.achievements && scoreResult.achievements.length > 0) {
+            let achievementsHtml = "";
+            scoreResult.achievements.forEach((achievement) => {
+              achievementsHtml += `<div class="achievement-item"><span class="achievement-title">${achievement.title}</span><span class="achievement-bonus">+${achievement.bonus}</span><div class="achievement-desc">${achievement.description}</div></div>`;
+            });
+            achievementsList.innerHTML = achievementsHtml;
+          } else {
+            achievementsList.innerHTML =
+              '<div style="text-align:center; opacity:0.7; font-style:italic;">No new achievements</div>';
+          }
+          playerStatsElement.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:0.45rem;"><tr><td>Games Played</td><td style="text-align:right;">${playerStats.gamesPlayed}</td></tr><tr><td>Wins / Draws / Losses</td><td style="text-align:right;">${playerStats.wins} / ${playerStats.draws} / ${playerStats.losses}</td></tr><tr><td>Current Win Streak</td><td style="text-align:right;">${playerStats.currentWinStreak}</td></tr><tr><td>Highest Win Streak</td><td style="text-align:right;">${playerStats.highestWinStreak}</td></tr><tr><td>Total Score</td><td style="text-align:right;">${playerStats.totalScore.toLocaleString()}</td></tr></table>`;
+          document.querySelector("#scoring-overlay .modal-header").textContent = "CH3SS PLAYER STATS";
+          const closeButton = document.getElementById("keep-playing-scoring");
+          const newCloseButton = closeButton.cloneNode(true);
+          closeButton.parentNode.replaceChild(newCloseButton, closeButton);
+          newCloseButton.addEventListener("click", () => {
+            scoringOverlay.classList.remove("active");
+            document.querySelector("#scoring-overlay .modal-header").textContent = "CH3SS SCOREBOARD";
+          });
+          scoringOverlay.classList.add("active");
+        }
+        function resetAllStats() {
+          /* ... unchanged ... */
+          playerStats = {
+            gamesPlayed: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            currentWinStreak: 0,
+            highestWinStreak: 0,
+            quickWinsUnder30Moves: 0,
+            capturedPieces: { p: 0, n: 0, b: 0, r: 0, q: 0 },
+            capturedPieceValue: 0,
+            totalScore: 0,
+            achievements: [],
+            startTime: Date.now(),
+            consecutiveCaptures: 0,
+            lastCaptureMove: -1,
+            queenLost: false,
+            checkmateWithPawn: false,
+            moveHistory: [],
+          };
+          localStorage.removeItem("ch3ss_playerStats");
+          const scoreValue = document.querySelector(".score-value");
+          if (scoreValue) scoreValue.textContent = "0";
+          alert("All player stats and achievements have been reset!");
+          menuModal.classList.remove("active");
+          resetGame();
+        }
+        function showStatsOverlay() {
+          /* ... unchanged ... */
+          const scoringOverlay = document.getElementById("scoring-overlay");
+          const finalScoreDisplay = document.getElementById("final-score-display");
+          const scoreBreakdownEl = document.getElementById("score-breakdown");
+          const achievementsList = document.getElementById("achievements-list");
+          const playerStatsElement = document.getElementById("player-stats");
+          finalScoreDisplay.textContent = playerStats.totalScore;
+          scoreBreakdownEl.innerHTML =
+            '<div style="text-align:center; margin: 10px 0;">View your current CH3SS statistics below</div>';
+          if (playerStats.achievements && playerStats.achievements.length > 0) {
+            let achievementsHtml = "";
+            playerStats.achievements.forEach((id) => {
+              const a = scoringSystem.achievements[id];
+              if (a) {
+                achievementsHtml += `<div class="achievement-item"><span class="achievement-title">${a.title}</span><span class="achievement-bonus">+${a.bonus}</span><div class="achievement-desc">${a.description}</div></div>`;
+              }
+            });
+            achievementsList.innerHTML = achievementsHtml;
+          } else {
+            achievementsList.innerHTML =
+              '<div style="text-align:center; opacity:0.7; font-style:italic;">No achievements yet</div>';
+          }
+          playerStatsElement.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:0.45rem;"><tr><td>Games Played</td><td style="text-align:right;">${playerStats.gamesPlayed}</td></tr><tr><td>Wins / Draws / Losses</td><td style="text-align:right;">${playerStats.wins} / ${playerStats.draws} / ${playerStats.losses}</td></tr><tr><td>Win Rate</td><td style="text-align:right;">${playerStats.gamesPlayed > 0 ? Math.round((playerStats.wins / playerStats.gamesPlayed) * 100) : 0}%</td></tr><tr><td>Current Win Streak</td><td style="text-align:right;">${playerStats.currentWinStreak}</td></tr><tr><td>Highest Win Streak</td><td style="text-align:right;">${playerStats.highestWinStreak}</td></tr><tr><td>Total Score</td><td style="text-align:right;">${playerStats.totalScore.toLocaleString()}</td></tr></table>`;
+          document.querySelector("#scoring-overlay .modal-header").textContent = "CH3SS PLAYER STATS";
+          const closeButton = document.getElementById("keep-playing-scoring");
+          const newCloseButton = closeButton.cloneNode(true);
+          closeButton.parentNode.replaceChild(newCloseButton, closeButton);
+          newCloseButton.addEventListener("click", () => {
+            scoringOverlay.classList.remove("active");
+            document.querySelector("#scoring-overlay .modal-header").textContent = "CH3SS SCOREBOARD";
+          });
+          scoringOverlay.classList.add("active");
+        }
+        function updatePgnDisplay() {
+          /* ... unchanged ... */
+          const history = chess.history();
+          const fullPgn = chess.pgn();
+          if (history.length > 0) {
+            const lastMovesArr = history.slice(-3);
+            lastPgnMoves.textContent = lastMovesArr.join(" ");
+          } else {
+            lastPgnMoves.textContent = "Last Moves";
+          }
+          fullPgnOutput.textContent = fullPgn || "No moves yet";
+        }
+        function startBackgroundMusic() {
+          /* ... unchanged ... */
+          if (!isMuted && backgroundMusic) {
+            backgroundMusic.volume = 0.5;
+            backgroundMusic.play().catch((error) => console.log("Background music playback error:", error));
+          }
+        }
+        // --- End Helper Functions ---
 
-      // Add event listeners for PGN functionality
-      pgnButton.addEventListener('click', () => {
-        // Update full PGN before showing modal
-        const fullPgn = chess.pgn();
-        fullPgnOutput.textContent = fullPgn || 'No moves yet';
-        
-        // Show the modal
-        pgnModal.classList.add('active');
-      });
+        // --- Web Worker Setup ---
+        let chessJsSource = "";
 
-      closePgnModal.addEventListener('click', () => {
-        pgnModal.classList.remove('active');
-      });
+        // Define the code that will run inside the worker as a string
+        const workerCode = `
+// Load chess.js inside the worker
+importScripts('https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js');
+if (typeof Chess === 'undefined') {
+  console.error('[Worker] CRITICAL: chess.js failed to load');
+  self.postMessage({ error: 'Chess library failed to load in worker' });
+  self.close();
+}
 
-      // copyPgnButton.addEventListener('click', () => {
-      //   navigator.clipboard.writeText(chess.pgn()).then(() => {
-      //     copyPgnButton.textContent = 'COPIED!';
-      //     setTimeout(() => {
-      //       copyPgnButton.textContent = 'COPY PGN';
-      //     }, 2000);
-      //   });
-      // });
+              // --- AI Logic from Example (Adapted) ---
 
-      // Event listener for submit-final-score button in the scoring overlay
-      document.getElementById('submit-final-score').addEventListener('click', function() {
-        // Disable the button immediately to prevent multiple clicks
-        this.disabled = true;
-        this.textContent = "SUBMITTING...";
-        
-        // Call Farcade SDK gameOver using the updateFarcadeScore function
-        updateFarcadeScore();
-        
-        // Create and show a confirmation message
-        const confirmationMsg = document.createElement("div");
-        confirmationMsg.className = "winner";
-        confirmationMsg.style.fontSize = "0.7rem";
-        confirmationMsg.style.marginTop = "10px";
-        confirmationMsg.textContent = "SCORE SUBMITTED!";
-        document.getElementById('score-breakdown').appendChild(confirmationMsg);
-        
-        // Hide the button
-        this.style.display = "none";
-        
-        // Close the overlay after a short delay
-        setTimeout(() => {
-          document.getElementById('scoring-overlay').classList.remove('active');
-        }, 2000);
-        
-        // Trigger haptic feedback for confirmation
-        triggerHapticFeedback();
-      });
+              // Helper to reverse evaluation tables for Black
+              var reverseArray = function(array) {
+                  // Ensure it's a deep copy to avoid modifying original arrays
+                  return JSON.parse(JSON.stringify(array)).reverse();
+              };
 
-      // Background music setup
-      const backgroundMusic = document.getElementById('background-music');
-      
-      // Function to start background music with user interaction
-      function startBackgroundMusic() {
-        if (!isMuted && backgroundMusic) {
-          backgroundMusic.volume = 0.5; // Set volume to 50%
-          backgroundMusic.play().catch(error => {
-            console.log("Background music playback error:", error);
+              // --- Piece Square Tables (from Example) ---
+              var pawnEvalWhite = [
+                  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
+                  [5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0],
+                  [1.0,  1.0,  2.0,  3.0,  3.0,  2.0,  1.0,  1.0],
+                  [0.5,  0.5,  1.0,  2.5,  2.5,  1.0,  0.5,  0.5],
+                  [0.0,  0.0,  0.0,  2.0,  2.0,  0.0,  0.0,  0.0],
+                  [0.5, -0.5, -1.0,  0.0,  0.0, -1.0, -0.5,  0.5],
+                  [0.5,  1.0, 1.0,  -2.0, -2.0,  1.0,  1.0,  0.5],
+                  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0]
+              ];
+              var pawnEvalBlack = reverseArray(pawnEvalWhite);
+
+              var knightEval = [
+                  [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
+                  [-4.0, -2.0,  0.0,  0.0,  0.0,  0.0, -2.0, -4.0],
+                  [-3.0,  0.0,  1.0,  1.5,  1.5,  1.0,  0.0, -3.0],
+                  [-3.0,  0.5,  1.5,  2.0,  2.0,  1.5,  0.5, -3.0],
+                  [-3.0,  0.0,  1.5,  2.0,  2.0,  1.5,  0.0, -3.0],
+                  [-3.0,  0.5,  1.0,  1.5,  1.5,  1.0,  0.5, -3.0],
+                  [-4.0, -2.0,  0.0,  0.5,  0.5,  0.0, -2.0, -4.0],
+                  [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0]
+              ];
+
+              var bishopEvalWhite = [
+                  [ -2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
+                  [ -1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0],
+                  [ -1.0,  0.0,  0.5,  1.0,  1.0,  0.5,  0.0, -1.0],
+                  [ -1.0,  0.5,  0.5,  1.0,  1.0,  0.5,  0.5, -1.0],
+                  [ -1.0,  0.0,  1.0,  1.0,  1.0,  1.0,  0.0, -1.0],
+                  [ -1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0, -1.0],
+                  [ -1.0,  0.5,  0.0,  0.0,  0.0,  0.0,  0.5, -1.0],
+                  [ -2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0]
+              ];
+              var bishopEvalBlack = reverseArray(bishopEvalWhite);
+
+              var rookEvalWhite = [
+                  [  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
+                  [  0.5,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  0.5],
+                  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+                  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+                  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+                  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+                  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+                  [  0.0,   0.0, 0.0,  0.5,  0.5,  0.0,  0.0,  0.0]
+              ];
+              var rookEvalBlack = reverseArray(rookEvalWhite);
+
+              var evalQueen = [
+                  [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
+                  [ -1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0],
+                  [ -1.0,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -1.0],
+                  [ -0.5,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -0.5],
+                  [  0.0,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -0.5],
+                  [ -1.0,  0.5,  0.5,  0.5,  0.5,  0.5,  0.0, -1.0],
+                  [ -1.0,  0.0,  0.5,  0.0,  0.0,  0.0,  0.0, -1.0],
+                  [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0]
+              ];
+
+              var kingEvalWhite = [
+                  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+                  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+                  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+                  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+                  [ -2.0, -3.0, -3.0, -4.0, -4.0, -3.0, -3.0, -2.0],
+                  [ -1.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -1.0],
+                  [  2.0,  2.0,  0.0,  0.0,  0.0,  0.0,  2.0,  2.0 ],
+                  [  2.0,  3.0,  1.0,  0.0,  0.0,  1.0,  3.0,  2.0 ]
+              ];
+              var kingEvalBlack = reverseArray(kingEvalWhite);
+              // --- End Piece Square Tables ---
+
+              // Get Value of a Piece (including positional bonus) - From Example
+              var getPieceValue = function (piece, x, y) {
+                  if (piece === null) {
+                      return 0;
+                  }
+                  // Returns value from WHITE's perspective (positive=good for white)
+                  var getAbsoluteValue = function (piece, isWhite, x ,y) {
+                      if (piece.type === 'p') {
+                          return 10 + ( isWhite ? pawnEvalWhite[y][x] : pawnEvalBlack[y][x] );
+                      } else if (piece.type === 'r') {
+                          return 50 + ( isWhite ? rookEvalWhite[y][x] : rookEvalBlack[y][x] );
+                      } else if (piece.type === 'n') {
+                          return 30 + knightEval[y][x]; // Knight table is symmetrical
+                      } else if (piece.type === 'b') {
+                          return 30 + ( isWhite ? bishopEvalWhite[y][x] : bishopEvalBlack[y][x] );
+                      } else if (piece.type === 'q') {
+                          return 90 + evalQueen[y][x]; // Queen table assumed symmetrical
+                      } else if (piece.type === 'k') {
+                           // Ensure king safety dominates material end-game
+                          return 9000 + ( isWhite ? kingEvalWhite[y][x] : kingEvalBlack[y][x] );
+                      }
+                      console.error("[Worker] Unknown piece type: " + piece.type);
+                      return 0; // Should not happen
+                  };
+
+                  var absoluteValue = getAbsoluteValue(piece, piece.color === 'w', x ,y);
+                  // Return positive for white pieces, negative for black pieces
+                  return piece.color === 'w' ? absoluteValue : -absoluteValue;
+              };
+
+               // Evaluate Board - Sums piece values - From Example
+              var evaluateBoard = function (board) {
+                  if (typeof Chess === 'undefined') return 0;
+                  var totalEvaluation = 0;
+                  for (var i = 0; i < 8; i++) { // row index (y)
+                      for (var j = 0; j < 8; j++) { // column index (x)
+                          // Use getPieceValue which returns score relative to White (+ for white, - for black)
+                           // Ensure board[i][j] is accessed correctly, assuming chess.js .board() format
+                          totalEvaluation = totalEvaluation + getPieceValue(board[i][j], j ,i);
+                      }
+                  }
+                  return totalEvaluation; // Returns score from White's perspective
+              };
+
+              // Minimax - From Example (adapted for chess.js instance and perspective)
+              var minimax = function (depth, chessInstance, alpha, beta, isMaximisingPlayer) {
+                   if (typeof Chess === 'undefined') return 0;
+                  // positionCount++; // Optional: uncomment to count nodes
+
+                  // Base Case: Depth limit reached or game over
+                  if (depth === 0 || chessInstance.game_over()) {
+                      // Return evaluation from WHITE's perspective
+                       // The example negated this, implying evaluateBoard gives score for player to move.
+                       // Let's stick to WHITE's perspective for consistency with example tables.
+                      return evaluateBoard(chessInstance.board());
+                  }
+
+                  var newGameMoves = chessInstance.moves({ verbose: true }); // Use internal moves
+
+                  if (isMaximisingPlayer) { // White's turn (trying to maximize score)
+                      var bestMove = -Infinity; // Initialize lower than possible score
+                      for (var i = 0; i < newGameMoves.length; i++) {
+                          chessInstance.move(newGameMoves[i]);
+                          bestMove = Math.max(bestMove, minimax(depth - 1, chessInstance, alpha, beta, !isMaximisingPlayer));
+                          chessInstance.undo();
+                          alpha = Math.max(alpha, bestMove);
+                          if (beta <= alpha) {
+                              return bestMove; // Beta cutoff
+                          }
+                      }
+                      return bestMove;
+                  } else { // Black's turn (trying to minimize score)
+                      var bestMove = Infinity; // Initialize higher than possible score
+                      for (var i = 0; i < newGameMoves.length; i++) {
+                          chessInstance.move(newGameMoves[i]);
+                          bestMove = Math.min(bestMove, minimax(depth - 1, chessInstance, alpha, beta, !isMaximisingPlayer));
+                          chessInstance.undo();
+                          beta = Math.min(beta, bestMove);
+                          if (beta <= alpha) {
+                              return bestMove; // Alpha cutoff
+                          }
+                      }
+                      return bestMove;
+                  }
+              };
+
+              // Minimax Root - From Example (adapted for perspective)
+              var minimaxRoot = function(depth, fen, aiWorkerColor) {
+                   if (typeof Chess === 'undefined') return null;
+
+                  const chessInstance = new Chess(fen);
+                  const newGameMoves = chessInstance.moves({ verbose: true });
+                  var bestMoveValue = aiWorkerColor === 'white' ? -Infinity : Infinity; // Initialize best score based on AI color
+                  var bestMoveFound = null; // Store the actual move object
+
+                  // Determine if the AI is the maximizing player (White) in this evaluation scheme
+                  const isAIWhite = (aiWorkerColor === 'white');
+
+                  for(var i = 0; i < newGameMoves.length; i++) {
+                      var newGameMove = newGameMoves[i];
+                      chessInstance.move({
+  from: newGameMove.from,
+  to:   newGameMove.to,
+  promotion: newGameMove.promotion  // if defined
+});
+                      // Call minimax: !isAIWhite because the next turn is the opponent's
+                      var value = minimax(depth - 1, chessInstance, -Infinity, Infinity, !isAIWhite);
+                      chessInstance.undo();
+
+                      if (isAIWhite) { // AI is White, wants to maximize the value
+                          if(value >= bestMoveValue) {
+                              bestMoveValue = value;
+                              bestMoveFound = newGameMove;
+                          }
+                      } else { // AI is Black, wants to minimize the value (which is from White's perspective)
+                           if(value <= bestMoveValue) {
+                              bestMoveValue = value;
+                              bestMoveFound = newGameMove;
+                          }
+                      }
+                  }
+                  console.log('[Worker] Best move found:', bestMoveFound?.san, 'with eval (White perspective):', bestMoveValue);
+
+                  // Return the move object needed by main thread's chess.move()
+                  // We need { from, to, promotion (if any) }
+                   if (bestMoveFound) {
+                      // Need to convert 0x88 'from' and 'to' squares back to algebraic if main thread expects that
+                      // Let's return the essential parts compatible with chess.move({from: 'a2', to: 'a4'})
+                      // Need a way to convert 0x88 to algebraic within the worker
+                       function algebraicWorker(i) {
+                           var f = i & 15, r = i >> 4;
+                           return 'abcdefgh'.substring(f, f + 1) + '87654321'.substring(r, r + 1);
+                       }
+                      return {
+  from: bestMoveFound.from,            // already "e2", "a8", etc.
+  to:   bestMoveFound.to,              // ditto
+  promotion: bestMoveFound.promotion   // will be e.g. "q" or undefined
+};
+                   } else {
+                       console.warn("[Worker] No best move found by minimaxRoot!");
+                       return null; // Should only happen if no legal moves exist (checkmate/stalemate)
+                   }
+              };
+
+
+// Message handler: receives { fen, depth, aiWorkerColor } and returns bestMove
+self.onmessage = function(event) {
+  const { fen, depth, aiWorkerColor } = event.data;
+  const bestMove = minimaxRoot(depth, fen, aiWorkerColor);
+  self.postMessage(bestMove);
+};
+
+console.log('[Worker] AI Worker initialized.');
+`;
+        // --- Create and Manage the Worker ---
+        function initializeAIWorker() {
+          try {
+            // Build a Blob from the workerCode (which itself does importScripts with CDN fallback)
+            const blob = new Blob([workerCode], { type: "application/javascript" });
+            const blobUrl = URL.createObjectURL(blob);
+
+            // Spawn the worker
+            aiWorker = new Worker(blobUrl);
+
+            // Handle messages back from the worker
+            aiWorker.onmessage = function (event) {
+              aiThinking = false;
+              const bestMove = event.data;
+
+              if (bestMove && bestMove.error) {
+                console.error("Error reported from AI Worker:", bestMove.error);
+                renderBoard();
+                return;
+              }
+
+              console.log("Main thread received best move:", bestMove);
+
+              // Sanity checks
+              if (chess.game_over() || chess.turn() !== (aiColor === "black" ? "b" : "w")) {
+                renderBoard();
+                return;
+              }
+
+              // Apply the move
+              if (bestMove) {
+                const moveResult = chess.move(bestMove);
+                if (moveResult) {
+                  if (moveResult.captured) {
+                    pieceCaptureSound.currentTime = 0;
+                    pieceCaptureSound.play().catch((e) => console.log("Audio error", e));
+                  } else {
+                    playPutDownSound();
+                  }
+                  lastMove = {
+                    from: squareToCoords(moveResult.from),
+                    to: squareToCoords(moveResult.to),
+                  };
+                  updateCapturedPiecesFromMove(moveResult);
+                  updatePgnDisplay();
+                  renderBoard();
+                  triggerHapticFeedback();
+                } else {
+                  console.error("Invalid move from AI Worker:", bestMove, "FEN:", chess.fen());
+                  renderBoard();
+                }
+              } else {
+                console.error("AI Worker returned no move. FEN:", chess.fen());
+                renderBoard();
+                updateGameStatus();
+              }
+            };
+
+            // If the worker itself errors out
+            aiWorker.onerror = function (error) {
+              console.error("Error in AI Worker:", error.message, error);
+              aiThinking = false;
+              renderBoard();
+              alert("AI encountered an error and has been disabled.");
+              gameMode = "human";
+            };
+
+            console.log("AI Worker created successfully using Blob URL.");
+          } catch (e) {
+            console.error("Failed to create inline worker:", e);
+            // you can choose to fall back to human here or alert the user,
+            // but do NOT unconditionally force gameMode = 'human'
+          }
+        }
+        // --- End Worker Setup ---
+
+        // --- Modified AI OPPONENT FUNCTIONS ---
+        // Make AI move (Now uses the worker)
+        function makeAIMove() {
+          // Determine AI’s turn token ("w" or "b")
+          const aiTurn = aiColor.charAt(0);
+
+          // Only request a move if it’s really the AI’s turn
+          if (chess.game_over() || chess.turn() !== aiTurn || !aiWorker) {
+            return;
+          }
+
+          aiThinking = true;
+          selectedPiece = null;
+          validMoves = [];
+          renderBoard();
+
+          const currentFen = chess.fen();
+          const searchDepth = 3;
+
+          aiWorker.postMessage({
+            fen: currentFen,
+            depth: searchDepth,
+            aiWorkerColor: aiColor,
           });
         }
-      }
-      
-      // Modify the toggle_mute event handler to also control background music
-      if (window.FarcadeSDK) {
-        // Handle play_again event - use fullReset=true to reset cumulative stats
-        window.FarcadeSDK.on("play_again", () => {
-          // Reset the game state with full reset (true)
-          resetGame(true);
-        });
-        
-        // Handle toggle_mute event
-        window.FarcadeSDK.on("toggle_mute", (data) => {
-          // Set muted state based on data.isMuted
-          isMuted = data.isMuted;
-          
-          // Update background music state
-          if (isMuted) {
-            backgroundMusic.pause();
-            console.log("Game muted - music paused");
+
+        // REMOVED: minimaxRoot, minimax, evaluatePosition, shuffleArray from the main thread
+        // They are now defined inside the workerCode string.
+
+        // --- Rendering and Game Logic (Mostly Unchanged) ---
+        function renderBoard() {
+          boardElement.innerHTML = "";
+          const boardState = convertChessJsBoard();
+          for (let row = 0; row < 8; row++) {
+            const rowElement = document.createElement("div");
+            rowElement.className = "row";
+            for (let col = 0; col < 8; col++) {
+              const squareElement = document.createElement("div");
+              const isLightSquare = (row + col) % 2 === 0;
+              squareElement.className = `square ${isLightSquare ? "light-square" : "dark-square"}`;
+              squareElement.dataset.row = row;
+              squareElement.dataset.col = col;
+              const piece = boardState[row][col];
+              if (piece) {
+                const pieceElement = document.createElement("div");
+                const pieceColor = getPieceColor(piece);
+                pieceElement.className = `piece ${pieceColor}-piece`;
+                pieceElement.textContent = pieceMapping[piece];
+                squareElement.appendChild(pieceElement);
+              }
+              if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
+                squareElement.classList.add("selected");
+              }
+              if (validMoves.some(([r, c]) => r === row && c === col)) {
+                squareElement.classList.add("valid-move");
+              }
+              if (lastMove.from && row === lastMove.from[0] && col === lastMove.from[1]) {
+                squareElement.classList.add("last-move-from");
+              }
+              if (lastMove.to && row === lastMove.to[0] && col === lastMove.to[1]) {
+                squareElement.classList.add("last-move-to");
+              }
+              squareElement.addEventListener("click", () => handleSquareClick(row, col));
+              rowElement.appendChild(squareElement);
+            }
+            boardElement.appendChild(rowElement);
+          }
+          updateGameStatus(); // Update status after rendering board
+          updateCapturedPieces(); // Update captures after rendering board
+        }
+
+        function handleSquareClick(row, col) {
+          // Don’t allow clicks when game over or AI is thinking
+          if (chess.game_over() || (gameMode === "ai" && aiThinking)) return;
+
+          const square = coordsToSquare(row, col);
+          const piece = chess.get(square);
+
+          // If no piece selected yet, attempt to select one
+          if (!selectedPiece) {
+            if (piece && piece.color === chess.turn()) {
+              playPieceSound();
+              selectedPiece = { row, col, square };
+              validMoves = getValidMovesForSquare(row, col);
+              renderBoard();
+            }
+            return;
+          }
+
+          // Attempt to move the selected piece
+          const isValid = validMoves.some(([r, c]) => r === row && c === col);
+          if (isValid) {
+            const moveResult = chess.move({ from: selectedPiece.square, to: square, promotion: "q" });
+            if (moveResult) {
+              // Play the appropriate sound
+              if (moveResult.captured) {
+                pieceCaptureSound.currentTime = 0;
+                pieceCaptureSound.play().catch(() => {});
+              } else {
+                playPutDownSound();
+              }
+
+              lastMove = {
+                from: squareToCoords(moveResult.from),
+                to: squareToCoords(moveResult.to),
+              };
+              updateCapturedPiecesFromMove(moveResult);
+              updatePgnDisplay();
+              renderBoard();
+              triggerHapticFeedback();
+
+              // **AI’s turn check**: only call if it's truly AI's move next
+              if (gameMode === "ai" && !chess.game_over() && chess.turn() === aiColor.charAt(0)) {
+                setTimeout(makeAIMove, 200);
+              }
+            }
           } else {
-            backgroundMusic.play().catch(error => {
-              console.log("Background music playback error:", error);
-            });
-            console.log("Game unmuted - music resumed");
+            // Invalid square: either re‐select or clear selection
+            if (piece && piece.color === chess.turn()) {
+              playPieceSound();
+              selectedPiece = { row, col, square };
+              validMoves = getValidMovesForSquare(row, col);
+            } else {
+              selectedPiece = null;
+              validMoves = [];
+            }
+            renderBoard();
+          }
+        }
+
+        function updateGameStatus() {
+          const currentTurn = chess.turn() === "w" ? "WHITE" : "BLACK";
+          currentPlayerElement.textContent = currentTurn;
+          let statusText = "";
+          let isGameOver = false;
+          let gameOverTitle = "";
+          let gameOverReason = "";
+          let gameResult = null;
+          if (chess.in_checkmate()) {
+            statusText = "CHECKMATE";
+            isGameOver = true;
+            gameOverTitle = "CHECKMATE";
+            const winner = currentTurn === "WHITE" ? "BLACK" : "WHITE";
+            gameOverReason = `${winner} WINS!`;
+            gameResult =
+              (winner === "WHITE" && aiColor === "black") || (winner === "BLACK" && aiColor === "white")
+                ? "win"
+                : "loss";
+            if (
+              gameResult === "win" &&
+              chess.history({ verbose: true }).length > 0 &&
+              chess.history({ verbose: true }).slice(-1)[0].piece === "p"
+            )
+              playerStats.checkmateWithPawn = true;
+          } else if (chess.in_stalemate()) {
+            statusText = "DRAW";
+            isGameOver = true;
+            gameOverTitle = "DRAW";
+            gameOverReason = "STALEMATE";
+            gameResult = "draw";
+          } else if (chess.in_threefold_repetition()) {
+            statusText = "DRAW";
+            isGameOver = true;
+            gameOverTitle = "DRAW";
+            gameOverReason = "REPETITION";
+            gameResult = "draw";
+          } else if (chess.insufficient_material()) {
+            statusText = "DRAW";
+            isGameOver = true;
+            gameOverTitle = "DRAW";
+            gameOverReason = "INSUFFICIENT MATERIAL";
+            gameResult = "draw";
+          } else if (chess.in_draw()) {
+            statusText = "DRAW";
+            isGameOver = true;
+            gameOverTitle = "DRAW";
+            gameOverReason = "50-MOVE RULE";
+            gameResult = "draw";
+          } else if (chess.in_check()) {
+            statusText = "CHECK";
+          } else {
+            statusText = gameMode === "ai" ? "PLAYING vs AI" : "PLAYING";
+          }
+          gameStatusElement.textContent = statusText;
+          if (isGameOver && !boardElement.querySelector(".checkmate-overlay")) {
+            // Prevent multiple overlays
+            if (gameMode === "ai") {
+              const scoreResult = calculateGameScore(gameResult);
+              gameScore = scoreResult.score;
+              showScoringOverlay(scoreResult);
+            } else {
+              gameScore = 0;
+            }
+            showGameOverOverlay(gameOverTitle, gameOverReason);
+          } else if ((!isGameOver && statusText === "CHECKMATE") || statusText === "DRAW") {
+            // Add winner/draw text if not handled by overlay yet
+            const reasonElement = document.createElement("div");
+            reasonElement.className = "winner";
+            reasonElement.textContent = gameOverReason || statusText;
+            gameStatusElement.appendChild(reasonElement);
+          }
+        }
+
+        function showGameOverOverlay(title, reason) {
+          const overlay = document.createElement("div");
+          overlay.className = "checkmate-overlay";
+          const content = document.createElement("div");
+          content.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 10px;";
+          const titleElement = document.createElement("div");
+          titleElement.className = "checkmate-text";
+          titleElement.textContent = title;
+          const reasonElement = document.createElement("div");
+          reasonElement.className = "scoreboard-text";
+          reasonElement.style.textAlign = "center";
+          reasonElement.textContent = reason;
+          const buttonContainer = document.createElement("div");
+          buttonContainer.style.cssText = "display: flex; flex-direction: column; gap: 10px;";
+          const newGameButton = document.createElement("button");
+          newGameButton.className = "modal-button";
+          newGameButton.textContent = "CONTINUE PLAYING";
+          newGameButton.id = "new-game-checkmate";
+          newGameButton.onclick = () => resetGame(false); // Use onclick for simplicity here
+          content.appendChild(titleElement);
+          content.appendChild(reasonElement);
+          buttonContainer.appendChild(newGameButton);
+          if (gameMode === "ai") {
+            const submitScoreButton = document.createElement("button");
+            submitScoreButton.className = "modal-button";
+            submitScoreButton.textContent = "SUBMIT FINAL SCORE";
+            submitScoreButton.onclick = function () {
+              /* Submit score logic */
+              this.disabled = true;
+              this.textContent = "SUBMITTING...";
+              updateFarcadeScore();
+              const confirmationMsg = document.createElement("div");
+              confirmationMsg.className = "winner";
+              confirmationMsg.style.cssText = "font-size: 0.7rem; margin-top: 10px;";
+              confirmationMsg.textContent = "SCORE SUBMITTED!";
+              content.insertBefore(confirmationMsg, buttonContainer);
+              this.style.display = "none";
+              triggerHapticFeedback();
+            };
+            buttonContainer.appendChild(submitScoreButton);
+          }
+          content.appendChild(buttonContainer);
+          overlay.appendChild(content);
+          boardElement.appendChild(overlay);
+          triggerHapticFeedback();
+        }
+
+        function resetGame(fullReset = false) {
+          /* ... unchanged ... */
+          chess = new Chess();
+          selectedPiece = null;
+          validMoves = [];
+          lastMove = { from: null, to: null };
+          aiThinking = false;
+          gameScore = 0;
+          capturedPieces = { white: [], black: [] };
+          playerStats.capturedPieces = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+          playerStats.capturedPieceValue = 0;
+          playerStats.startTime = Date.now();
+          playerStats.consecutiveCaptures = 0;
+          playerStats.lastCaptureMove = -1;
+          playerStats.queenLost = false;
+          playerStats.checkmateWithPawn = false;
+          if (fullReset) {
+            console.log("Full stats reset");
+            playerStats.gamesPlayed = 0;
+            playerStats.wins = 0;
+            playerStats.draws = 0;
+            playerStats.losses = 0;
+            playerStats.currentWinStreak = 0;
+            playerStats.highestWinStreak = 0;
+            playerStats.quickWinsUnder30Moves = 0;
+            playerStats.totalScore = 0;
+            playerStats.achievements = [];
+          }
+          const scoreValue = document.querySelector(".score-value");
+          if (scoreValue) scoreValue.textContent = "000";
+          const scoreNotification = document.querySelector(".score-notification");
+          if (scoreNotification) scoreNotification.textContent = "No Captures Yet";
+          const submitFinalScoreButton = document.getElementById("submit-final-score");
+          if (submitFinalScoreButton) {
+            submitFinalScoreButton.disabled = false;
+            submitFinalScoreButton.textContent = "SUBMIT SCORE";
+            submitFinalScoreButton.style.display = "";
+          }
+          const pgnOutput = document.getElementById("full-pgn-output");
+          if (pgnOutput) pgnOutput.textContent = "";
+          if (lastPgnMoves) lastPgnMoves.textContent = "Last Moves";
+          renderBoard();
+          // If it's an AI game and AI plays as white, make the first move using the worker
+          if (gameMode === "ai" && aiColor === "white") {
+            setTimeout(makeAIMove, 500);
+          }
+          const existingOverlay = boardElement.querySelector(".checkmate-overlay");
+          if (existingOverlay) boardElement.removeChild(existingOverlay);
+        }
+
+        // --- Touch Handlers (Unchanged) ---
+        let activeGhost = null;
+        let isPieceBeingDragged = false;
+        boardElement.addEventListener("touchstart", (e) => {
+          /* ... unchanged ... */
+          if (chess.game_over() || aiThinking) return;
+          const touch = e.touches[0];
+          const element = document.elementFromPoint(touch.clientX, touch.clientY);
+          if (!element || !element.classList.contains("piece")) return;
+          const square = element.parentElement;
+          const row = parseInt(square.dataset.row);
+          const col = parseInt(square.dataset.col);
+          const algebraicSquare = coordsToSquare(row, col);
+          const piece = chess.get(algebraicSquare);
+          if (!piece || piece.color !== chess.turn()) return;
+          playPieceSound();
+          e.preventDefault();
+          isPieceBeingDragged = true;
+          selectedPiece = { row, col, piece: getPieceNotation(piece), square: algebraicSquare };
+          validMoves = getValidMovesForSquare(row, col);
+          activeGhost = element.cloneNode(true);
+          activeGhost.classList.add("ghost-piece");
+          activeGhost.style.left = `${touch.clientX}px`;
+          activeGhost.style.top = `${touch.clientY}px`;
+          document.body.appendChild(activeGhost);
+          element.classList.add("dragging");
+          validMoves.forEach(([r, c]) => {
+            const targetSquare = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+            if (targetSquare) {
+              const targetPiece = chess.get(coordsToSquare(r, c));
+              if (targetPiece) {
+                targetSquare.classList.add("capture-highlight");
+              } else {
+                targetSquare.classList.add("valid-drop");
+              }
+            }
+          });
+        });
+        document.addEventListener("touchmove", (e) => {
+          /* ... unchanged ... */
+          if (!activeGhost || !isPieceBeingDragged) return;
+          e.preventDefault();
+          const touch = e.touches[0];
+          activeGhost.style.left = `${touch.clientX}px`;
+          activeGhost.style.top = `${touch.clientY}px`;
+          const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+          document.querySelectorAll(".square").forEach((s) => s.classList.remove("valid-drop", "capture-highlight"));
+          if (targetElement) {
+            const square = targetElement.closest(".square");
+            if (square) {
+              const row = parseInt(square.dataset.row);
+              const col = parseInt(square.dataset.col);
+              const isValid = validMoves.some(([r, c]) => r === row && c === col);
+              if (isValid) {
+                const targetPiece = chess.get(coordsToSquare(row, col));
+                if (targetPiece) {
+                  square.classList.add("capture-highlight");
+                } else {
+                  square.classList.add("valid-drop");
+                }
+              }
+            }
           }
         });
-      }
+        document.addEventListener("touchend", (e) => {
+          /* ... unchanged ... */
+          if (!activeGhost || !isPieceBeingDragged || !selectedPiece) return;
+          e.preventDefault();
+          isPieceBeingDragged = false;
+          document.body.removeChild(activeGhost);
+          activeGhost = null;
+          const originalPiece = document.querySelector(".piece.dragging");
+          if (originalPiece) originalPiece.classList.remove("dragging");
+          const touch = e.changedTouches[0];
+          const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+          document.querySelectorAll(".square").forEach((s) => s.classList.remove("valid-drop", "capture-highlight")); // Clear highlights
+          if (!targetElement) {
+            selectedPiece = null;
+            validMoves = [];
+            renderBoard();
+            return;
+          }
+          const square = targetElement.closest(".square");
+          if (!square) {
+            selectedPiece = null;
+            validMoves = [];
+            renderBoard();
+            return;
+          }
+          const toRow = parseInt(square.dataset.row);
+          const toCol = parseInt(square.dataset.col);
+          const toSquare = coordsToSquare(toRow, toCol);
+          const isValid = validMoves.some(([r, c]) => r === toRow && c === toCol);
+          if (isValid) {
+            /* Make move */
+            const moveResult = chess.move({ from: selectedPiece.square, to: toSquare, promotion: "q" });
+            if (moveResult) {
+              if (moveResult.captured) {
+                pieceCaptureSound.currentTime = 0;
+                pieceCaptureSound.play().catch((e) => console.log("Audio error", e));
+              } else {
+                playPutDownSound();
+              }
+              lastMove = { from: squareToCoords(moveResult.from), to: squareToCoords(moveResult.to) };
+              updateCapturedPiecesFromMove(moveResult);
+              updatePgnDisplay();
+              selectedPiece = null;
+              validMoves = [];
+              renderBoard();
+              triggerHapticFeedback();
+              if (gameMode === "ai" && !chess.game_over() && chess.turn() === (aiColor === "black" ? "b" : "w")) {
+                setTimeout(makeAIMove, 500);
+              } /* Trigger AI */
+            }
+          } else {
+            /* Invalid move */ selectedPiece = null;
+            validMoves = [];
+            renderBoard();
+          }
+        });
 
-      // Start background music on first user interaction (needed for browsers that block autoplay)
-      document.addEventListener('click', function startMusicOnFirstClick() {
-        startBackgroundMusic();
-        document.removeEventListener('click', startMusicOnFirstClick);
-      }, { once: true });
-      
-      // Also start music when game starts
-      startGameButton.addEventListener("click", () => {
-        welcomeOverlay.classList.remove("active");
-        resetGame();
-        startBackgroundMusic();
-      });
+        // --- Event Listeners (Mostly Unchanged) ---
+        menuButton.addEventListener("click", () => {
+          /* ... unchanged ... */
+          menuModal.classList.add("active");
+          if (gameMode === "human") {
+            modeHumanButton.classList.add("active");
+            modeAIButton.classList.remove("active");
+            aiOptionsContainer.style.display = "none";
+          } else {
+            modeAIButton.classList.add("active");
+            modeHumanButton.classList.remove("active");
+            aiOptionsContainer.style.display = "block";
+            if (aiColor === "white") {
+              aiColorWhiteButton.classList.add("active");
+              aiColorBlackButton.classList.remove("active");
+            } else {
+              aiColorBlackButton.classList.add("active");
+              aiColorWhiteButton.classList.remove("active");
+            }
+          }
+        });
+        closeModalButton.addEventListener("click", () => menuModal.classList.remove("active"));
+        newGameModalButton.addEventListener("click", () => {
+          resetGame(false);
+          menuModal.classList.remove("active");
+        });
+        modeHumanButton.addEventListener("click", () => {
+          gameMode = "human";
+          modeHumanButton.classList.add("active");
+          modeAIButton.classList.remove("active");
+          aiOptionsContainer.style.display = "none";
+        });
+        modeAIButton.addEventListener("click", () => {
+          gameMode = "ai";
+          modeAIButton.classList.add("active");
+          modeHumanButton.classList.remove("active");
+          aiOptionsContainer.style.display = "block";
+        });
+        aiColorWhiteButton.addEventListener("click", () => {
+          aiColor = "white";
+          aiColorWhiteButton.classList.add("active");
+          aiColorBlackButton.classList.remove("active");
+        });
+        aiColorBlackButton.addEventListener("click", () => {
+          aiColor = "black";
+          aiColorBlackButton.classList.add("active");
+          aiColorWhiteButton.classList.remove("active");
+        });
+        welcomeColorWhiteButton.addEventListener("click", () => {
+          aiColor = "white";
+          updateWelcomeScreen();
+        });
+        welcomeColorBlackButton.addEventListener("click", () => {
+          aiColor = "black";
+          updateWelcomeScreen();
+        });
+        startGameButton.addEventListener("click", () => {
+          welcomeOverlay.classList.remove("active");
+          resetGame();
+          startBackgroundMusic();
+        });
+        document.getElementById("reset-stats-button").addEventListener("click", () => {
+          if (confirm("Are you sure?")) resetAllStats();
+        });
+        document.getElementById("view-stats-button").addEventListener("click", () => {
+          showStatsOverlay();
+          menuModal.classList.remove("active");
+        });
+        pgnButton.addEventListener("click", () => {
+          const fullPgn = chess.pgn();
+          fullPgnOutput.textContent = fullPgn || "No moves yet";
+          pgnModal.classList.add("active");
+        });
+        closePgnModal.addEventListener("click", () => pgnModal.classList.remove("active"));
+        document.getElementById("submit-final-score").addEventListener("click", function () {
+          /* ... unchanged submit logic ... */
+          this.disabled = true;
+          this.textContent = "SUBMITTING...";
+          updateFarcadeScore();
+          const confirmationMsg = document.createElement("div");
+          confirmationMsg.className = "winner";
+          confirmationMsg.style.cssText = "font-size: 0.7rem; margin-top: 10px;";
+          confirmationMsg.textContent = "SCORE SUBMITTED!";
+          document.getElementById("score-breakdown").appendChild(confirmationMsg);
+          this.style.display = "none";
+          setTimeout(() => {
+            document.getElementById("scoring-overlay").classList.remove("active");
+          }, 2000);
+          triggerHapticFeedback();
+        });
+        document.querySelectorAll("button").forEach((button) => button.addEventListener("click", playButtonClickSound));
+        // Start music on first interaction (outside SDK init)
+        document.body.addEventListener(
+          "click",
+          function startMusicOnFirstClick() {
+            startBackgroundMusic();
+            document.body.removeEventListener("click", startMusicOnFirstClick); // Remove listener after first click
+          },
+          { once: true, capture: true },
+        ); // Use capture to ensure it runs, once to self-remove
 
-      // Add click sound to all buttons
-      document.querySelectorAll('button').forEach(button => {
-        button.addEventListener('click', playButtonClickSound);
-      });
+        // --- Initialization ---
+        function updateWelcomeScreen() {
+          /* ... unchanged ... */
+          if (aiColor === "white") {
+            welcomeColorWhiteButton.classList.add("active");
+            welcomeColorBlackButton.classList.remove("active");
+          } else {
+            welcomeColorBlackButton.classList.add("active");
+            welcomeColorWhiteButton.classList.remove("active");
+          }
+        }
+        updateWelcomeScreen();
+        loadPlayerStats(); // Load stats (currently does nothing in arcade mode)
+
+        // Initialize AI Worker *after* the rest of the script is parsed
+        initializeAIWorker();
+
+        // Initial render
+        renderBoard();
+
+        // Set initial UI state for AI options based on defaults
+        aiOptionsContainer.style.display = gameMode === "ai" ? "block" : "none";
+        if (gameMode === "ai") {
+          modeAIButton.classList.add("active");
+          modeHumanButton.classList.remove("active");
+        } else {
+          modeHumanButton.classList.add("active");
+          modeAIButton.classList.remove("active");
+        }
+        if (aiColor === "black") {
+          aiColorBlackButton.classList.add("active");
+          aiColorWhiteButton.classList.remove("active");
+        } else {
+          aiColorWhiteButton.classList.add("active");
+          aiColorBlackButton.classList.remove("active");
+        }
+
+        // If AI should play first, trigger its move (now using worker)
+        // Note: This happens *after* worker initialization attempt.
+        // If worker failed, resetGame might switch to human mode anyway.
+        if (gameMode === "ai" && aiColor === "white") {
+          setTimeout(makeAIMove, 500);
+        }
+
+        // Farcade SDK Integration
+        window.addEventListener("DOMContentLoaded", () => {
+          if (window.FarcadeSDK) {
+            // Signal ready
+            window.FarcadeSDK.singlePlayer.actions.ready();
+            console.log("Farcade SDK Ready signal sent.");
+
+            // Handle play_again
+            window.FarcadeSDK.on("play_again", () => {
+              console.log("Farcade: Received play_again event.");
+              resetGame(true); // Full reset including stats
+            });
+
+            // Handle toggle_mute
+            window.FarcadeSDK.on("toggle_mute", (data) => {
+              isMuted = data.isMuted;
+              console.log("Farcade: Game " + (isMuted ? "muted" : "unmuted"));
+              if (isMuted) {
+                backgroundMusic.pause();
+              } else {
+                startBackgroundMusic();
+              } // Attempt to play if unmuted
+            });
+          } else {
+            console.warn("Farcade SDK not detected.");
+          }
+        });
+      })(); // End of IIFE scope wrapper
     </script>
   </body>
 </html>
