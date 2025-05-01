@@ -1878,7 +1878,6 @@
           scoringOverlay.classList.add("active");
         }
         function updatePgnDisplay() {
-          /* ... unchanged ... */
           const history = chess.history();
           const fullPgn = chess.pgn();
           if (history.length > 0) {
@@ -1889,8 +1888,23 @@
           }
           fullPgnOutput.textContent = fullPgn || "No moves yet";
         }
+
+        // --- Helper: Immediate Mate-In-One Detector ---
+function findMateInOne(chess) {
+  const moves = chess.moves({ verbose: true });
+  for (let move of moves) {
+    chess.move(move);
+    if (chess.in_checkmate()) {
+      chess.undo();
+      return move;
+    }
+    chess.undo();
+  }
+  return null;
+}
+// --- End MIO Detect Helper ---
+
         function startBackgroundMusic() {
-          /* ... unchanged ... */
           if (!isMuted && backgroundMusic) {
             backgroundMusic.volume = 0.5;
             backgroundMusic.play().catch((error) => console.log("Background music playback error:", error));
@@ -2224,6 +2238,26 @@ console.log('[Worker] AI Worker initialized.');
         // --- Modified AI OPPONENT FUNCTIONS ---
         // Make AI move (Now uses the worker)
         function makeAIMove() {
+          // 1) Try mate-in-one first:
+  const mateMove = findMateInOne(chess);
+  if (mateMove) {
+    const result = chess.move(mateMove);
+    if (result.captured) {
+      pieceCaptureSound.currentTime = 0;
+      pieceCaptureSound.play().catch(() => {});
+    } else {
+      playPutDownSound();
+    }
+    lastMove = {
+      from: squareToCoords(result.from),
+      to:   squareToCoords(result.to)
+    };
+    updateCapturedPiecesFromMove(result);
+    updatePgnDisplay();
+    renderBoard();
+    triggerHapticFeedback();
+    return; // skip the worker entirely
+  }
           // Determine AI’s turn token ("w" or "b")
           const aiTurn = aiColor.charAt(0);
 
