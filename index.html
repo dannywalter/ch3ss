@@ -2067,6 +2067,45 @@ function normalizeFen(fen) {
 }
 // --- end opening book/shuffle/normalizer ---
 
+// --- Transposition Table + Zobrist Hashing ---
+const TT = {};                // hash → { value, depth }
+const ZOBRIST = { pieceSquare: [], sideToMove: 0 };
+
+// 32‑bit random
+function random32() {
+  return (Math.random() * 0x100000000) >>> 0;
+}
+
+// Initialize Zobrist keys (called on load)
+(function initZobrist() {
+  // pieces: 0=P,1=N,2=B,3=R,4=Q,5=K for White; 6–11 for Black
+  for (let i = 0; i < 12; i++) {
+    ZOBRIST.pieceSquare[i] = [];
+    for (let sq = 0; sq < 64; sq++) {
+      ZOBRIST.pieceSquare[i][sq] = random32();
+    }
+  }
+  ZOBRIST.sideToMove = random32();
+})();
+
+// Compute  Zobrist hash for a chess.js board + turn
+function computeHash(boardArray, turn) {
+  let h = 0;
+  for (let sq = 0; sq < 64; sq++) {
+    const y = (sq / 8) | 0, x = sq % 8;
+    const p = boardArray[y][x];
+    if (p) {
+      // map piece to 0–11
+      const base = p.color === 'w' ? 0 : 6;
+      const map  = { p:0, n:1, b:2, r:3, q:4, k:5 };
+      const idx  = base + map[p.type];
+      h ^= ZOBRIST.pieceSquare[idx][sq];
+    }
+  }
+  if (turn === 'b') h ^= ZOBRIST.sideToMove;
+  return h >>> 0;
+}
+
 // MVV/LVA + Killer Moves
 const PIECE_VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
 
@@ -2209,8 +2248,16 @@ var evaluateBoard = function(board) {
   return total;
 };
 
-// Minimax w/ αβ and killer‑move updates
+// Minimax with alpha‑beta and Transposition Table
 var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
+  // 1) Try TT hit
+  const hash  = computeHash(chessInstance.board(), chessInstance.turn());
+  const entry = TT[hash];
+  if (entry && entry.depth >= depth) {
+    return entry.value;
+  }
+
+  // 2) Terminal node?
   if (depth === 0 || chessInstance.game_over()) {
     if (chessInstance.in_checkmate()) {
       return isMaximisingPlayer ? -Infinity : Infinity;
@@ -2221,55 +2268,44 @@ var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
     return evaluateBoard(chessInstance.board());
   }
 
-  const moves = orderMoves(chessInstance.moves({ verbose: true }), depth);
+  // 3) Generate & order moves
+  const moves = orderMoves(chessInstance.moves({ verbose: true }));
+  let best = isMaximisingPlayer ? -Infinity : Infinity;
+
   if (isMaximisingPlayer) {
-    let best = -Infinity;
     for (let m of moves) {
       chessInstance.move(m);
-      const score = minimax(depth - 1, chessInstance, alpha, beta, false);
+      best = Math.max(best,
+        minimax(depth - 1, chessInstance, alpha, beta, false)
+      );
       chessInstance.undo();
-
-      if (score > best) best = score;
       alpha = Math.max(alpha, best);
-
-      if (beta <= alpha) {
-        if (!m.captured) {
-          killerMoves[depth][1] = killerMoves[depth][0];
-          killerMoves[depth][0] = m;
-        }
-        break;
-      }
+      if (beta <= alpha) break;  // β‐cutoff
     }
-    return best;
   } else {
-    let best = Infinity;
     for (let m of moves) {
       chessInstance.move(m);
-      const score = minimax(depth - 1, chessInstance, alpha, beta, true);
+      best = Math.min(best,
+        minimax(depth - 1, chessInstance, alpha, beta, true)
+      );
       chessInstance.undo();
-
-      if (score < best) best = score;
       beta = Math.min(beta, best);
-
-      if (beta <= alpha) {
-        if (!m.captured) {
-          killerMoves[depth][1] = killerMoves[depth][0];
-          killerMoves[depth][0] = m;
-        }
-        break;
-      }
+      if (beta <= alpha) break;  // α‐cutoff
     }
-    return best;
   }
+
+  // 4) Store in TT and return
+  TT[hash] = { value: best, depth: depth };
+  return best;
 };
 
-// Entry point
+// Minimax Root using ordered moves + TT‑powered minimax
 var minimaxRoot = function(depth, fen, aiWorkerColor) {
   const chessInstance = new Chess(fen);
-  const isWhite       = aiWorkerColor === 'white';
-  const moves         = orderMoves(chessInstance.moves({ verbose: true }), depth);
-  let bestValue       = isWhite ? -Infinity : Infinity;
+  const moves         = orderMoves(chessInstance.moves({ verbose: true }));
+  let bestValue       = aiWorkerColor === 'white' ? -Infinity : Infinity;
   let bestMove        = null;
+  const isWhite       = aiWorkerColor === 'white';
 
   for (let m of moves) {
     chessInstance.move(m);
@@ -2282,7 +2318,12 @@ var minimaxRoot = function(depth, fen, aiWorkerColor) {
     }
   }
 
-  console.log('[Worker] Best move found:', bestMove?.san, 'eval:', bestValue);
+  console.log(
+    '[Worker] Best move found:', 
+    bestMove?.san, 
+    'eval:', 
+    bestValue
+  );
   return bestMove
     ? { from: bestMove.from, to: bestMove.to, promotion: bestMove.promotion }
     : null;
