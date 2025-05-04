@@ -2190,30 +2190,45 @@ var evaluateBoard = function(board) {
   return total;
 };
 
+// Minimax with mate/stalemate detection
 var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
+  // --- Terminal‐node guard: mate, draw, or depth 0 ---
   if (depth === 0 || chessInstance.game_over()) {
+    if (chessInstance.in_checkmate()) {
+      // If the side to move is mated, bad for that side
+      return isMaximisingPlayer ? -Infinity : Infinity;
+    }
+    if (chessInstance.in_stalemate() || chessInstance.in_draw()) {
+      return 0;
+    }
+    // Otherwise fall back to static evaluation
     return evaluateBoard(chessInstance.board());
   }
 
+  // --- Recursive case: generate & order moves ---
   const moves = orderMoves(chessInstance.moves({ verbose: true }));
   if (isMaximisingPlayer) {
     let best = -Infinity;
     for (let m of moves) {
       chessInstance.move(m);
-      best = Math.max(best, minimax(depth - 1, chessInstance, alpha, beta, false));
+      best = Math.max(best,
+        minimax(depth - 1, chessInstance, alpha, beta, false)
+      );
       chessInstance.undo();
       alpha = Math.max(alpha, best);
-      if (beta <= alpha) break;
+      if (beta <= alpha) break;  // β‐cutoff
     }
     return best;
   } else {
     let best = Infinity;
     for (let m of moves) {
       chessInstance.move(m);
-      best = Math.min(best, minimax(depth - 1, chessInstance, alpha, beta, true));
+      best = Math.min(best,
+        minimax(depth - 1, chessInstance, alpha, beta, true)
+      );
       chessInstance.undo();
       beta = Math.min(beta, best);
-      if (beta <= alpha) break;
+      if (beta <= alpha) break;  // α‐cutoff
     }
     return best;
   }
