@@ -1925,6 +1925,148 @@ if (typeof Chess === 'undefined') {
   self.close();
 }
 
+// --- Tiny Opening Book + Fisher–Yates Shuffle + FEN Normalizer ---
+const openingBook = {
+  // 1. White’s 10 most popular first‑moves (White to move)
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w": [
+    { from: "e2", to: "e4" },
+    { from: "d2", to: "d4" },
+    { from: "g1", to: "f3" },
+    { from: "c2", to: "c4" },
+    { from: "g2", to: "g3" },
+    { from: "b1", to: "c3" },
+    { from: "b2", to: "b3" },
+    { from: "f2", to: "f4" },
+    { from: "e2", to: "e3" },
+    { from: "d2", to: "d3" }
+  ],
+
+  // Black replies to 1.e4
+  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b": [
+    { from: "e7", to: "e5" },
+    { from: "c7", to: "c5" },
+    { from: "e7", to: "e6" },
+    { from: "g8", to: "f6" }
+  ],
+
+  // Black replies to 1.d4
+  "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b": [
+    { from: "d7", to: "d5" },
+    { from: "g8", to: "f6" },
+    { from: "e7", to: "e6" },
+    { from: "c7", to: "c6" }
+  ],
+
+  // Black replies to 1.Nf3
+  "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b": [
+    { from: "g8", to: "f6" },
+    { from: "d7", to: "d5" },
+    { from: "e7", to: "e6" },
+    { from: "c7", to: "c5" }
+  ],
+
+  // Black replies to 1.c4
+  "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b": [
+    { from: "e7", to: "e5" },
+    { from: "c7", to: "c5" },
+    { from: "g8", to: "f6" },
+    { from: "e7", to: "e6" }
+  ],
+
+  // Black replies to 1.g3
+  "rnbqkbnr/pppppppp/8/8/8/6P1/PPPPPP1P/RNBQKBNR b": [
+    { from: "e7", to: "e5" },
+    { from: "g8", to: "f6" },
+    { from: "d7", to: "d5" },
+    { from: "e7", to: "e6" }
+  ],
+
+  // Black replies to 1.Nc3
+  "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b": [
+    { from: "g8", to: "f6" },
+    { from: "d7", to: "d5" },
+    { from: "e7", to: "e6" },
+    { from: "c7", to: "c5" }
+  ],
+
+  // Black replies to 1.b3
+  "rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR b": [
+    { from: "e7", to: "e5" },
+    { from: "d7", to: "d5" },
+    { from: "g8", to: "f6" },
+    { from: "e7", to: "e6" }
+  ],
+
+  // Black replies to 1.f4
+  "rnbqkbnr/pppppppp/8/8/5P2/8/PPPPP1PP/RNBQKBNR b": [
+    { from: "e7", to: "e5" },
+    { from: "g8", to: "f6" },
+    { from: "d7", to: "d5" },
+    { from: "e7", to: "e6" }
+  ],
+
+  // Black replies to 1.e3
+  "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b": [
+    { from: "e7", to: "e5" },
+    { from: "c7", to: "c5" },
+    { from: "d7", to: "d5" },
+    { from: "g8", to: "f6" }
+  ],
+
+  // Black replies to 1.d3
+  "rnbqkbnr/pppppppp/8/8/8/3P4/PPPP1PPP/RNBQKBNR b": [
+    { from: "d7", to: "d5" },
+    { from: "g8", to: "f6" },
+    { from: "e7", to: "e6" },
+    { from: "c7", to: "c6" }
+  ],
+
+// Punish single‑pawn blunder 1.g4 with …e6
+"rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR b": [
+  { from: "e7", to: "e6" }
+],
+
+// Punish single‑pawn blunder 1.f3 with …e6
+"rnbqkbnr/pppppppp/8/8/8/5P2/PPPPP1PP/RNBQKBNR b": [
+  { from: "e7", to: "e6" }
+],
+
+// 2. Fool’s Mate (after f3+g4 or g4+f3, Black has played e6 already; Black to move)
+  "rnbqkbnr/pppp1ppp/4p3/8/6P1/5P2/PPPP1PPP/RNBQKBNR b": [
+    { from: "d8", to: "h4" }  // …Qh4#
+  ],
+
+  // 3. Scholar’s Mate pre‑mate position (Black to move)
+  "rnbqkbnr/pppp1ppp/2n2n2/4pQ2/2B1P3/8/PPPP1PPP/RNB1K1NR b": [
+    { from: "d8", to: "h4" }
+  ],
+
+  // 4. Blackburne–Shilling Trap pre‑mate (Black to move)
+  "r1bqkbnr/pppp1ppp/8/4Q3/3nB3/8/PPPP1PPP/RNB1K1NR b": [
+    { from: "g5", to: "e5" }
+  ],
+
+  // 5. Legal’s Mate pre‑mate (Black to move)
+  "r1bqk1nr/pppp1ppp/3p4/4N3/2B1b3/4P3/PPPP1PPP/RNBQK2R b": [
+    { from: "d7", to: "d5" }
+  ]
+};
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Strip full FEN down to exactly "piece‑placement + side‑to‑move"
+function normalizeFen(fen) {
+  const parts = fen.split(' ');
+  return parts[0] + ' ' + parts[1];
+}
+// --- end opening book/shuffle/normalizer ---
+
               // --- AI Logic from Example (Adapted) ---
 
               // Helper to reverse evaluation tables for Black
@@ -2150,14 +2292,29 @@ if (typeof Chess === 'undefined') {
               };
 
 
-// Message handler: receives { fen, depth, aiWorkerColor } and returns bestMove
+// --- Message handler with opening-book check ---
 self.onmessage = function(event) {
   const { fen, depth, aiWorkerColor } = event.data;
-  const bestMove = minimaxRoot(depth, fen, aiWorkerColor);
-  self.postMessage(bestMove);
+  const key = normalizeFen(fen);
+
+  // ← insert this line
+  console.log('[Worker] book lookup for', key, '→', openingBook[key]);
+
+  // 1) Opening book lookup
+  const bookMoves = openingBook[key];
+  if (bookMoves && bookMoves.length) {
+    // pick one at random
+    const move = shuffle(bookMoves.slice())[0];
+    self.postMessage(move);
+    return;
+  }
+
+  // 2) Fallback: full minimax search
+  const best = minimaxRoot(depth, fen, aiWorkerColor);
+  self.postMessage(best);
 };
 
-console.log('[Worker] AI Worker initialized.');
+console.log('[Worker] AI Worker initialized with corrected opening book.');
 `;
         // --- Create and Manage the Worker ---
         function initializeAIWorker() {
