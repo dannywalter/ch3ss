@@ -2067,10 +2067,10 @@ function normalizeFen(fen) {
 }
 // --- end opening book/shuffle/normalizer ---
 
-// MVV/LVA Move‑Ordering
+// MVV/LVA + Killer Moves
 const PIECE_VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
 
-// Assign a score to each capture: (Victim*10 − Attacker)
+// Assign capture scores: (victim*10 − attacker)
 function scoreCapture(move) {
   if (!move.captured) return 0;
   const victim   = PIECE_VALUE[move.captured.toLowerCase()] || 0;
@@ -2078,168 +2078,198 @@ function scoreCapture(move) {
   return (victim * 10) - attacker;
 }
 
-// Sort descending: best captures first, quiet moves score 0
-function orderMoves(moves) {
-  return moves.sort((a, b) => scoreCapture(b) - scoreCapture(a));
+// Compare two moves for exact match
+function sameMove(a, b) {
+  return b &&
+         a.from === b.from &&
+         a.to   === b.to &&
+         a.promotion === b.promotion;
+}
+
+// Two “killer” slots per depth
+const MAX_DEPTH   = 4;  // should exceed your search ply
+const killerMoves = Array.from({ length: MAX_DEPTH }, () => [null, null]);
+
+// Order moves: captures first (MVV/LVA), then killer moves, then the rest
+function orderMoves(moves, depth) {
+  const [k1, k2] = killerMoves[depth] || [null, null];
+  return moves.sort((a, b) => {
+    const ca = scoreCapture(a), cb = scoreCapture(b);
+    if (ca || cb) return cb - ca;       // non‑zero capture scores first
+    if (sameMove(a, k1)) return -1;     // killer #1
+    if (sameMove(b, k1)) return  1;
+    if (sameMove(a, k2)) return -1;     // killer #2
+    if (sameMove(b, k2)) return  1;
+    return 0;                           // otherwise original order
+  });
 }
 
 // --- AI Logic from Example (Adapted) ---
 
-// Helper to reverse evaluation tables for Black
-var reverseArray = function(array) {
-  return JSON.parse(JSON.stringify(array)).reverse();
-};
+// Reverse a table for Black’s side
+var reverseArray = array => JSON.parse(JSON.stringify(array)).reverse();
 
-// --- Piece Square Tables (from Example) ---
+// --- Piece‑Square Tables ---
 var pawnEvalWhite = [
-  [0.0,  0.0, 0.0,  0.0,  0.0, 0.0, 0.0, 0.0],
-  [5.0,  5.0, 5.0,  5.0,  5.0, 5.0, 5.0, 5.0],
-  [1.0,  1.0, 2.0,  3.0,  3.0, 2.0, 1.0, 1.0],
-  [0.5,  0.5, 1.0,  2.5,  2.5, 1.0, 0.5, 0.5],
-  [0.0,  0.0, 0.0,  2.0,  2.0, 0.0, 0.0, 0.0],
-  [0.5, -0.5,-1.0,  0.0,  0.0,-1.0,-0.5, 0.5],
-  [0.5,  1.0, 1.0, -2.0, -2.0, 1.0, 1.0, 0.5],
-  [0.0,  0.0, 0.0,  0.0,  0.0, 0.0, 0.0, 0.0]
+  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
+  [5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0],
+  [1.0,  1.0,  2.0,  3.0,  3.0,  2.0,  1.0,  1.0],
+  [0.5,  0.5,  1.0,  2.5,  2.5,  1.0,  0.5,  0.5],
+  [0.0,  0.0,  0.0,  2.0,  2.0,  0.0,  0.0,  0.0],
+  [0.5, -0.5, -1.0,  0.0,  0.0, -1.0, -0.5,  0.5],
+  [0.5,  1.0,  1.0, -2.0, -2.0,  1.0,  1.0,  0.5],
+  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0]
 ];
 var pawnEvalBlack = reverseArray(pawnEvalWhite);
 
 var knightEval = [
-  [-5.0,-4.0,-3.0,-3.0,-3.0,-3.0,-4.0,-5.0],
-  [-4.0,-2.0, 0.0, 0.0, 0.0, 0.0,-2.0,-4.0],
-  [-3.0, 0.0, 1.0, 1.5, 1.5, 1.0, 0.0,-3.0],
-  [-3.0, 0.5, 1.5, 2.0, 2.0, 1.5, 0.5,-3.0],
-  [-3.0, 0.0, 1.5, 2.0, 2.0, 1.5, 0.0,-3.0],
-  [-3.0, 0.5, 1.0, 1.5, 1.5, 1.0, 0.5,-3.0],
-  [-4.0,-2.0, 0.0, 0.5, 0.5, 0.0,-2.0,-4.0],
-  [-5.0,-4.0,-3.0,-3.0,-3.0,-3.0,-4.0,-5.0]
+  [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
+  [-4.0, -2.0,  0.0,  0.0,  0.0,  0.0, -2.0, -4.0],
+  [-3.0,  0.0,  1.0,  1.5,  1.5,  1.0,  0.0, -3.0],
+  [-3.0,  0.5,  1.5,  2.0,  2.0,  1.5,  0.5, -3.0],
+  [-3.0,  0.0,  1.5,  2.0,  2.0,  1.5,  0.0, -3.0],
+  [-3.0,  0.5,  1.0,  1.5,  1.5,  1.0,  0.5, -3.0],
+  [-4.0, -2.0,  0.0,  0.5,  0.5,  0.0, -2.0, -4.0],
+  [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0]
 ];
 
 var bishopEvalWhite = [
-  [-2.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-2.0],
-  [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-1.0],
-  [-1.0, 0.0, 0.5, 1.0, 1.0, 0.5, 0.0,-1.0],
-  [-1.0, 0.5, 0.5, 1.0, 1.0, 0.5, 0.5,-1.0],
-  [-1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,-1.0],
-  [-1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,-1.0],
-  [-1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5,-1.0],
-  [-2.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-2.0]
+  [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
+  [-1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0],
+  [-1.0,  0.0,  0.5,  1.0,  1.0,  0.5,  0.0, -1.0],
+  [-1.0,  0.5,  0.5,  1.0,  1.0,  0.5,  0.5, -1.0],
+  [-1.0,  0.0,  1.0,  1.0,  1.0,  1.0,  0.0, -1.0],
+  [-1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0, -1.0],
+  [-1.0,  0.5,  0.0,  0.0,  0.0,  0.0,  0.5, -1.0],
+  [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0]
 ];
 var bishopEvalBlack = reverseArray(bishopEvalWhite);
 
 var rookEvalWhite = [
-  [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-  [ 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5],
-  [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-0.5],
-  [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-0.5],
-  [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-0.5],
-  [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-0.5],
-  [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-0.5],
-  [ 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0]
+  [  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
+  [  0.5,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  0.5],
+  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+  [  0.0,  0.0,  0.0,  0.5,  0.5,  0.0,  0.0,  0.0]
 ];
 var rookEvalBlack = reverseArray(rookEvalWhite);
 
 var evalQueen = [
-  [-2.0,-1.0,-1.0,-0.5,-0.5,-1.0,-1.0,-2.0],
-  [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-1.0],
-  [-1.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0,-1.0],
-  [-0.5, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0,-0.5],
-  [ 0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0,-0.5],
-  [-1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0,-1.0],
-  [-1.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0,-1.0],
-  [-2.0,-1.0,-1.0,-0.5,-0.5,-1.0,-1.0,-2.0]
+  [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
+  [ -1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0],
+  [ -1.0,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -1.0],
+  [ -0.5,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -0.5],
+  [  0.0,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -0.5],
+  [ -1.0,  0.5,  0.5,  0.5,  0.5,  0.5,  0.0, -1.0],
+  [ -1.0,  0.0,  0.5,  0.0,  0.0,  0.0,  0.0, -1.0],
+  [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0]
 ];
 
 var kingEvalWhite = [
-  [-3.0,-4.0,-4.0,-5.0,-5.0,-4.0,-4.0,-3.0],
-  [-3.0,-4.0,-4.0,-5.0,-5.0,-4.0,-4.0,-3.0],
-  [-3.0,-4.0,-4.0,-5.0,-5.0,-4.0,-4.0,-3.0],
-  [-3.0,-4.0,-4.0,-5.0,-5.0,-4.0,-4.0,-3.0],
-  [-2.0,-3.0,-3.0,-4.0,-4.0,-3.0,-3.0,-2.0],
-  [-1.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-1.0],
-  [ 2.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0],
-  [ 2.0, 3.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0]
+  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+  [ -2.0, -3.0, -3.0, -4.0, -4.0, -3.0, -3.0, -2.0],
+  [ -1.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -1.0],
+  [  2.0,  2.0,  0.0,  0.0,  0.0,  0.0,  2.0,  2.0],
+  [  2.0,  3.0,  1.0,  0.0,  0.0,  1.0,  3.0,  2.0]
 ];
 var kingEvalBlack = reverseArray(kingEvalWhite);
 
-// Get Value of a Piece (including positional bonus)
+// Absolute piece value (no sign)
 var getPieceValue = function(piece, x, y) {
   if (!piece) return 0;
   var isWhite = piece.color === 'w';
-  var type    = piece.type;
-  if (type === 'p') return 10 + (isWhite ? pawnEvalWhite[y][x] : pawnEvalBlack[y][x]);
-  if (type === 'r') return 50 + (isWhite ? rookEvalWhite[y][x] : rookEvalBlack[y][x]);
-  if (type === 'n') return 30 + knightEval[y][x];
-  if (type === 'b') return 30 + (isWhite ? bishopEvalWhite[y][x] : bishopEvalBlack[y][x]);
-  if (type === 'q') return 90 + evalQueen[y][x];
-  if (type === 'k') return 9000 + (isWhite ? kingEvalWhite[y][x] : kingEvalBlack[y][x]);
+  var t = piece.type;
+  if (t === 'p') return 10 + (isWhite ? pawnEvalWhite[y][x] : pawnEvalBlack[y][x]);
+  if (t === 'r') return 50 + (isWhite ? rookEvalWhite[y][x] : rookEvalBlack[y][x]);
+  if (t === 'n') return 30 + knightEval[y][x];
+  if (t === 'b') return 30 + (isWhite ? bishopEvalWhite[y][x] : bishopEvalBlack[y][x]);
+  if (t === 'q') return 90 + evalQueen[y][x];
+  if (t === 'k') return 9000 + (isWhite ? kingEvalWhite[y][x] : kingEvalBlack[y][x]);
   return 0;
 };
 
-// Evaluate Board - sums piece values from White’s perspective
+// Material + positional eval from White’s POV
 var evaluateBoard = function(board) {
   var total = 0;
   for (var y = 0; y < 8; y++) {
     for (var x = 0; x < 8; x++) {
-      var piece = board[y][x];
-      if (piece) {
-        var val = getPieceValue(piece, x, y);
-        total += piece.color === 'w' ? val : -val;
+      var p = board[y][x];
+      if (p) {
+        var v = getPieceValue(p, x, y);
+        total += p.color === 'w' ? v : -v;
       }
     }
   }
   return total;
 };
 
-// Minimax with mate/stalemate detection
+// Minimax w/ αβ and killer‑move updates
 var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
-  // --- Terminal‐node guard: mate, draw, or depth 0 ---
   if (depth === 0 || chessInstance.game_over()) {
     if (chessInstance.in_checkmate()) {
-      // If the side to move is mated, bad for that side
       return isMaximisingPlayer ? -Infinity : Infinity;
     }
     if (chessInstance.in_stalemate() || chessInstance.in_draw()) {
       return 0;
     }
-    // Otherwise fall back to static evaluation
     return evaluateBoard(chessInstance.board());
   }
 
-  // --- Recursive case: generate & order moves ---
-  const moves = orderMoves(chessInstance.moves({ verbose: true }));
+  const moves = orderMoves(chessInstance.moves({ verbose: true }), depth);
   if (isMaximisingPlayer) {
     let best = -Infinity;
     for (let m of moves) {
       chessInstance.move(m);
-      best = Math.max(best,
-        minimax(depth - 1, chessInstance, alpha, beta, false)
-      );
+      const score = minimax(depth - 1, chessInstance, alpha, beta, false);
       chessInstance.undo();
+
+      if (score > best) best = score;
       alpha = Math.max(alpha, best);
-      if (beta <= alpha) break;  // β‐cutoff
+
+      if (beta <= alpha) {
+        if (!m.captured) {
+          killerMoves[depth][1] = killerMoves[depth][0];
+          killerMoves[depth][0] = m;
+        }
+        break;
+      }
     }
     return best;
   } else {
     let best = Infinity;
     for (let m of moves) {
       chessInstance.move(m);
-      best = Math.min(best,
-        minimax(depth - 1, chessInstance, alpha, beta, true)
-      );
+      const score = minimax(depth - 1, chessInstance, alpha, beta, true);
       chessInstance.undo();
+
+      if (score < best) best = score;
       beta = Math.min(beta, best);
-      if (beta <= alpha) break;  // α‐cutoff
+
+      if (beta <= alpha) {
+        if (!m.captured) {
+          killerMoves[depth][1] = killerMoves[depth][0];
+          killerMoves[depth][0] = m;
+        }
+        break;
+      }
     }
     return best;
   }
 };
 
+// Entry point
 var minimaxRoot = function(depth, fen, aiWorkerColor) {
   const chessInstance = new Chess(fen);
-  const moves = orderMoves(chessInstance.moves({ verbose: true }));
-  let bestValue = aiWorkerColor === 'white' ? -Infinity : Infinity;
-  let bestMove  = null;
-  const isWhite = aiWorkerColor === 'white';
+  const isWhite       = aiWorkerColor === 'white';
+  const moves         = orderMoves(chessInstance.moves({ verbose: true }), depth);
+  let bestValue       = isWhite ? -Infinity : Infinity;
+  let bestMove        = null;
 
   for (let m of moves) {
     chessInstance.move(m);
@@ -2258,25 +2288,20 @@ var minimaxRoot = function(depth, fen, aiWorkerColor) {
     : null;
 };
 
-// --- Message handler with opening-book check ---
+// --- Message handler with opening‑book check ---
 self.onmessage = function(event) {
   const { fen, depth, aiWorkerColor } = event.data;
   const key = normalizeFen(fen);
 
-  console.log('[Worker] book lookup for', key, '→', openingBook[key]);
-
   const bookMoves = openingBook[key];
   if (bookMoves && bookMoves.length) {
-    const move = shuffle(bookMoves.slice())[0];
-    self.postMessage(move);
-    return;
+    self.postMessage(shuffle(bookMoves.slice())[0]);
+  } else {
+    self.postMessage(minimaxRoot(depth, fen, aiWorkerColor));
   }
-
-  const best = minimaxRoot(depth, fen, aiWorkerColor);
-  self.postMessage(best);
 };
 
-console.log('[Worker] AI Worker initialized with MVV/LVA.');
+console.log('[Worker] AI Worker initialized with MVV/LVA + Killer Moves.');
 `;
         // --- Create and Manage the Worker ---
         function initializeAIWorker() {
