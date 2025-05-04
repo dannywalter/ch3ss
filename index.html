@@ -2067,254 +2067,201 @@ function normalizeFen(fen) {
 }
 // --- end opening book/shuffle/normalizer ---
 
-              // --- AI Logic from Example (Adapted) ---
+// MVV/LVA Move‑Ordering
+const PIECE_VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
 
-              // Helper to reverse evaluation tables for Black
-              var reverseArray = function(array) {
-                  // Ensure it's a deep copy to avoid modifying original arrays
-                  return JSON.parse(JSON.stringify(array)).reverse();
-              };
+// Assign a score to each capture: (Victim*10 − Attacker)
+function scoreCapture(move) {
+  if (!move.captured) return 0;
+  const victim   = PIECE_VALUE[move.captured.toLowerCase()] || 0;
+  const attacker = PIECE_VALUE[move.piece.toLowerCase()]    || 0;
+  return (victim * 10) - attacker;
+}
 
-              // --- Piece Square Tables (from Example) ---
-              var pawnEvalWhite = [
-                  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
-                  [5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0],
-                  [1.0,  1.0,  2.0,  3.0,  3.0,  2.0,  1.0,  1.0],
-                  [0.5,  0.5,  1.0,  2.5,  2.5,  1.0,  0.5,  0.5],
-                  [0.0,  0.0,  0.0,  2.0,  2.0,  0.0,  0.0,  0.0],
-                  [0.5, -0.5, -1.0,  0.0,  0.0, -1.0, -0.5,  0.5],
-                  [0.5,  1.0, 1.0,  -2.0, -2.0,  1.0,  1.0,  0.5],
-                  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0]
-              ];
-              var pawnEvalBlack = reverseArray(pawnEvalWhite);
+// Sort descending: best captures first, quiet moves score 0
+function orderMoves(moves) {
+  return moves.sort((a, b) => scoreCapture(b) - scoreCapture(a));
+}
 
-              var knightEval = [
-                  [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
-                  [-4.0, -2.0,  0.0,  0.0,  0.0,  0.0, -2.0, -4.0],
-                  [-3.0,  0.0,  1.0,  1.5,  1.5,  1.0,  0.0, -3.0],
-                  [-3.0,  0.5,  1.5,  2.0,  2.0,  1.5,  0.5, -3.0],
-                  [-3.0,  0.0,  1.5,  2.0,  2.0,  1.5,  0.0, -3.0],
-                  [-3.0,  0.5,  1.0,  1.5,  1.5,  1.0,  0.5, -3.0],
-                  [-4.0, -2.0,  0.0,  0.5,  0.5,  0.0, -2.0, -4.0],
-                  [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0]
-              ];
+// --- AI Logic from Example (Adapted) ---
 
-              var bishopEvalWhite = [
-                  [ -2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
-                  [ -1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0],
-                  [ -1.0,  0.0,  0.5,  1.0,  1.0,  0.5,  0.0, -1.0],
-                  [ -1.0,  0.5,  0.5,  1.0,  1.0,  0.5,  0.5, -1.0],
-                  [ -1.0,  0.0,  1.0,  1.0,  1.0,  1.0,  0.0, -1.0],
-                  [ -1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0, -1.0],
-                  [ -1.0,  0.5,  0.0,  0.0,  0.0,  0.0,  0.5, -1.0],
-                  [ -2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0]
-              ];
-              var bishopEvalBlack = reverseArray(bishopEvalWhite);
-
-              var rookEvalWhite = [
-                  [  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
-                  [  0.5,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  0.5],
-                  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
-                  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
-                  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
-                  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
-                  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
-                  [  0.0,   0.0, 0.0,  0.5,  0.5,  0.0,  0.0,  0.0]
-              ];
-              var rookEvalBlack = reverseArray(rookEvalWhite);
-
-              var evalQueen = [
-                  [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
-                  [ -1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0],
-                  [ -1.0,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -1.0],
-                  [ -0.5,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -0.5],
-                  [  0.0,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -0.5],
-                  [ -1.0,  0.5,  0.5,  0.5,  0.5,  0.5,  0.0, -1.0],
-                  [ -1.0,  0.0,  0.5,  0.0,  0.0,  0.0,  0.0, -1.0],
-                  [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0]
-              ];
-
-              var kingEvalWhite = [
-                  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-                  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-                  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-                  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-                  [ -2.0, -3.0, -3.0, -4.0, -4.0, -3.0, -3.0, -2.0],
-                  [ -1.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -1.0],
-                  [  2.0,  2.0,  0.0,  0.0,  0.0,  0.0,  2.0,  2.0 ],
-                  [  2.0,  3.0,  1.0,  0.0,  0.0,  1.0,  3.0,  2.0 ]
-              ];
-              var kingEvalBlack = reverseArray(kingEvalWhite);
-              // --- End Piece Square Tables ---
-
-              // Get Value of a Piece (including positional bonus) - From Example
-              var getPieceValue = function (piece, x, y) {
-                  if (piece === null) {
-                      return 0;
-                  }
-                  // Returns value from WHITE's perspective (positive=good for white)
-                  var getAbsoluteValue = function (piece, isWhite, x ,y) {
-                      if (piece.type === 'p') {
-                          return 10 + ( isWhite ? pawnEvalWhite[y][x] : pawnEvalBlack[y][x] );
-                      } else if (piece.type === 'r') {
-                          return 50 + ( isWhite ? rookEvalWhite[y][x] : rookEvalBlack[y][x] );
-                      } else if (piece.type === 'n') {
-                          return 30 + knightEval[y][x]; // Knight table is symmetrical
-                      } else if (piece.type === 'b') {
-                          return 30 + ( isWhite ? bishopEvalWhite[y][x] : bishopEvalBlack[y][x] );
-                      } else if (piece.type === 'q') {
-                          return 90 + evalQueen[y][x]; // Queen table assumed symmetrical
-                      } else if (piece.type === 'k') {
-                           // Ensure king safety dominates material end-game
-                          return 9000 + ( isWhite ? kingEvalWhite[y][x] : kingEvalBlack[y][x] );
-                      }
-                      console.error("[Worker] Unknown piece type: " + piece.type);
-                      return 0; // Should not happen
-                  };
-
-                  var absoluteValue = getAbsoluteValue(piece, piece.color === 'w', x ,y);
-                  // Return positive for white pieces, negative for black pieces
-                  return piece.color === 'w' ? absoluteValue : -absoluteValue;
-              };
-
-               // Evaluate Board - Sums piece values - From Example
-              var evaluateBoard = function (board) {
-                  if (typeof Chess === 'undefined') return 0;
-                  var totalEvaluation = 0;
-                  for (var i = 0; i < 8; i++) { // row index (y)
-                      for (var j = 0; j < 8; j++) { // column index (x)
-                          // Use getPieceValue which returns score relative to White (+ for white, - for black)
-                           // Ensure board[i][j] is accessed correctly, assuming chess.js .board() format
-                          totalEvaluation = totalEvaluation + getPieceValue(board[i][j], j ,i);
-                      }
-                  }
-                  return totalEvaluation; // Returns score from White's perspective
-              };
-
-              // Minimax - From Example (adapted for chess.js instance and perspective)
-              var minimax = function (depth, chessInstance, alpha, beta, isMaximisingPlayer) {
-                   if (typeof Chess === 'undefined') return 0;
-                  // positionCount++; // Optional: uncomment to count nodes
-
-                  // Base Case: Depth limit reached or game over
-                  if (depth === 0 || chessInstance.game_over()) {
-                      // Return evaluation from WHITE's perspective
-                       // The example negated this, implying evaluateBoard gives score for player to move.
-                       // Let's stick to WHITE's perspective for consistency with example tables.
-                      return evaluateBoard(chessInstance.board());
-                  }
-
-                  var newGameMoves = chessInstance.moves({ verbose: true }); // Use internal moves
-
-                  if (isMaximisingPlayer) { // White's turn (trying to maximize score)
-                      var bestMove = -Infinity; // Initialize lower than possible score
-                      for (var i = 0; i < newGameMoves.length; i++) {
-                          chessInstance.move(newGameMoves[i]);
-                          bestMove = Math.max(bestMove, minimax(depth - 1, chessInstance, alpha, beta, !isMaximisingPlayer));
-                          chessInstance.undo();
-                          alpha = Math.max(alpha, bestMove);
-                          if (beta <= alpha) {
-                              return bestMove; // Beta cutoff
-                          }
-                      }
-                      return bestMove;
-                  } else { // Black's turn (trying to minimize score)
-                      var bestMove = Infinity; // Initialize higher than possible score
-                      for (var i = 0; i < newGameMoves.length; i++) {
-                          chessInstance.move(newGameMoves[i]);
-                          bestMove = Math.min(bestMove, minimax(depth - 1, chessInstance, alpha, beta, !isMaximisingPlayer));
-                          chessInstance.undo();
-                          beta = Math.min(beta, bestMove);
-                          if (beta <= alpha) {
-                              return bestMove; // Alpha cutoff
-                          }
-                      }
-                      return bestMove;
-                  }
-              };
-
-              // Minimax Root - From Example (adapted for perspective)
-              var minimaxRoot = function(depth, fen, aiWorkerColor) {
-                   if (typeof Chess === 'undefined') return null;
-
-                  const chessInstance = new Chess(fen);
-                  const newGameMoves = chessInstance.moves({ verbose: true });
-                  var bestMoveValue = aiWorkerColor === 'white' ? -Infinity : Infinity; // Initialize best score based on AI color
-                  var bestMoveFound = null; // Store the actual move object
-
-                  // Determine if the AI is the maximizing player (White) in this evaluation scheme
-                  const isAIWhite = (aiWorkerColor === 'white');
-
-                  for(var i = 0; i < newGameMoves.length; i++) {
-                      var newGameMove = newGameMoves[i];
-                      chessInstance.move({
-  from: newGameMove.from,
-  to:   newGameMove.to,
-  promotion: newGameMove.promotion  // if defined
-});
-                      // Call minimax: !isAIWhite because the next turn is the opponent's
-                      var value = minimax(depth - 1, chessInstance, -Infinity, Infinity, !isAIWhite);
-                      chessInstance.undo();
-
-                      if (isAIWhite) { // AI is White, wants to maximize the value
-                          if(value >= bestMoveValue) {
-                              bestMoveValue = value;
-                              bestMoveFound = newGameMove;
-                          }
-                      } else { // AI is Black, wants to minimize the value (which is from White's perspective)
-                           if(value <= bestMoveValue) {
-                              bestMoveValue = value;
-                              bestMoveFound = newGameMove;
-                          }
-                      }
-                  }
-                  console.log('[Worker] Best move found:', bestMoveFound?.san, 'with eval (White perspective):', bestMoveValue);
-
-                  // Return the move object needed by main thread's chess.move()
-                  // We need { from, to, promotion (if any) }
-                   if (bestMoveFound) {
-                      // Need to convert 0x88 'from' and 'to' squares back to algebraic if main thread expects that
-                      // Let's return the essential parts compatible with chess.move({from: 'a2', to: 'a4'})
-                      // Need a way to convert 0x88 to algebraic within the worker
-                       function algebraicWorker(i) {
-                           var f = i & 15, r = i >> 4;
-                           return 'abcdefgh'.substring(f, f + 1) + '87654321'.substring(r, r + 1);
-                       }
-                      return {
-  from: bestMoveFound.from,            // already "e2", "a8", etc.
-  to:   bestMoveFound.to,              // ditto
-  promotion: bestMoveFound.promotion   // will be e.g. "q" or undefined
+// Helper to reverse evaluation tables for Black
+var reverseArray = function(array) {
+  return JSON.parse(JSON.stringify(array)).reverse();
 };
-                   } else {
-                       console.warn("[Worker] No best move found by minimaxRoot!");
-                       return null; // Should only happen if no legal moves exist (checkmate/stalemate)
-                   }
-              };
 
+// --- Piece Square Tables (from Example) ---
+var pawnEvalWhite = [
+  [0.0,  0.0, 0.0,  0.0,  0.0, 0.0, 0.0, 0.0],
+  [5.0,  5.0, 5.0,  5.0,  5.0, 5.0, 5.0, 5.0],
+  [1.0,  1.0, 2.0,  3.0,  3.0, 2.0, 1.0, 1.0],
+  [0.5,  0.5, 1.0,  2.5,  2.5, 1.0, 0.5, 0.5],
+  [0.0,  0.0, 0.0,  2.0,  2.0, 0.0, 0.0, 0.0],
+  [0.5, -0.5,-1.0,  0.0,  0.0,-1.0,-0.5, 0.5],
+  [0.5,  1.0, 1.0, -2.0, -2.0, 1.0, 1.0, 0.5],
+  [0.0,  0.0, 0.0,  0.0,  0.0, 0.0, 0.0, 0.0]
+];
+var pawnEvalBlack = reverseArray(pawnEvalWhite);
+
+var knightEval = [
+  [-5.0,-4.0,-3.0,-3.0,-3.0,-3.0,-4.0,-5.0],
+  [-4.0,-2.0, 0.0, 0.0, 0.0, 0.0,-2.0,-4.0],
+  [-3.0, 0.0, 1.0, 1.5, 1.5, 1.0, 0.0,-3.0],
+  [-3.0, 0.5, 1.5, 2.0, 2.0, 1.5, 0.5,-3.0],
+  [-3.0, 0.0, 1.5, 2.0, 2.0, 1.5, 0.0,-3.0],
+  [-3.0, 0.5, 1.0, 1.5, 1.5, 1.0, 0.5,-3.0],
+  [-4.0,-2.0, 0.0, 0.5, 0.5, 0.0,-2.0,-4.0],
+  [-5.0,-4.0,-3.0,-3.0,-3.0,-3.0,-4.0,-5.0]
+];
+
+var bishopEvalWhite = [
+  [-2.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-2.0],
+  [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-1.0],
+  [-1.0, 0.0, 0.5, 1.0, 1.0, 0.5, 0.0,-1.0],
+  [-1.0, 0.5, 0.5, 1.0, 1.0, 0.5, 0.5,-1.0],
+  [-1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,-1.0],
+  [-1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,-1.0],
+  [-1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5,-1.0],
+  [-2.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-2.0]
+];
+var bishopEvalBlack = reverseArray(bishopEvalWhite);
+
+var rookEvalWhite = [
+  [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+  [ 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5],
+  [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-0.5],
+  [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-0.5],
+  [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-0.5],
+  [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-0.5],
+  [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-0.5],
+  [ 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0]
+];
+var rookEvalBlack = reverseArray(rookEvalWhite);
+
+var evalQueen = [
+  [-2.0,-1.0,-1.0,-0.5,-0.5,-1.0,-1.0,-2.0],
+  [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,-1.0],
+  [-1.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0,-1.0],
+  [-0.5, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0,-0.5],
+  [ 0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0,-0.5],
+  [-1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0,-1.0],
+  [-1.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0,-1.0],
+  [-2.0,-1.0,-1.0,-0.5,-0.5,-1.0,-1.0,-2.0]
+];
+
+var kingEvalWhite = [
+  [-3.0,-4.0,-4.0,-5.0,-5.0,-4.0,-4.0,-3.0],
+  [-3.0,-4.0,-4.0,-5.0,-5.0,-4.0,-4.0,-3.0],
+  [-3.0,-4.0,-4.0,-5.0,-5.0,-4.0,-4.0,-3.0],
+  [-3.0,-4.0,-4.0,-5.0,-5.0,-4.0,-4.0,-3.0],
+  [-2.0,-3.0,-3.0,-4.0,-4.0,-3.0,-3.0,-2.0],
+  [-1.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-1.0],
+  [ 2.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0],
+  [ 2.0, 3.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0]
+];
+var kingEvalBlack = reverseArray(kingEvalWhite);
+
+// Get Value of a Piece (including positional bonus)
+var getPieceValue = function(piece, x, y) {
+  if (!piece) return 0;
+  var isWhite = piece.color === 'w';
+  var type    = piece.type;
+  if (type === 'p') return 10 + (isWhite ? pawnEvalWhite[y][x] : pawnEvalBlack[y][x]);
+  if (type === 'r') return 50 + (isWhite ? rookEvalWhite[y][x] : rookEvalBlack[y][x]);
+  if (type === 'n') return 30 + knightEval[y][x];
+  if (type === 'b') return 30 + (isWhite ? bishopEvalWhite[y][x] : bishopEvalBlack[y][x]);
+  if (type === 'q') return 90 + evalQueen[y][x];
+  if (type === 'k') return 9000 + (isWhite ? kingEvalWhite[y][x] : kingEvalBlack[y][x]);
+  return 0;
+};
+
+// Evaluate Board - sums piece values from White’s perspective
+var evaluateBoard = function(board) {
+  var total = 0;
+  for (var y = 0; y < 8; y++) {
+    for (var x = 0; x < 8; x++) {
+      var piece = board[y][x];
+      if (piece) {
+        var val = getPieceValue(piece, x, y);
+        total += piece.color === 'w' ? val : -val;
+      }
+    }
+  }
+  return total;
+};
+
+var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
+  if (depth === 0 || chessInstance.game_over()) {
+    return evaluateBoard(chessInstance.board());
+  }
+
+  const moves = orderMoves(chessInstance.moves({ verbose: true }));
+  if (isMaximisingPlayer) {
+    let best = -Infinity;
+    for (let m of moves) {
+      chessInstance.move(m);
+      best = Math.max(best, minimax(depth - 1, chessInstance, alpha, beta, false));
+      chessInstance.undo();
+      alpha = Math.max(alpha, best);
+      if (beta <= alpha) break;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (let m of moves) {
+      chessInstance.move(m);
+      best = Math.min(best, minimax(depth - 1, chessInstance, alpha, beta, true));
+      chessInstance.undo();
+      beta = Math.min(beta, best);
+      if (beta <= alpha) break;
+    }
+    return best;
+  }
+};
+
+var minimaxRoot = function(depth, fen, aiWorkerColor) {
+  const chessInstance = new Chess(fen);
+  const moves = orderMoves(chessInstance.moves({ verbose: true }));
+  let bestValue = aiWorkerColor === 'white' ? -Infinity : Infinity;
+  let bestMove  = null;
+  const isWhite = aiWorkerColor === 'white';
+
+  for (let m of moves) {
+    chessInstance.move(m);
+    const val = minimax(depth - 1, chessInstance, -Infinity, Infinity, !isWhite);
+    chessInstance.undo();
+
+    if ((isWhite && val >= bestValue) || (!isWhite && val <= bestValue)) {
+      bestValue = val;
+      bestMove  = m;
+    }
+  }
+
+  console.log('[Worker] Best move found:', bestMove?.san, 'eval:', bestValue);
+  return bestMove
+    ? { from: bestMove.from, to: bestMove.to, promotion: bestMove.promotion }
+    : null;
+};
 
 // --- Message handler with opening-book check ---
 self.onmessage = function(event) {
   const { fen, depth, aiWorkerColor } = event.data;
   const key = normalizeFen(fen);
 
-  // ← insert this line
   console.log('[Worker] book lookup for', key, '→', openingBook[key]);
 
-  // 1) Opening book lookup
   const bookMoves = openingBook[key];
   if (bookMoves && bookMoves.length) {
-    // pick one at random
     const move = shuffle(bookMoves.slice())[0];
     self.postMessage(move);
     return;
   }
 
-  // 2) Fallback: full minimax search
   const best = minimaxRoot(depth, fen, aiWorkerColor);
   self.postMessage(best);
 };
 
-console.log('[Worker] AI Worker initialized with corrected opening book.');
+console.log('[Worker] AI Worker initialized with MVV/LVA.');
 `;
         // --- Create and Manage the Worker ---
         function initializeAIWorker() {
