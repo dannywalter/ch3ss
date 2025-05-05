@@ -2250,7 +2250,7 @@ function evaluateBoard(board) {
 // --- Quiescence Search (capture‐only) ---
 function quiescence(alpha, beta, ci, isMax, depth = 0) {
   // Add a depth limit to prevent excessive searching
-  if (depth >= 5) return evaluateBoard(ci.board()); // Limit quiescence to 5 plies
+  if (depth >= 3) return evaluateBoard(ci.board()); // Limit quiescence to 3 plies
   
   const stand = evaluateBoard(ci.board());
   if (isMax) {
