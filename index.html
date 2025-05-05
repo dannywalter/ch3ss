@@ -1927,6 +1927,7 @@ if (typeof Chess === 'undefined') {
 
 // --- Tiny Opening Book + Fisher–Yates Shuffle + FEN Normalizer ---
 const openingBook = {
+  // 1. White’s 10 most popular first‑moves (White to move)
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w": [
     { from: "e2", to: "e4" },
     { from: "d2", to: "d4" },
@@ -1939,81 +1940,113 @@ const openingBook = {
     { from: "e2", to: "e3" },
     { from: "d2", to: "d3" }
   ],
+
+  // Black replies to 1.e4
   "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b": [
     { from: "e7", to: "e5" },
     { from: "c7", to: "c5" },
     { from: "e7", to: "e6" },
     { from: "g8", to: "f6" }
   ],
+
+  // Black replies to 1.d4
   "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b": [
     { from: "d7", to: "d5" },
     { from: "g8", to: "f6" },
     { from: "e7", to: "e6" },
     { from: "c7", to: "c6" }
   ],
+
+  // Black replies to 1.Nf3
   "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b": [
     { from: "g8", to: "f6" },
     { from: "d7", to: "d5" },
     { from: "e7", to: "e6" },
     { from: "c7", to: "c5" }
   ],
+
+  // Black replies to 1.c4
   "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b": [
     { from: "e7", to: "e5" },
     { from: "c7", to: "c5" },
     { from: "g8", to: "f6" },
     { from: "e7", to: "e6" }
   ],
+
+  // Black replies to 1.g3
   "rnbqkbnr/pppppppp/8/8/8/6P1/PPPPPP1P/RNBQKBNR b": [
     { from: "e7", to: "e5" },
     { from: "g8", to: "f6" },
     { from: "d7", to: "d5" },
     { from: "e7", to: "e6" }
   ],
+
+  // Black replies to 1.Nc3
   "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b": [
     { from: "g8", to: "f6" },
     { from: "d7", to: "d5" },
     { from: "e7", to: "e6" },
     { from: "c7", to: "c5" }
   ],
+
+  // Black replies to 1.b3
   "rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR b": [
     { from: "e7", to: "e5" },
     { from: "d7", to: "d5" },
     { from: "g8", to: "f6" },
     { from: "e7", to: "e6" }
   ],
+
+  // Black replies to 1.f4
   "rnbqkbnr/pppppppp/8/8/5P2/8/PPPPP1PP/RNBQKBNR b": [
     { from: "e7", to: "e5" },
     { from: "g8", to: "f6" },
     { from: "d7", to: "d5" },
     { from: "e7", to: "e6" }
   ],
+
+  // Black replies to 1.e3
   "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b": [
     { from: "e7", to: "e5" },
     { from: "c7", to: "c5" },
     { from: "d7", to: "d5" },
     { from: "g8", to: "f6" }
   ],
+
+  // Black replies to 1.d3
   "rnbqkbnr/pppppppp/8/8/8/3P4/PPPP1PPP/RNBQKBNR b": [
     { from: "d7", to: "d5" },
     { from: "g8", to: "f6" },
     { from: "e7", to: "e6" },
     { from: "c7", to: "c6" }
   ],
-  "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR b": [
-    { from: "e7", to: "e6" }
-  ],
-  "rnbqkbnr/pppppppp/8/8/8/5P2/PPPPP1PP/RNBQKBNR b": [
-    { from: "e7", to: "e6" }
-  ],
+
+// Punish single‑pawn blunder 1.g4 with …e6
+"rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR b": [
+  { from: "e7", to: "e6" }
+],
+
+// Punish single‑pawn blunder 1.f3 with …e6
+"rnbqkbnr/pppppppp/8/8/8/5P2/PPPPP1PP/RNBQKBNR b": [
+  { from: "e7", to: "e6" }
+],
+
+// 2. Fool’s Mate (after f3+g4 or g4+f3, Black has played e6 already; Black to move)
   "rnbqkbnr/pppp1ppp/4p3/8/6P1/5P2/PPPP1PPP/RNBQKBNR b": [
-    { from: "d8", to: "h4" }
+    { from: "d8", to: "h4" }  // …Qh4#
   ],
+
+  // 3. Scholar’s Mate pre‑mate position (Black to move)
   "rnbqkbnr/pppp1ppp/2n2n2/4pQ2/2B1P3/8/PPPP1PPP/RNB1K1NR b": [
     { from: "d8", to: "h4" }
   ],
+
+  // 4. Blackburne–Shilling Trap pre‑mate (Black to move)
   "r1bqkbnr/pppp1ppp/8/4Q3/3nB3/8/PPPP1PPP/RNB1K1NR b": [
     { from: "g5", to: "e5" }
   ],
+
+  // 5. Legal’s Mate pre‑mate (Black to move)
   "r1bqk1nr/pppp1ppp/3p4/4N3/2B1b3/4P3/PPPP1PPP/RNBQK2R b": [
     { from: "d7", to: "d5" }
   ]
@@ -2034,370 +2067,241 @@ function normalizeFen(fen) {
 }
 // --- end opening book/shuffle/normalizer ---
 
-// --- Transposition Table + Zobrist Hashing ---
-const TT = {};                // hash → { value, depth }
-
-const TT_SIZE_LIMIT = 50000; // Limit entries to avoid memory issues
-const TT_CLEANUP_THRESHOLD = 0.5; // Remove half of the entries when cleaning up
-
-function cleanupTT() {
-  const entries = Object.keys(TT);
-  if (entries.length > TT_SIZE_LIMIT) {
-    console.log('[Worker] TT cleanup: ' + entries.length + ' entries, removing ' + 
-      Math.floor(entries.length * TT_CLEANUP_THRESHOLD));
-    
-    // Sort entries by depth (keep deeper searches)
-    const sortedEntries = entries
-      .map(key => ({ key, depth: TT[key].depth || 0 }))
-      .sort((a, b) => a.depth - b.depth);
-      
-    // Remove the shallowest entries
-    const removeCount = Math.floor(sortedEntries.length * TT_CLEANUP_THRESHOLD);
-    for (let i = 0; i < removeCount; i++) {
-      delete TT[sortedEntries[i].key];
-    }
-    
-    console.log('[Worker] TT after cleanup: ' + Object.keys(TT).length + ' entries');
-  }
-}
-
-const ZOBRIST = { pieceSquare: [], sideToMove: 0 };
-
-function random32() {
-  return (Math.random() * 0x100000000) >>> 0;
-}
-
-(function initZobrist() {
-  for (let i = 0; i < 12; i++) {
-    ZOBRIST.pieceSquare[i] = [];
-    for (let sq = 0; sq < 64; sq++) {
-      ZOBRIST.pieceSquare[i][sq] = random32();
-    }
-  }
-  ZOBRIST.sideToMove = random32();
-})();
-
-function computeHash(boardArray, turn) {
-  let h = 0;
-  for (let sq = 0; sq < 64; sq++) {
-    const y = (sq/8)|0, x = sq%8;
-    const p = boardArray[y][x];
-    if (p) {
-      const base = p.color==='w' ? 0 : 6;
-      const map  = { p:0,n:1,b:2,r:3,q:4,k:5 };
-      const idx  = base + map[p.type];
-      h ^= ZOBRIST.pieceSquare[idx][sq];
-    }
-  }
-  if (turn==='b') h ^= ZOBRIST.sideToMove;
-  return h>>>0;
-}
-
-// algebraic → 0–63
-function squareToIdx(sq) {
-  const file = 'abcdefgh'.indexOf(sq[0]);
-  const rank = 8 - parseInt(sq[1],10);
-  return rank*8 + file;
-}
-
-// piece letter → 0–5
-const PIECE_MAP = { p:0, n:1, b:2, r:3, q:4, k:5 };
-
-// update Zobrist hash on a single move
-function updateHash(hash, m) {
-  let h = hash;
-  // flip side
-  h ^= ZOBRIST.sideToMove;
-  // moving piece out
-  const fromI = squareToIdx(m.from);
-  const base  = (m.color==='w'?0:6);
-  const pi    = base + PIECE_MAP[m.piece];
-  h ^= ZOBRIST.pieceSquare[pi][fromI];
-  // moving piece in
-  const toI = squareToIdx(m.to);
-  h ^= ZOBRIST.pieceSquare[pi][toI];
-  // remove captured if any
-  if (m.captured) {
-    const capBase = (m.capturedColor==='w'?0:6);
-    const ci      = capBase + PIECE_MAP[m.captured.toLowerCase()];
-    h ^= ZOBRIST.pieceSquare[ci][toI];
-  }
-  return h>>>0;
-}
-
 // MVV/LVA + Killer Moves
-const PIECE_VALUE = { p:1, n:3, b:3, r:5, q:9 };
+const PIECE_VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
 
-function scoreCapture(m) {
-  if (!m.captured) return 0;
-  const v = PIECE_VALUE[m.captured.toLowerCase()]||0;
-  const a = PIECE_VALUE[m.piece.toLowerCase()]||0;
-  return v*10 - a;
+// Assign capture scores: (victim*10 − attacker)
+function scoreCapture(move) {
+  if (!move.captured) return 0;
+  const victim   = PIECE_VALUE[move.captured.toLowerCase()] || 0;
+  const attacker = PIECE_VALUE[move.piece.toLowerCase()]    || 0;
+  return (victim * 10) - attacker;
 }
-function sameMove(a,b) {
-  return b && a.from===b.from && a.to===b.to && a.promotion===b.promotion;
-}
-const MAX_DEPTH = 4;
-const killerMoves = Array.from({length:MAX_DEPTH},()=>[null,null]);
 
+// Compare two moves for exact match
+function sameMove(a, b) {
+  return b &&
+         a.from === b.from &&
+         a.to   === b.to &&
+         a.promotion === b.promotion;
+}
+
+// Two “killer” slots per depth
+const MAX_DEPTH   = 4;  // should exceed your search ply
+const killerMoves = Array.from({ length: MAX_DEPTH }, () => [null, null]);
+
+// Order moves: captures first (MVV/LVA), then killer moves, then the rest
 function orderMoves(moves, depth) {
-  const [k1,k2] = killerMoves[depth]||[];
-  return moves.sort((a,b)=>{
-    const ca=scoreCapture(a), cb=scoreCapture(b);
-    if (ca||cb) return cb-ca;
-    if (sameMove(a,k1)) return -1;
-    if (sameMove(b,k1)) return 1;
-    if (sameMove(a,k2)) return -1;
-    if (sameMove(b,k2)) return 1;
-    return 0;
+  const [k1, k2] = killerMoves[depth] || [null, null];
+  return moves.sort((a, b) => {
+    const ca = scoreCapture(a), cb = scoreCapture(b);
+    if (ca || cb) return cb - ca;       // non‑zero capture scores first
+    if (sameMove(a, k1)) return -1;     // killer #1
+    if (sameMove(b, k1)) return  1;
+    if (sameMove(a, k2)) return -1;     // killer #2
+    if (sameMove(b, k2)) return  1;
+    return 0;                           // otherwise original order
   });
 }
 
-// --- Piece‑Square Tables & Eval ---
-var reverseArray = arr=>JSON.parse(JSON.stringify(arr)).reverse();
+// --- AI Logic from Example (Adapted) ---
+
+// Reverse a table for Black’s side
+var reverseArray = array => JSON.parse(JSON.stringify(array)).reverse();
+
+// --- Piece‑Square Tables ---
 var pawnEvalWhite = [
-  [0,0,0,0,0,0,0,0],
-  [5,5,5,5,5,5,5,5],
-  [1,1,2,3,3,2,1,1],
-  [0.5,0.5,1,2.5,2.5,1,0.5,0.5],
-  [0,0,0,2,2,0,0,0],
-  [0.5,-0.5,-1,0,0,-1,-0.5,0.5],
-  [0.5,1,1,-2,-2,1,1,0.5],
-  [0,0,0,0,0,0,0,0]
+  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
+  [5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0],
+  [1.0,  1.0,  2.0,  3.0,  3.0,  2.0,  1.0,  1.0],
+  [0.5,  0.5,  1.0,  2.5,  2.5,  1.0,  0.5,  0.5],
+  [0.0,  0.0,  0.0,  2.0,  2.0,  0.0,  0.0,  0.0],
+  [0.5, -0.5, -1.0,  0.0,  0.0, -1.0, -0.5,  0.5],
+  [0.5,  1.0,  1.0, -2.0, -2.0,  1.0,  1.0,  0.5],
+  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0]
 ];
 var pawnEvalBlack = reverseArray(pawnEvalWhite);
+
 var knightEval = [
-  [-5,-4,-3,-3,-3,-3,-4,-5],
-  [-4,-2,0,0,0,0,-2,-4],
-  [-3,0,1,1.5,1.5,1,0,-3],
-  [-3,0.5,1.5,2,2,1.5,0.5,-3],
-  [-3,0,1.5,2,2,1.5,0,-3],
-  [-3,0.5,1,1.5,1.5,1,0.5,-3],
-  [-4,-2,0,0.5,0.5,0,-2,-4],
-  [-5,-4,-3,-3,-3,-3,-4,-5]
+  [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
+  [-4.0, -2.0,  0.0,  0.0,  0.0,  0.0, -2.0, -4.0],
+  [-3.0,  0.0,  1.0,  1.5,  1.5,  1.0,  0.0, -3.0],
+  [-3.0,  0.5,  1.5,  2.0,  2.0,  1.5,  0.5, -3.0],
+  [-3.0,  0.0,  1.5,  2.0,  2.0,  1.5,  0.0, -3.0],
+  [-3.0,  0.5,  1.0,  1.5,  1.5,  1.0,  0.5, -3.0],
+  [-4.0, -2.0,  0.0,  0.5,  0.5,  0.0, -2.0, -4.0],
+  [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0]
 ];
+
 var bishopEvalWhite = [
-  [-2,-1,-1,-1,-1,-1,-1,-2],
-  [-1,0,0,0,0,0,0,-1],
-  [-1,0,0.5,1,1,0.5,0,-1],
-  [-1,0.5,0.5,1,1,0.5,0.5,-1],
-  [-1,0,1,1,1,1,0,-1],
-  [-1,1,1,1,1,1,1,-1],
-  [-1,0.5,0,0,0,0,0.5,-1],
-  [-2,-1,-1,-1,-1,-1,-1,-2]
+  [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
+  [-1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0],
+  [-1.0,  0.0,  0.5,  1.0,  1.0,  0.5,  0.0, -1.0],
+  [-1.0,  0.5,  0.5,  1.0,  1.0,  0.5,  0.5, -1.0],
+  [-1.0,  0.0,  1.0,  1.0,  1.0,  1.0,  0.0, -1.0],
+  [-1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0, -1.0],
+  [-1.0,  0.5,  0.0,  0.0,  0.0,  0.0,  0.5, -1.0],
+  [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0]
 ];
 var bishopEvalBlack = reverseArray(bishopEvalWhite);
+
 var rookEvalWhite = [
-  [0,0,0,0,0,0,0,0],
-  [0.5,1,1,1,1,1,1,0.5],
-  [-0.5,0,0,0,0,0,0,-0.5],
-  [-0.5,0,0,0,0,0,0,-0.5],
-  [-0.5,0,0,0,0,0,0,-0.5],
-  [-0.5,0,0,0,0,0,0,-0.5],
-  [-0.5,0,0,0,0,0,0,-0.5],
-  [0,0,0,0.5,0.5,0,0,0]
+  [  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
+  [  0.5,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  0.5],
+  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+  [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
+  [  0.0,  0.0,  0.0,  0.5,  0.5,  0.0,  0.0,  0.0]
 ];
 var rookEvalBlack = reverseArray(rookEvalWhite);
+
 var evalQueen = [
-  [-2,-1,-1,-0.5,-0.5,-1,-1,-2],
-  [-1,0,0,0,0,0,0,-1],
-  [-1,0,0.5,0.5,0.5,0.5,0,-1],
-  [-0.5,0,0.5,0.5,0.5,0.5,0,-0.5],
-  [0,0,0.5,0.5,0.5,0.5,0,-0.5],
-  [-1,0.5,0.5,0.5,0.5,0.5,0,-1],
-  [-1,0,0.5,0,0,0,0,-1],
-  [-2,-1,-1,-0.5,-0.5,-1,-1,-2]
+  [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
+  [ -1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0],
+  [ -1.0,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -1.0],
+  [ -0.5,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -0.5],
+  [  0.0,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -0.5],
+  [ -1.0,  0.5,  0.5,  0.5,  0.5,  0.5,  0.0, -1.0],
+  [ -1.0,  0.0,  0.5,  0.0,  0.0,  0.0,  0.0, -1.0],
+  [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0]
 ];
+
 var kingEvalWhite = [
-  [-3,-4,-4,-5,-5,-4,-4,-3],
-  [-3,-4,-4,-5,-5,-4,-4,-3],
-  [-3,-4,-4,-5,-5,-4,-4,-3],
-  [-3,-4,-4,-5,-5,-4,-4,-3],
-  [-2,-3,-3,-4,-4,-3,-3,-2],
-  [-1,-2,-2,-2,-2,-2,-2,-1],
-  [2,2,0,0,0,0,2,2],
-  [2,3,1,0,0,1,3,2]
+  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+  [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
+  [ -2.0, -3.0, -3.0, -4.0, -4.0, -3.0, -3.0, -2.0],
+  [ -1.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -1.0],
+  [  2.0,  2.0,  0.0,  0.0,  0.0,  0.0,  2.0,  2.0],
+  [  2.0,  3.0,  1.0,  0.0,  0.0,  1.0,  3.0,  2.0]
 ];
 var kingEvalBlack = reverseArray(kingEvalWhite);
 
-function getPieceValue(p, x, y) {
-  if (!p) return 0;
-  const isW = p.color==='w';
-  const t   = p.type;
-  if (t==='p') return 10 + (isW ? pawnEvalWhite[y][x] : pawnEvalBlack[y][x]);
-  if (t==='r') return 50 + (isW ? rookEvalWhite[y][x] : rookEvalBlack[y][x]);
-  if (t==='n') return 30 + knightEval[y][x];
-  if (t==='b') return 30 + (isW ? bishopEvalWhite[y][x] : bishopEvalBlack[y][x]);
-  if (t==='q') return 90 + evalQueen[y][x];
-  if (t==='k') return 9000 + (isW ? kingEvalWhite[y][x] : kingEvalBlack[y][x]);
+// Absolute piece value (no sign)
+var getPieceValue = function(piece, x, y) {
+  if (!piece) return 0;
+  var isWhite = piece.color === 'w';
+  var t = piece.type;
+  if (t === 'p') return 10 + (isWhite ? pawnEvalWhite[y][x] : pawnEvalBlack[y][x]);
+  if (t === 'r') return 50 + (isWhite ? rookEvalWhite[y][x] : rookEvalBlack[y][x]);
+  if (t === 'n') return 30 + knightEval[y][x];
+  if (t === 'b') return 30 + (isWhite ? bishopEvalWhite[y][x] : bishopEvalBlack[y][x]);
+  if (t === 'q') return 90 + evalQueen[y][x];
+  if (t === 'k') return 9000 + (isWhite ? kingEvalWhite[y][x] : kingEvalBlack[y][x]);
   return 0;
-}
+};
 
-function evaluateBoard(board) {
-  let total = 0;
-  for (let y=0; y<8; y++) {
-    for (let x=0; x<8; x++) {
-      const p = board[y][x];
+// Material + positional eval from White’s POV
+var evaluateBoard = function(board) {
+  var total = 0;
+  for (var y = 0; y < 8; y++) {
+    for (var x = 0; x < 8; x++) {
+      var p = board[y][x];
       if (p) {
-        const v = getPieceValue(p,x,y);
-        total += p.color==='w' ? v : -v;
+        var v = getPieceValue(p, x, y);
+        total += p.color === 'w' ? v : -v;
       }
     }
   }
   return total;
-}
+};
 
-// --- Quiescence Search (capture‐only) ---
-function quiescence(alpha, beta, ci, isMax, depth = 0) {
-  if (depth >= 1) return evaluateBoard(ci.board()); // Also reduced from 2 to 1 for speed
-  
-  const stand = evaluateBoard(ci.board());
-  const FUTILITY_MARGIN = 200; // Define outside both blocks
-  
-  if (isMax) {
-    if (stand >= beta) return beta;
-    
-    // Delta pruning for maximizing player
-    if (stand + FUTILITY_MARGIN <= alpha) return alpha;
-    
-    if (stand > alpha) alpha = stand;
-  } else {
-    if (stand <= alpha) return alpha;
-    
-    // Delta pruning for minimizing player
-    if (stand - FUTILITY_MARGIN >= beta) return beta;
-    
-    if (stand < beta) beta = stand;
-  }
-  // Filter to only favorable captures
-  const caps = orderMoves(
-    ci.moves({verbose:true})
-      .filter(m => m.captured && 
-        PIECE_VALUE[m.captured.toLowerCase()] >= PIECE_VALUE[m.piece.toLowerCase()]),
-    0
-  );
-  if (isMax) {
-    for (const m of caps) {
-      ci.move(m);
-      const sc = quiescence(alpha,beta,ci,false,depth+1);
-      ci.undo();
-      if (sc >= beta) return beta;
-      if (sc > alpha) alpha = sc;
+// Minimax w/ αβ and killer‑move updates
+var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
+  if (depth === 0 || chessInstance.game_over()) {
+    if (chessInstance.in_checkmate()) {
+      return isMaximisingPlayer ? -Infinity : Infinity;
     }
-    return alpha;
-  } else {
-    for (const m of caps) {
-      ci.move(m);
-      const sc = quiescence(alpha,beta,ci,true,depth+1);
-      ci.undo();
-      if (sc <= alpha) return alpha;
-      if (sc < beta) beta = sc;
+    if (chessInstance.in_stalemate() || chessInstance.in_draw()) {
+      return 0;
     }
-    return beta;
-  }
-}
-
-// --- Minimax + αβ + TT + Incremental Hashing ---
-function minimax(depth, ci, alpha, beta, isMax, hash) {
-  const entry = TT[hash];
-  if (entry && entry.depth >= depth) return entry.value;
-
-  if (depth===0 || ci.game_over()) {
-    if (ci.in_checkmate())    return isMax ? -Infinity : Infinity;
-    if (ci.in_stalemate()||ci.in_draw()) return 0;
-    if (depth===0) return quiescence(alpha,beta,ci,isMax);
-    return evaluateBoard(ci.board());
+    return evaluateBoard(chessInstance.board());
   }
 
-  const moves = orderMoves(ci.moves({verbose:true}), depth);
-  let best = isMax ? -Infinity : Infinity;
+  const moves = orderMoves(chessInstance.moves({ verbose: true }), depth);
+  if (isMaximisingPlayer) {
+    let best = -Infinity;
+    for (let m of moves) {
+      chessInstance.move(m);
+      const score = minimax(depth - 1, chessInstance, alpha, beta, false);
+      chessInstance.undo();
 
-  for (const m of moves) {
-    const h2 = updateHash(hash, m);
-    ci.move(m);
-    const val = minimax(depth-1,ci,alpha,beta,!isMax,h2);
-    ci.undo();
+      if (score > best) best = score;
+      alpha = Math.max(alpha, best);
 
-    if (isMax) {
-      if (!m.captured) {
-        killerMoves[depth][1] = killerMoves[depth][0];
-        killerMoves[depth][0] = m;
+      if (beta <= alpha) {
+        if (!m.captured) {
+          killerMoves[depth][1] = killerMoves[depth][0];
+          killerMoves[depth][0] = m;
+        }
+        break;
       }
-      best = Math.max(best,val);
-      alpha = Math.max(alpha,best);
-    } else {
-      if (!m.captured) {
-        killerMoves[depth][1] = killerMoves[depth][0];
-        killerMoves[depth][0] = m;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (let m of moves) {
+      chessInstance.move(m);
+      const score = minimax(depth - 1, chessInstance, alpha, beta, true);
+      chessInstance.undo();
+
+      if (score < best) best = score;
+      beta = Math.min(beta, best);
+
+      if (beta <= alpha) {
+        if (!m.captured) {
+          killerMoves[depth][1] = killerMoves[depth][0];
+          killerMoves[depth][0] = m;
+        }
+        break;
       }
-      best = Math.min(best,val);
-      beta  = Math.min(beta,best);
     }
-    if (beta<=alpha) break;
+    return best;
   }
+};
 
-  TT[hash] = { value: best, depth };
-  return best;
-}
+// Entry point
+var minimaxRoot = function(depth, fen, aiWorkerColor) {
+  const chessInstance = new Chess(fen);
+  const isWhite       = aiWorkerColor === 'white';
+  const moves         = orderMoves(chessInstance.moves({ verbose: true }), depth);
+  let bestValue       = isWhite ? -Infinity : Infinity;
+  let bestMove        = null;
 
-function minimaxRoot(depth, fen, aiColor) {
-  const ci = new Chess(fen);
-  const rootHash = computeHash(ci.board(),ci.turn());
-  const moves    = orderMoves(ci.moves({verbose:true}), 0);
-  let bestVal    = aiColor==='white' ? -Infinity : Infinity;
-  let bestMove   = null;  
-  const isW      = aiColor==='white';
+  for (let m of moves) {
+    chessInstance.move(m);
+    const val = minimax(depth - 1, chessInstance, -Infinity, Infinity, !isWhite);
+    chessInstance.undo();
 
-  for (const m of moves) {
-    const h2 = updateHash(rootHash, m);
-    ci.move(m);
-    const val = minimax(depth-1,ci,-Infinity,Infinity,!isW,h2);
-    ci.undo();
-    if ((isW && val>=bestVal) || (!isW && val<=bestVal)) {
-      bestVal  = val;
-      bestMove = m;
+    if ((isWhite && val >= bestValue) || (!isWhite && val <= bestValue)) {
+      bestValue = val;
+      bestMove  = m;
     }
   }
 
-  console.log('[Worker] Best move:', bestMove?.san, 'eval:', bestVal);
-
-  cleanupTT();  // Clean up transposition table if needed
-
+  console.log('[Worker] Best move found:', bestMove?.san, 'eval:', bestValue);
   return bestMove
     ? { from: bestMove.from, to: bestMove.to, promotion: bestMove.promotion }
     : null;
-}
+};
 
 // --- Message handler with opening‑book check ---
 self.onmessage = function(event) {
-  const startTime = Date.now();
   const { fen, depth, aiWorkerColor } = event.data;
-  
-  console.log("[Worker] Received request for " + aiWorkerColor + " at depth " + depth);
-  
   const key = normalizeFen(fen);
+
   const bookMoves = openingBook[key];
-  
-  let result;
   if (bookMoves && bookMoves.length) {
-    result = shuffle(bookMoves.slice())[0];
-    console.log("[Worker] Found opening book move: " + result.from + "-" + result.to);
-    console.log("[Worker] Opening book lookup took: " + (Date.now() - startTime) + "ms");
+    self.postMessage(shuffle(bookMoves.slice())[0]);
   } else {
-    console.log("[Worker] No opening book entry, starting search");
-    result = minimaxRoot(depth, fen, aiWorkerColor);
-    console.log("[Worker] Search completed in: " + (Date.now() - startTime) + "ms");
-    if (result) {
-      console.log("[Worker] Selected move: " + result.from + "-" + result.to);
-    } else {
-      console.log("[Worker] No legal moves found");
-    }
+    self.postMessage(minimaxRoot(depth, fen, aiWorkerColor));
   }
-  
-  self.postMessage(result);
 };
 
-console.log('[Worker] AI Worker initialized with incremental Zobrist hashing.');
+console.log('[Worker] AI Worker initialized with MVV/LVA + Killer Moves.');
 `;
         // --- Create and Manage the Worker ---
         function initializeAIWorker() {
