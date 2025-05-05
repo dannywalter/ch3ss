@@ -2070,6 +2070,83 @@ function normalizeFen(fen) {
 // MVV/LVA + Killer Moves
 const PIECE_VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
 
+// Simple tablebase for king+queen vs king endgame
+function handleKingQueenVsKing(board, isWhite) {
+  // Find the kings and queen
+  let friendlyKing = null;
+  let enemyKing = null;
+  let friendlyQueen = null;
+  let friendlyPieces = 0;
+  let enemyPieces = 0;
+  
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const p = board[y][x];
+      if (p) {
+        if ((p.color === 'w' && isWhite) || (p.color === 'b' && !isWhite)) {
+          friendlyPieces++;
+          if (p.type === 'k') friendlyKing = {x, y};
+          if (p.type === 'q') friendlyQueen = {x, y};
+        } else {
+          enemyPieces++;
+          if (p.type === 'k') enemyKing = {x, y};
+        }
+      }
+    }
+  }
+  
+  // Check if it's a king+queen vs king endgame
+  if (friendlyQueen && friendlyKing && enemyKing && friendlyPieces === 2 && enemyPieces === 1) {
+    console.log('[Worker] Using King+Queen vs King tablebase');
+    
+    // Strategy:
+    // 1. Restrict enemy king to edge (if not already)
+    // 2. Move own king closer
+    // 3. Deliver checkmate
+    
+    // Calculate distances
+    const queenToEnemyKing = Math.max(
+      Math.abs(friendlyQueen.x - enemyKing.x),
+      Math.abs(friendlyQueen.y - enemyKing.y)
+    );
+    
+    const kingToEnemyKing = Math.max(
+      Math.abs(friendlyKing.x - enemyKing.x),
+      Math.abs(friendlyKing.y - enemyKing.y)
+    );
+    
+    // Edge distance (higher is closer to edge)
+    const enemyEdgeDistance = 3.5 - Math.min(
+      Math.abs(enemyKing.x - 3.5),
+      Math.abs(enemyKing.y - 3.5)
+    );
+    
+    // Calculate optimal distance for queen (knight's move away is ideal)
+    const optimalQueenDist = 2;
+    const queenPositionQuality = Math.abs(queenToEnemyKing - optimalQueenDist);
+    
+    // Calculate a special score specifically for this endgame
+    return 1000 + 
+           (enemyEdgeDistance * 50) +  // Reward enemy king near edge
+           (3 - kingToEnemyKing) * 20 + // Reward friendly king getting closer
+           (3 - queenPositionQuality) * 15; // Reward queen at optimal distance
+  }
+  
+  return null; // Not a king+queen vs king endgame
+}
+
+// Track position history to avoid repetitions
+const positionHistory = new Map();
+function addPositionToHistory(fen) {
+  const key = fen.split(' ').slice(0, 4).join(' '); // Position without halfmove/fullmove
+  positionHistory.set(key, (positionHistory.get(key) || 0) + 1);
+}
+
+function getPositionRepetitionCount(fen) {
+  const key = fen.split(' ').slice(0, 4).join(' '); // Position without halfmove/fullmove
+  return positionHistory.get(key) || 0;
+}
+
 // Assign capture scores: (victim*10 − attacker)
 function scoreCapture(move) {
   if (!move.captured) return 0;
@@ -2197,6 +2274,8 @@ var getPieceValue = function(piece, x, y) {
 // Material + positional eval from White’s POV
 var evaluateBoard = function(board) {
   var total = 0;
+  
+  // Standard material + positional evaluation
   for (var y = 0; y < 8; y++) {
     for (var x = 0; x < 8; x++) {
       var p = board[y][x];
@@ -2206,11 +2285,65 @@ var evaluateBoard = function(board) {
       }
     }
   }
+  
+  // Find kings for endgame logic
+  var whiteKing = null;
+  var blackKing = null;
+  var whitePieceCount = 0;
+  var blackPieceCount = 0;
+  
+  for (var y = 0; y < 8; y++) {
+    for (var x = 0; x < 8; x++) {
+      var p = board[y][x];
+      if (p) {
+        if (p.color === 'w') whitePieceCount++;
+        else blackPieceCount++;
+        
+        if (p.type === 'k') {
+          if (p.color === 'w') whiteKing = {x, y};
+          else blackKing = {x, y};
+        }
+      }
+    }
+  }
+  
+  // If we're in a winning endgame, encourage king proximity
+  var isEndgame = (whitePieceCount <= 3 && blackPieceCount === 1) || 
+                 (blackPieceCount <= 3 && whitePieceCount === 1);
+  
+  if (isEndgame && whiteKing && blackKing) {
+    // Calculate king distance (chess king distance is max of rank/file difference)
+    var kingDistance = Math.max(
+      Math.abs(whiteKing.x - blackKing.x),
+      Math.abs(whiteKing.y - blackKing.y)
+    );
+    
+    // Side with more pieces wants their king closer to opponent king
+    if (whitePieceCount > blackPieceCount) {
+      total += (7 - kingDistance) * 10; // White is winning
+    } else if (blackPieceCount > whitePieceCount) {
+      total -= (7 - kingDistance) * 10; // Black is winning
+    }
+    
+    // Favor positions near the edges for efficient checkmate
+    var centerDistance = Math.min(
+      Math.abs(blackKing.x - 3.5),
+      Math.abs(blackKing.y - 3.5)
+    );
+    
+    if (whitePieceCount > blackPieceCount) {
+      total += centerDistance * 5; // Push black king to edge
+    } else if (blackPieceCount > whitePieceCount) {
+      total -= centerDistance * 5; // Push white king to edge
+    }
+  }
+  
   return total;
 };
 
-// Minimax w/ αβ and killer‑move updates
+// Minimax w/ αβ, repetition avoidance, and killer‑move updates
 var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
+  // Base case: reached depth limit or game over
   if (depth === 0 || chessInstance.game_over()) {
     if (chessInstance.in_checkmate()) {
       return isMaximisingPlayer ? -Infinity : Infinity;
@@ -2218,7 +2351,32 @@ var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
     if (chessInstance.in_stalemate() || chessInstance.in_draw()) {
       return 0;
     }
-    return evaluateBoard(chessInstance.board());
+    
+    // Use the tablebase if applicable
+    const specialEndgameScore = handleKingQueenVsKing(
+      chessInstance.board(), 
+      isMaximisingPlayer ? chessInstance.turn() === 'w' : chessInstance.turn() === 'b'
+    );
+    
+    if (specialEndgameScore !== null) {
+      return isMaximisingPlayer ? specialEndgameScore : -specialEndgameScore;
+    }
+    
+    // Get normal evaluation but penalize repetition
+    let score = evaluateBoard(chessInstance.board());
+    const repetitions = getPositionRepetitionCount(chessInstance.fen());
+    if (repetitions > 1) {
+      // Heavily penalize repetitions by 30% per repetition
+      const penalty = 0.3 * (repetitions - 1);
+      score = isMaximisingPlayer ? score * (1 - penalty) : score * (1 + penalty);
+    }
+    
+    // Add bonus for creating checks (forcing moves)
+    if (chessInstance.in_check()) {
+      score += isMaximisingPlayer ? 5 : -5;
+    }
+    
+    return score;
   }
 
   const moves = orderMoves(chessInstance.moves({ verbose: true }), depth);
@@ -2226,6 +2384,9 @@ var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
     let best = -Infinity;
     for (let m of moves) {
       chessInstance.move(m);
+      // Record this position to track repetitions
+      addPositionToHistory(chessInstance.fen());
+      
       const score = minimax(depth - 1, chessInstance, alpha, beta, false);
       chessInstance.undo();
 
@@ -2245,6 +2406,9 @@ var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
     let best = Infinity;
     for (let m of moves) {
       chessInstance.move(m);
+      // Record this position to track repetitions
+      addPositionToHistory(chessInstance.fen());
+      
       const score = minimax(depth - 1, chessInstance, alpha, beta, true);
       chessInstance.undo();
 
@@ -2263,28 +2427,120 @@ var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
   }
 };
 
-// Entry point
+// Entry point - modified to better handle endgames and checkmates
 var minimaxRoot = function(depth, fen, aiWorkerColor) {
   const chessInstance = new Chess(fen);
-  const isWhite       = aiWorkerColor === 'white';
-  const moves         = orderMoves(chessInstance.moves({ verbose: true }), depth);
-  let bestValue       = isWhite ? -Infinity : Infinity;
-  let bestMove        = null;
+  const isWhite = aiWorkerColor === 'white';
+  
+  // Get all legal moves first
+  const moves = chessInstance.moves({ verbose: true });
+  
+  // Handle checkmate/stalemate immediately
+  if (moves.length === 0) {
+    console.log('[Worker] No legal moves available - checkmate or stalemate');
+    return { error: 'Game over - no legal moves' };
+  }
+  
+  // Clear and initialize the position history at root
+  positionHistory.clear();
+  addPositionToHistory(fen);
+  
+  // ENDGAME DETECTION - If we're in a winning endgame, use special logic
+  const board = chessInstance.board();
+  let whitePieceCount = 0;
+  let blackPieceCount = 0;
+  let isEndgame = false;
+  
+  // Count material to detect endgame
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const p = board[y][x];
+      if (p) {
+        if (p.color === 'w') whitePieceCount++;
+        else blackPieceCount++;
+      }
+    }
+  }
+  
+  // Detect simple endgames
+  if ((whitePieceCount <= 3 && blackPieceCount === 1) ||
+      (blackPieceCount <= 3 && whitePieceCount === 1)) {
+    isEndgame = true;
+    console.log('[Worker] Detected winning endgame, using specialized strategy');
+    depth = Math.min(5, depth + 2); // Increase depth in endgames
+  }
 
+  // Try mate-in-one search first - using the moves we already gathered
   for (let m of moves) {
     chessInstance.move(m);
+    if (chessInstance.in_checkmate()) {
+      chessInstance.undo();
+      console.log('[Worker] Found mate in one!', m.san);
+      return { from: m.from, to: m.to, promotion: m.promotion || 'q' };
+    }
+    chessInstance.undo();
+  }
+
+  // If no mate in one, do regular search
+  const orderedMoves = orderMoves(moves, depth);
+  let bestValue = isWhite ? -Infinity : Infinity;
+  let bestMove = null;
+  let bestMoves = []; // To collect equally good moves
+
+  for (let m of orderedMoves) {
+    chessInstance.move(m);
+    addPositionToHistory(chessInstance.fen());
     const val = minimax(depth - 1, chessInstance, -Infinity, Infinity, !isWhite);
     chessInstance.undo();
 
-    if ((isWhite && val >= bestValue) || (!isWhite && val <= bestValue)) {
+    // Collect equally good moves to avoid repetition when possible
+    if ((isWhite && val > bestValue) || (!isWhite && val < bestValue)) {
       bestValue = val;
-      bestMove  = m;
+      bestMove = m;
+      bestMoves = [m];
+    } else if (val === bestValue) {
+      bestMoves.push(m);
     }
   }
 
+  // If we have multiple equally good moves, prefer one that's not repetitive
+  if (bestMoves.length > 1) {
+    // Try to find a non-repetitive move among the best moves
+    for (let m of bestMoves) {
+      chessInstance.move(m);
+      const repetitionCount = getPositionRepetitionCount(chessInstance.fen());
+      chessInstance.undo();
+      
+      if (repetitionCount <= 1) {
+        bestMove = m;
+        break;
+      }
+    }
+  }
+
+    // If we somehow ended up with no best move despite having legal moves,
+  // select a random legal move as fallback
+  if (!bestMove && moves.length > 0) {
+    bestMove = moves[Math.floor(Math.random() * moves.length)];
+    console.log('[Worker] Fallback to random move:', bestMove.san);
+  }
+
   console.log('[Worker] Best move found:', bestMove?.san, 'eval:', bestValue);
+  
+  // ALWAYS promote to queen in endgames
+  if (bestMove && bestMove.flags && bestMove.flags.includes('p')) {
+    bestMove.promotion = 'q';
+  }
+
+    // Final safety check - never return null
+  if (!bestMove) {
+    console.error('[Worker] Critical error: No move found despite having legal moves');
+    // Last resort - pick first available move
+    bestMove = moves[0];
+  }
+  
   return bestMove
-    ? { from: bestMove.from, to: bestMove.to, promotion: bestMove.promotion }
+    ? { from: bestMove.from, to: bestMove.to, promotion: bestMove.promotion || 'q' }
     : null;
 };
 
@@ -2314,15 +2570,17 @@ console.log('[Worker] AI Worker initialized with MVV/LVA + Killer Moves.');
             aiWorker = new Worker(blobUrl);
 
             // Handle messages back from the worker
-            aiWorker.onmessage = function (event) {
-              aiThinking = false;
-              const bestMove = event.data;
+            aiWorker.onmessage = function(event) {
+  aiThinking = false;
+  const bestMove = event.data;
 
-              if (bestMove && bestMove.error) {
-                console.error("Error reported from AI Worker:", bestMove.error);
-                renderBoard();
-                return;
-              }
+  if (bestMove && bestMove.error) {
+    console.error("Error reported from AI Worker:", bestMove.error);
+    // Handle the error (e.g., show a message that the game is over)
+    renderBoard();
+    updateGameStatus(); // Make sure we update the UI to show game over state
+    return;
+  }
 
               console.log("Main thread received best move:", bestMove);
 
