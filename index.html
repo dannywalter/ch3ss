@@ -2037,7 +2037,7 @@ function normalizeFen(fen) {
 // --- Transposition Table + Zobrist Hashing ---
 const TT = {};                // hash → { value, depth }
 
-const TT_SIZE_LIMIT = 100000; // Limit entries to avoid memory issues
+const TT_SIZE_LIMIT = 50000; // Limit entries to avoid memory issues
 const TT_CLEANUP_THRESHOLD = 0.5; // Remove half of the entries when cleaning up
 
 function cleanupTT() {
@@ -2249,19 +2249,31 @@ function evaluateBoard(board) {
 
 // --- Quiescence Search (capture‐only) ---
 function quiescence(alpha, beta, ci, isMax, depth = 0) {
-  // Add a depth limit to prevent excessive searching
-  if (depth >= 3) return evaluateBoard(ci.board()); // Limit quiescence to 3 plies
+  if (depth >= 1) return evaluateBoard(ci.board()); // Also reduced from 2 to 1 for speed
   
   const stand = evaluateBoard(ci.board());
+  const FUTILITY_MARGIN = 200; // Define outside both blocks
+  
   if (isMax) {
     if (stand >= beta) return beta;
+    
+    // Delta pruning for maximizing player
+    if (stand + FUTILITY_MARGIN <= alpha) return alpha;
+    
     if (stand > alpha) alpha = stand;
   } else {
     if (stand <= alpha) return alpha;
-    if (stand < beta)  beta  = stand;
+    
+    // Delta pruning for minimizing player
+    if (stand - FUTILITY_MARGIN >= beta) return beta;
+    
+    if (stand < beta) beta = stand;
   }
+  // Filter to only favorable captures
   const caps = orderMoves(
-    ci.moves({verbose:true}).filter(m=>m.captured),
+    ci.moves({verbose:true})
+      .filter(m => m.captured && 
+        PIECE_VALUE[m.captured.toLowerCase()] >= PIECE_VALUE[m.piece.toLowerCase()]),
     0
   );
   if (isMax) {
@@ -2358,14 +2370,31 @@ function minimaxRoot(depth, fen, aiColor) {
 
 // --- Message handler with opening‑book check ---
 self.onmessage = function(event) {
+  const startTime = Date.now();
   const { fen, depth, aiWorkerColor } = event.data;
+  
+  console.log("[Worker] Received request for " + aiWorkerColor + " at depth " + depth);
+  
   const key = normalizeFen(fen);
-  const b  = openingBook[key];
-  if (b && b.length) {
-    self.postMessage(shuffle(b.slice())[0]);
+  const bookMoves = openingBook[key];
+  
+  let result;
+  if (bookMoves && bookMoves.length) {
+    result = shuffle(bookMoves.slice())[0];
+    console.log("[Worker] Found opening book move: " + result.from + "-" + result.to);
+    console.log("[Worker] Opening book lookup took: " + (Date.now() - startTime) + "ms");
   } else {
-    self.postMessage(minimaxRoot(depth, fen, aiWorkerColor));
+    console.log("[Worker] No opening book entry, starting search");
+    result = minimaxRoot(depth, fen, aiWorkerColor);
+    console.log("[Worker] Search completed in: " + (Date.now() - startTime) + "ms");
+    if (result) {
+      console.log("[Worker] Selected move: " + result.from + "-" + result.to);
+    } else {
+      console.log("[Worker] No legal moves found");
+    }
   }
+  
+  self.postMessage(result);
 };
 
 console.log('[Worker] AI Worker initialized with incremental Zobrist hashing.');
