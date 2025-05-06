@@ -858,24 +858,6 @@
     .difficulty-multi {
       color: #ff00ff;
     }
-
-    @keyframes kingGlitch {
-  0% { opacity: 0.3; transform: scale(1); }
-  20% { opacity: 0.8; transform: scale(1.05); }
-  40% { opacity: 0.5; transform: scale(1); }
-  60% { opacity: 1; transform: scale(1.1); box-shadow: inset 0 0 30px #ff00ff, 0 0 50px #ff00ff; }
-  80% { opacity: 0.7; transform: scale(1); }
-  100% { opacity: 1; transform: scale(1.15); }
-}
-
-@keyframes scanEffect {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 200%; }
-}
-
-.checkmate-animation {
-  animation: fadeIn 0.5s ease-in;
-}
   </style>
 </head>
 
@@ -1832,6 +1814,7 @@
         newCloseButton.addEventListener("click", () => {
           scoringOverlay.classList.remove("active");
           document.querySelector("#scoring-overlay .modal-header").textContent = "CH3SS SCOREBOARD";
+          resetGame(false); // Add this line to start a new game without resetting stats
         });
         scoringOverlay.classList.add("active");
       }
@@ -2203,98 +2186,88 @@
     )
       playerStats.checkmateWithPawn = true;
     
-    // Replace immediate overlay with animated sequence
-    if (!boardElement.querySelector(".checkmate-animation")) {
+    // Only call animateCheckmate if an animation isn't already in progress
+    if (!boardElement.querySelector(".checkmate-overlay")) {
       animateCheckmate(winner, gameResult);
       return; // Skip the rest to avoid creating overlays
     }
-        } else if (chess.in_stalemate()) {
-          statusText = "DRAW";
-          isGameOver = true;
-          gameOverTitle = "DRAW";
-          gameOverReason = "STALEMATE";
-          gameResult = "draw";
-        } else if (chess.in_threefold_repetition()) {
-          statusText = "DRAW";
-          isGameOver = true;
-          gameOverTitle = "DRAW";
-          gameOverReason = "REPETITION";
-          gameResult = "draw";
-        } else if (chess.insufficient_material()) {
-          statusText = "DRAW";
-          isGameOver = true;
-          gameOverTitle = "DRAW";
-          gameOverReason = "INSUFFICIENT MATERIAL";
-          gameResult = "draw";
-        } else if (chess.in_draw()) {
-          statusText = "DRAW";
-          isGameOver = true;
-          gameOverTitle = "DRAW";
-          gameOverReason = "50-MOVE RULE";
-          gameResult = "draw";
-        } else if (chess.in_check()) {
-          statusText = "CHECK";
-        } else {
-          statusText = gameMode === "ai" ? (aiThinking ? "AI THINKING" : "PLAYING vs AI") : "PLAYING";
-        }
-        gameStatusElement.textContent = statusText;
-        if (isGameOver && !boardElement.querySelector(".checkmate-overlay")) {
-          // Prevent multiple overlays
-          if (gameMode === "ai") {
-            const scoreResult = calculateGameScore(gameResult);
-            gameScore = scoreResult.score;
-            showScoringOverlay(scoreResult);
-          } else {
-            gameScore = 0;
-          }
-          showGameOverOverlay(gameOverTitle, gameOverReason);
-        } else if ((!isGameOver && statusText === "CHECKMATE") || statusText === "DRAW") {
-          // Add winner/draw text if not handled by overlay yet
-          const reasonElement = document.createElement("div");
-          reasonElement.className = "winner";
-          reasonElement.textContent = gameOverReason || statusText;
-          gameStatusElement.appendChild(reasonElement);
-        }
+  } else if (chess.in_stalemate()) {
+    statusText = "DRAW";
+    isGameOver = true;
+    gameOverTitle = "DRAW";
+    gameOverReason = "STALEMATE";
+    gameResult = "draw";
+  } else if (chess.in_threefold_repetition()) {
+    statusText = "DRAW";
+    isGameOver = true;
+    gameOverTitle = "DRAW";
+    gameOverReason = "REPETITION";
+    gameResult = "draw";
+  } else if (chess.insufficient_material()) {
+    statusText = "DRAW";
+    isGameOver = true;
+    gameOverTitle = "DRAW";
+    gameOverReason = "INSUFFICIENT MATERIAL";
+    gameResult = "draw";
+  } else if (chess.in_draw()) {
+    statusText = "DRAW";
+    isGameOver = true;
+    gameOverTitle = "DRAW";
+    gameOverReason = "50-MOVE RULE";
+    gameResult = "draw";
+  } else if (chess.in_check()) {
+    statusText = "CHECK";
+  } else {
+    statusText = gameMode === "ai" ? (aiThinking ? "AI THINKING" : "PLAYING vs AI") : "PLAYING";
+  }
+  
+  gameStatusElement.textContent = statusText;
+  
+  // Only show game over overlays for non-checkmate endings
+  // or if we don't already have an overlay showing
+  if (isGameOver && !boardElement.querySelector(".checkmate-overlay")) {
+    // Only show game over overlay for draws and other end states
+    // For checkmate, we already handled it above with animateCheckmate
+    if (!chess.in_checkmate()) {
+      if (gameMode === "ai") {
+        const scoreResult = calculateGameScore(gameResult);
+        gameScore = scoreResult.score;
+        showScoringOverlay(scoreResult);
+      } else {
+        gameScore = 0;
       }
+      showGameOverOverlay(gameOverTitle, gameOverReason);
+    }
+  } else if ((!isGameOver && statusText === "CHECKMATE") || statusText === "DRAW") {
+    // Add winner/draw text if not handled by overlay yet
+    const reasonElement = document.createElement("div");
+    reasonElement.className = "winner";
+    reasonElement.textContent = gameOverReason || statusText;
+    gameStatusElement.appendChild(reasonElement);
+  }
+}
 
       function animateCheckmate(winner, gameResult) {
-  // Clear the selectedPiece to remove the "selected" styling
+  // Clear the selectedPiece to avoid any lingering "selected" styling
   selectedPiece = null;
   
   // Find the king piece
   const kingColor = winner === "WHITE" ? "black" : "white";
   let checkmatedKing = null;
   
-  // Make sure the last move highlights remain visible
-  // We'll only clear them after displaying them properly first
-  // Don't clear them at the beginning of the animation
-  
-  // Find the king and continue with animation
   document.querySelectorAll(`.piece.${kingColor}-piece`).forEach(piece => {
     if (piece.textContent === "♚") {
       checkmatedKing = piece;
     }
   });
   
-  // Create the animation container with scanlines
+  // Create the animation container with original checkmate overlay styling
   const animationOverlay = document.createElement("div");
-  animationOverlay.style.cssText = `
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.5s;
-  `;
+  animationOverlay.className = "checkmate-overlay";
+  animationOverlay.style.opacity = "0";
+  animationOverlay.style.transition = "opacity 0.5s";
   
-  // Add scanlines to the overlay
+  // Add scanlines effect
   const scanlines = document.createElement("div");
   scanlines.style.cssText = `
     position: absolute;
@@ -2316,11 +2289,68 @@
     z-index: -1;
   `;
   
-  animationOverlay.appendChild(scanlines);  
+  animationOverlay.appendChild(scanlines);
+  
+  // Create content container using original overlay structure
+  const content = document.createElement("div");
+  content.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.8s;";
+  
+  // Create title element but start with size 0
+  const titleElement = document.createElement("div");
+  titleElement.className = "checkmate-text";
+  titleElement.textContent = "CHECKMATE";
+  titleElement.style.transform = "scale(0.5)";
+  titleElement.style.transition = "transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)";
+  
+  // Create reason element
+  const reasonElement = document.createElement("div");
+  reasonElement.className = "scoreboard-text";
+  reasonElement.style.textAlign = "center";
+  reasonElement.textContent = `${winner} WINS!`;
+  reasonElement.style.opacity = "0";
+  reasonElement.style.transition = "opacity 0.5s";
+  
+  // Create button container
+  const buttonContainer = document.createElement("div");
+  buttonContainer.style.cssText = "display: flex; flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.5s;";
+  
+  // Continue button
+  const continueButton = document.createElement("button");
+  continueButton.className = "modal-button";
+  continueButton.textContent = "CONTINUE";
+  
+  continueButton.addEventListener("click", () => {
+    playButtonClickSound();
+    
+    // Fade out animation overlay
+    animationOverlay.style.opacity = "0";
+    
+    setTimeout(() => {
+      boardElement.removeChild(animationOverlay);
+      
+      // Display the stats overlay
+      if (gameMode === "ai") {
+        const scoreResult = calculateGameScore(gameResult);
+        gameScore = scoreResult.score;
+        showScoringOverlay(scoreResult);
+      }
+    }, 500);
+  });
+  
+  buttonContainer.appendChild(continueButton);
+  
+  // Assemble the content
+  content.appendChild(titleElement);
+  content.appendChild(reasonElement);
+  content.appendChild(buttonContainer);
+  animationOverlay.appendChild(content);
+  
+  // Add to board
   boardElement.appendChild(animationOverlay);
   
   // Start animation sequence
   setTimeout(() => {
+    // Fade in overlay
     animationOverlay.style.opacity = "1";
     
     // Enhanced king glitch effect
@@ -2354,7 +2384,7 @@
       const kingClone = checkmatedKing.cloneNode(true);
       kingClone.style.animation = "kingPulse 0.8s ease-in-out infinite";
       
-      // Create multiple glitch layers for more dramatic effect
+      // Create glow effects
       const glowEffect = document.createElement("div");
       glowEffect.style.cssText = `
         position: absolute;
@@ -2368,7 +2398,6 @@
         pointer-events: none;
       `;
       
-      // Add a secondary glow with different timing
       const secondaryGlow = document.createElement("div");
       secondaryGlow.style.cssText = `
         position: absolute;
@@ -2391,107 +2420,54 @@
       checkmatedKing.style.opacity = "0";
       kingWrapper.appendChild(kingClone);
       kingSquare.appendChild(kingWrapper);
-      
-      // Add keyframe animations directly to the page
-      const styleSheet = document.createElement("style");
-      styleSheet.textContent = `
-        @keyframes kingPulse {
-          0% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
-          20% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.05); }
-          40% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
-          60% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
-          80% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
-          100% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
-        }
-        
-        @keyframes kingGlow {
-          0% { opacity: 0.3; }
-          50% { opacity: 0.8; }
-          100% { opacity: 0.3; }
-        }
-      `;
-      document.head.appendChild(styleSheet);
     }
     
-    // Checkmate text
-    const checkmateText = document.createElement("div");
-    checkmateText.textContent = "CHECKMATE";
-    checkmateText.style.cssText = `
-      color: #ff00ff;
-      font-size: 0;
-      font-weight: bold;
-      text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
-      transition: font-size 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-      text-align: center;
-    `;
-    animationOverlay.appendChild(checkmateText);
-    
-    // Animate text size
+    // Fade in content after a short delay
     setTimeout(() => {
-      checkmateText.style.fontSize = "2.5rem";
-    }, 100);
-    
-    // Show winner
-    setTimeout(() => {
-      const winnerText = document.createElement("div");
-      winnerText.textContent = `${winner} WINS!`;
-      winnerText.style.cssText = `
-        color: #00ffff;
-        font-size: 1.2rem;
-        margin-top: 15px;
-        opacity: 0;
-        transition: opacity 1s;
-        text-shadow: 0 0 8px #00ffff, 0 0 16px #00ffff;
-      `;
-      animationOverlay.appendChild(winnerText);
+      content.style.opacity = "1";
+      titleElement.style.transform = "scale(1)";
       
+      // Show winner text
       setTimeout(() => {
-        winnerText.style.opacity = "1";
+        reasonElement.style.opacity = "1";
         
-        // Add continue button
-        const continueButton = document.createElement("button");
-        continueButton.textContent = "CONTINUE";
-        continueButton.className = "modal-button";
-        continueButton.style.cssText = `
-          margin-top: 30px;
-          opacity: 0;
-          transition: opacity 0.5s;
-          z-index: 5;
-        `;
-        animationOverlay.appendChild(continueButton);
-        
-        // Fade in button
+        // Show buttons
         setTimeout(() => {
-          continueButton.style.opacity = "1";
-        }, 500);
-        
-        // Button click handler
-        continueButton.addEventListener("click", () => {
-          // Play button sound
-          playButtonClickSound();
+          buttonContainer.style.opacity = "1";
           
-          // Remove animation overlay
-          animationOverlay.style.opacity = "0";
+          // Auto-continue after 10 seconds
           setTimeout(() => {
-            boardElement.removeChild(animationOverlay);
-            
-            // Display the stats overlay
-            if (gameMode === "ai") {
-              const scoreResult = calculateGameScore(gameResult);
-              gameScore = scoreResult.score;
-              showScoringOverlay(scoreResult);
+            if (boardElement.contains(animationOverlay)) {
+              continueButton.click();
             }
-            
-            // Show game over overlay
-            showGameOverOverlay("CHECKMATE", `${winner} WINS!`);
-          }, 500);
-        });
-        
-        // Allow clicking anywhere to skip (same as before)
-        // Auto-continue after 10 seconds (same as before)
+          }, 10000);
+        }, 500);
       }, 800);
-    }, 1500);
+    }, 500);
   }, 300);
+  
+  // Add animation keyframes if not already present
+  if (!document.getElementById('checkmate-animations')) {
+    const styleSheet = document.createElement("style");
+    styleSheet.id = 'checkmate-animations';
+    styleSheet.textContent = `
+      @keyframes kingPulse {
+        0% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+        20% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.05); }
+        40% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+        60% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
+        80% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+      }
+      
+      @keyframes kingGlow {
+        0% { opacity: 0.3; }
+        50% { opacity: 0.8; }
+        100% { opacity: 0.3; }
+      }
+    `;
+    document.head.appendChild(styleSheet);
+  }
 }
 
       function showGameOverOverlay(title, reason) {
