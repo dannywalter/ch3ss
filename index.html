@@ -858,6 +858,24 @@
     .difficulty-multi {
       color: #ff00ff;
     }
+
+    @keyframes kingGlitch {
+  0% { opacity: 0.3; transform: scale(1); }
+  20% { opacity: 0.8; transform: scale(1.05); }
+  40% { opacity: 0.5; transform: scale(1); }
+  60% { opacity: 1; transform: scale(1.1); box-shadow: inset 0 0 30px #ff00ff, 0 0 50px #ff00ff; }
+  80% { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes scanEffect {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 200%; }
+}
+
+.checkmate-animation {
+  animation: fadeIn 0.5s ease-in;
+}
   </style>
 </head>
 
@@ -1914,405 +1932,29 @@
       }
       // --- End Helper Functions ---
 
-      // --- Web Worker Setup ---
-      let chessJsSource = "";
-
-      // Define the code that will run inside the worker as a string
-      const workerCode = `
-    // Load chess.js inside the worker
-    importScripts('https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js');
-    if (typeof Chess === 'undefined') {
-      console.error('[Worker] CRITICAL: chess.js failed to load');
-      self.postMessage({ error: 'Chess library failed to load in worker' });
-      self.close();
-    }
-
-    // --- Tiny Opening Book + Fisher–Yates Shuffle + FEN Normalizer ---
-    const openingBook = {
-      // 1. White’s 10 most popular first‑moves (White to move)
-      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w": [
-        { from: "e2", to: "e4" },
-        { from: "d2", to: "d4" },
-        { from: "g1", to: "f3" },
-        { from: "c2", to: "c4" },
-        { from: "g2", to: "g3" },
-        { from: "b1", to: "c3" },
-        { from: "b2", to: "b3" },
-        { from: "f2", to: "f4" },
-        { from: "e2", to: "e3" },
-        { from: "d2", to: "d3" }
-      ],
-
-      // Black replies to 1.e4
-      "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b": [
-        { from: "e7", to: "e5" },
-        { from: "c7", to: "c5" },
-        { from: "e7", to: "e6" },
-        { from: "g8", to: "f6" }
-      ],
-
-      // Black replies to 1.d4
-      "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b": [
-        { from: "d7", to: "d5" },
-        { from: "g8", to: "f6" },
-        { from: "e7", to: "e6" },
-        { from: "c7", to: "c6" }
-      ],
-
-      // Black replies to 1.Nf3
-      "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b": [
-        { from: "g8", to: "f6" },
-        { from: "d7", to: "d5" },
-        { from: "e7", to: "e6" },
-        { from: "c7", to: "c5" }
-      ],
-
-      // Black replies to 1.c4
-      "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b": [
-        { from: "e7", to: "e5" },
-        { from: "c7", to: "c5" },
-        { from: "g8", to: "f6" },
-        { from: "e7", to: "e6" }
-      ],
-
-      // Black replies to 1.g3
-      "rnbqkbnr/pppppppp/8/8/8/6P1/PPPPPP1P/RNBQKBNR b": [
-        { from: "e7", to: "e5" },
-        { from: "g8", to: "f6" },
-        { from: "d7", to: "d5" },
-        { from: "e7", to: "e6" }
-      ],
-
-      // Black replies to 1.Nc3
-      "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b": [
-        { from: "g8", to: "f6" },
-        { from: "d7", to: "d5" },
-        { from: "e7", to: "e6" },
-        { from: "c7", to: "c5" }
-      ],
-
-      // Black replies to 1.b3
-      "rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR b": [
-        { from: "e7", to: "e5" },
-        { from: "d7", to: "d5" },
-        { from: "g8", to: "f6" },
-        { from: "e7", to: "e6" }
-      ],
-
-      // Black replies to 1.f4
-      "rnbqkbnr/pppppppp/8/8/5P2/8/PPPPP1PP/RNBQKBNR b": [
-        { from: "e7", to: "e5" },
-        { from: "g8", to: "f6" },
-        { from: "d7", to: "d5" },
-        { from: "e7", to: "e6" }
-      ],
-
-      // Black replies to 1.e3
-      "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b": [
-        { from: "e7", to: "e5" },
-        { from: "c7", to: "c5" },
-        { from: "d7", to: "d5" },
-        { from: "g8", to: "f6" }
-      ],
-
-      // Black replies to 1.d3
-      "rnbqkbnr/pppppppp/8/8/8/3P4/PPPP1PPP/RNBQKBNR b": [
-        { from: "d7", to: "d5" },
-        { from: "g8", to: "f6" },
-        { from: "e7", to: "e6" },
-        { from: "c7", to: "c6" }
-      ],
-
-    // Punish single‑pawn blunder 1.g4 with …e6
-    "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR b": [
-      { from: "e7", to: "e6" }
-    ],
-
-    // Punish single‑pawn blunder 1.f3 with …e6
-    "rnbqkbnr/pppppppp/8/8/8/5P2/PPPPP1PP/RNBQKBNR b": [
-      { from: "e7", to: "e6" }
-    ],
-
-    // 2. Fool’s Mate (after f3+g4 or g4+f3, Black has played e6 already; Black to move)
-      "rnbqkbnr/pppp1ppp/4p3/8/6P1/5P2/PPPP1PPP/RNBQKBNR b": [
-        { from: "d8", to: "h4" }  // …Qh4#
-      ],
-
-      // 3. Scholar’s Mate pre‑mate position (Black to move)
-      "rnbqkbnr/pppp1ppp/2n2n2/4pQ2/2B1P3/8/PPPP1PPP/RNB1K1NR b": [
-        { from: "d8", to: "h4" }
-      ],
-
-      // 4. Blackburne–Shilling Trap pre‑mate (Black to move)
-      "r1bqkbnr/pppp1ppp/8/4Q3/3nB3/8/PPPP1PPP/RNB1K1NR b": [
-        { from: "g5", to: "e5" }
-      ],
-
-      // 5. Legal’s Mate pre‑mate (Black to move)
-      "r1bqk1nr/pppp1ppp/3p4/4N3/2B1b3/4P3/PPPP1PPP/RNBQK2R b": [
-        { from: "d7", to: "d5" }
-      ]
-    };
-
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
-    }
-
-    // Strip full FEN down to exactly "piece‑placement + side‑to‑move"
-    function normalizeFen(fen) {
-      const parts = fen.split(' ');
-      return parts[0] + ' ' + parts[1];
-    }
-    // --- end opening book/shuffle/normalizer ---
-
-    // MVV/LVA + Killer Moves
-    const PIECE_VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
-
-    // Assign capture scores: (victim*10 − attacker)
-    function scoreCapture(move) {
-      if (!move.captured) return 0;
-      const victim   = PIECE_VALUE[move.captured.toLowerCase()] || 0;
-      const attacker = PIECE_VALUE[move.piece.toLowerCase()]    || 0;
-      return (victim * 10) - attacker;
-    }
-
-    // Compare two moves for exact match
-    function sameMove(a, b) {
-      return b &&
-             a.from === b.from &&
-             a.to   === b.to &&
-             a.promotion === b.promotion;
-    }
-
-    // Two “killer” slots per depth
-    const MAX_DEPTH   = 4;  // should exceed your search ply
-    const killerMoves = Array.from({ length: MAX_DEPTH }, () => [null, null]);
-
-    // Order moves: captures first (MVV/LVA), then killer moves, then the rest
-    function orderMoves(moves, depth) {
-      const [k1, k2] = killerMoves[depth] || [null, null];
-      return moves.sort((a, b) => {
-        const ca = scoreCapture(a), cb = scoreCapture(b);
-        if (ca || cb) return cb - ca;       // non‑zero capture scores first
-        if (sameMove(a, k1)) return -1;     // killer #1
-        if (sameMove(b, k1)) return  1;
-        if (sameMove(a, k2)) return -1;     // killer #2
-        if (sameMove(b, k2)) return  1;
-        return 0;                           // otherwise original order
-      });
-    }
-
-    // --- AI Logic from Example (Adapted) ---
-
-    // Reverse a table for Black’s side
-    var reverseArray = array => JSON.parse(JSON.stringify(array)).reverse();
-
-    // --- Piece‑Square Tables ---
-    var pawnEvalWhite = [
-      [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
-      [5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0],
-      [1.0,  1.0,  2.0,  3.0,  3.0,  2.0,  1.0,  1.0],
-      [0.5,  0.5,  1.0,  2.5,  2.5,  1.0,  0.5,  0.5],
-      [0.0,  0.0,  0.0,  2.0,  2.0,  0.0,  0.0,  0.0],
-      [0.5, -0.5, -1.0,  0.0,  0.0, -1.0, -0.5,  0.5],
-      [0.5,  1.0,  1.0, -2.0, -2.0,  1.0,  1.0,  0.5],
-      [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0]
-    ];
-    var pawnEvalBlack = reverseArray(pawnEvalWhite);
-
-    var knightEval = [
-      [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
-      [-4.0, -2.0,  0.0,  0.0,  0.0,  0.0, -2.0, -4.0],
-      [-3.0,  0.0,  1.0,  1.5,  1.5,  1.0,  0.0, -3.0],
-      [-3.0,  0.5,  1.5,  2.0,  2.0,  1.5,  0.5, -3.0],
-      [-3.0,  0.0,  1.5,  2.0,  2.0,  1.5,  0.0, -3.0],
-      [-3.0,  0.5,  1.0,  1.5,  1.5,  1.0,  0.5, -3.0],
-      [-4.0, -2.0,  0.0,  0.5,  0.5,  0.0, -2.0, -4.0],
-      [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0]
-    ];
-
-    var bishopEvalWhite = [
-      [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
-      [-1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0],
-      [-1.0,  0.0,  0.5,  1.0,  1.0,  0.5,  0.0, -1.0],
-      [-1.0,  0.5,  0.5,  1.0,  1.0,  0.5,  0.5, -1.0],
-      [-1.0,  0.0,  1.0,  1.0,  1.0,  1.0,  0.0, -1.0],
-      [-1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0, -1.0],
-      [-1.0,  0.5,  0.0,  0.0,  0.0,  0.0,  0.5, -1.0],
-      [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0]
-    ];
-    var bishopEvalBlack = reverseArray(bishopEvalWhite);
-
-    var rookEvalWhite = [
-      [  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
-      [  0.5,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  0.5],
-      [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
-      [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
-      [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
-      [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
-      [ -0.5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -0.5],
-      [  0.0,  0.0,  0.0,  0.5,  0.5,  0.0,  0.0,  0.0]
-    ];
-    var rookEvalBlack = reverseArray(rookEvalWhite);
-
-    var evalQueen = [
-      [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
-      [ -1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, -1.0],
-      [ -1.0,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -1.0],
-      [ -0.5,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -0.5],
-      [  0.0,  0.0,  0.5,  0.5,  0.5,  0.5,  0.0, -0.5],
-      [ -1.0,  0.5,  0.5,  0.5,  0.5,  0.5,  0.0, -1.0],
-      [ -1.0,  0.0,  0.5,  0.0,  0.0,  0.0,  0.0, -1.0],
-      [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0]
-    ];
-
-    var kingEvalWhite = [
-      [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-      [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-      [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-      [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-      [ -2.0, -3.0, -3.0, -4.0, -4.0, -3.0, -3.0, -2.0],
-      [ -1.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -1.0],
-      [  2.0,  2.0,  0.0,  0.0,  0.0,  0.0,  2.0,  2.0],
-      [  2.0,  3.0,  1.0,  0.0,  0.0,  1.0,  3.0,  2.0]
-    ];
-    var kingEvalBlack = reverseArray(kingEvalWhite);
-
-    // Absolute piece value (no sign)
-    var getPieceValue = function(piece, x, y) {
-      if (!piece) return 0;
-      var isWhite = piece.color === 'w';
-      var t = piece.type;
-      if (t === 'p') return 10 + (isWhite ? pawnEvalWhite[y][x] : pawnEvalBlack[y][x]);
-      if (t === 'r') return 50 + (isWhite ? rookEvalWhite[y][x] : rookEvalBlack[y][x]);
-      if (t === 'n') return 30 + knightEval[y][x];
-      if (t === 'b') return 30 + (isWhite ? bishopEvalWhite[y][x] : bishopEvalBlack[y][x]);
-      if (t === 'q') return 90 + evalQueen[y][x];
-      if (t === 'k') return 9000 + (isWhite ? kingEvalWhite[y][x] : kingEvalBlack[y][x]);
-      return 0;
-    };
-
-    // Material + positional eval from White’s POV
-    var evaluateBoard = function(board) {
-      var total = 0;
-      for (var y = 0; y < 8; y++) {
-        for (var x = 0; x < 8; x++) {
-          var p = board[y][x];
-          if (p) {
-            var v = getPieceValue(p, x, y);
-            total += p.color === 'w' ? v : -v;
-          }
+      // --- Begin Worker Setup ---
+      async function initializeAIWorker() {
+        if (!window.Worker) {
+          console.warn('Web Workers not supported—falling back to human mode');
+          gameMode = 'human';
+          return;
         }
-      }
-      return total;
-    };
 
-    // Minimax w/ αβ and killer‑move updates
-    var minimax = function(depth, chessInstance, alpha, beta, isMaximisingPlayer) {
-      if (depth === 0 || chessInstance.game_over()) {
-        if (chessInstance.in_checkmate()) {
-          return isMaximisingPlayer ? -Infinity : Infinity;
-        }
-        if (chessInstance.in_stalemate() || chessInstance.in_draw()) {
-          return 0;
-        }
-        return evaluateBoard(chessInstance.board());
-      }
+        // 1) URL of your hosted worker (must support CORS for fetch)
+        const remoteUrl =
+          'https://cdn.jsdelivr.net/gh/dannywalter/ch3ss-puzzles@main/ai-worker.js';
 
-      const moves = orderMoves(chessInstance.moves({ verbose: true }), depth);
-      if (isMaximisingPlayer) {
-        let best = -Infinity;
-        for (let m of moves) {
-          chessInstance.move(m);
-          const score = minimax(depth - 1, chessInstance, alpha, beta, false);
-          chessInstance.undo();
-
-          if (score > best) best = score;
-          alpha = Math.max(alpha, best);
-
-          if (beta <= alpha) {
-            if (!m.captured) {
-              killerMoves[depth][1] = killerMoves[depth][0];
-              killerMoves[depth][0] = m;
-            }
-            break;
-          }
-        }
-        return best;
-      } else {
-        let best = Infinity;
-        for (let m of moves) {
-          chessInstance.move(m);
-          const score = minimax(depth - 1, chessInstance, alpha, beta, true);
-          chessInstance.undo();
-
-          if (score < best) best = score;
-          beta = Math.min(beta, best);
-
-          if (beta <= alpha) {
-            if (!m.captured) {
-              killerMoves[depth][1] = killerMoves[depth][0];
-              killerMoves[depth][0] = m;
-            }
-            break;
-          }
-        }
-        return best;
-      }
-    };
-
-    // Entry point
-    var minimaxRoot = function(depth, fen, aiWorkerColor) {
-      const chessInstance = new Chess(fen);
-      const isWhite       = aiWorkerColor === 'white';
-      const moves         = orderMoves(chessInstance.moves({ verbose: true }), depth);
-      let bestValue       = isWhite ? -Infinity : Infinity;
-      let bestMove        = null;
-
-      for (let m of moves) {
-        chessInstance.move(m);
-        const val = minimax(depth - 1, chessInstance, -Infinity, Infinity, !isWhite);
-        chessInstance.undo();
-
-        if ((isWhite && val >= bestValue) || (!isWhite && val <= bestValue)) {
-          bestValue = val;
-          bestMove  = m;
-        }
-      }
-
-      console.log('[Worker] Best move found:', bestMove?.san, 'eval:', bestValue);
-      return bestMove
-        ? { from: bestMove.from, to: bestMove.to, promotion: bestMove.promotion }
-        : null;
-    };
-
-    // --- Message handler with opening‑book check ---
-    self.onmessage = function(event) {
-      const { fen, depth, aiWorkerColor } = event.data;
-      const key = normalizeFen(fen);
-
-      const bookMoves = openingBook[key];
-      if (bookMoves && bookMoves.length) {
-        self.postMessage(shuffle(bookMoves.slice())[0]);
-      } else {
-        self.postMessage(minimaxRoot(depth, fen, aiWorkerColor));
-      }
-    };
-
-    console.log('[Worker] AI Worker initialized with MVV/LVA + Killer Moves.');
-    `;
-      // --- Create and Manage the Worker ---
-      function initializeAIWorker() {
         try {
-          // Build a Blob from the workerCode (which itself does importScripts with CDN fallback)
-          const blob = new Blob([workerCode], {type: "application/javascript"});
+          // 2) Fetch the worker source as plain text
+          const resp = await fetch(remoteUrl);
+          if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`);
+          const code = await resp.text();
+
+          // 3) Create a same‑origin Blob URL
+          const blob = new Blob([code], { type: 'application/javascript' });
           const blobUrl = URL.createObjectURL(blob);
 
-          // Spawn the worker
+          // 4) Spin up your Worker from the Blob URL
           aiWorker = new Worker(blobUrl);
 
           // Handle messages back from the worker
@@ -2365,19 +2007,15 @@
           };
 
           // If the worker itself errors out
-          aiWorker.onerror = function (error) {
-            console.error("Error in AI Worker:", error.message, error);
-            aiThinking = false;
-            renderBoard();
-            alert("AI encountered an error and has been disabled.");
-            gameMode = "human";
+          aiWorker.onerror = (err) => {
+            console.error('AI Worker error:', err);
+            gameMode = 'human';
           };
 
-          console.log("AI Worker created successfully using Blob URL.");
-        } catch (e) {
-          console.error("Failed to create inline worker:", e);
-          // you can choose to fall back to human here or alert the user,
-          // but do NOT unconditionally force gameMode = 'human'
+          console.log('AI Worker initialized via fetch+blob');
+        } catch (err) {
+          console.error('Could not load AI Worker:', err);
+          gameMode = 'human';
         }
       }
       // --- End Worker Setup ---
@@ -2538,29 +2176,38 @@
       }
 
       function updateGameStatus() {
-        const currentTurn = chess.turn() === "w" ? "WHITE" : "BLACK";
-        currentPlayerElement.textContent = currentTurn;
-        let statusText = "";
-        let isGameOver = false;
-        let gameOverTitle = "";
-        let gameOverReason = "";
-        let gameResult = null;
-        if (chess.in_checkmate()) {
-          statusText = "CHECKMATE";
-          isGameOver = true;
-          gameOverTitle = "CHECKMATE";
-          const winner = currentTurn === "WHITE" ? "BLACK" : "WHITE";
-          gameOverReason = `${winner} WINS!`;
-          gameResult =
-            (winner === "WHITE" && aiColor === "black") || (winner === "BLACK" && aiColor === "white")
-              ? "win"
-              : "loss";
-          if (
-            gameResult === "win" &&
-            chess.history({verbose: true}).length > 0 &&
-            chess.history({verbose: true}).slice(-1)[0].piece === "p"
-          )
-            playerStats.checkmateWithPawn = true;
+  const currentTurn = chess.turn() === "w" ? "WHITE" : "BLACK";
+  currentPlayerElement.textContent = currentTurn;
+  let statusText = "";
+  let isGameOver = false;
+  let gameOverTitle = "";
+  let gameOverReason = "";
+  let gameResult = null;
+  
+  if (chess.in_checkmate()) {
+    statusText = "CHECKMATE";
+    isGameOver = true;
+    gameOverTitle = "CHECKMATE";
+    const winner = currentTurn === "WHITE" ? "BLACK" : "WHITE";
+    gameOverReason = `${winner} WINS!`;
+    gameResult = 
+      (winner === "WHITE" && aiColor === "black") || (winner === "BLACK" && aiColor === "white")
+        ? "win" 
+        : "loss";
+    
+    // Check for pawn checkmate achievement
+    if (
+      gameResult === "win" &&
+      chess.history({verbose: true}).length > 0 &&
+      chess.history({verbose: true}).slice(-1)[0].piece === "p"
+    )
+      playerStats.checkmateWithPawn = true;
+    
+    // Replace immediate overlay with animated sequence
+    if (!boardElement.querySelector(".checkmate-animation")) {
+      animateCheckmate(winner, gameResult);
+      return; // Skip the rest to avoid creating overlays
+    }
         } else if (chess.in_stalemate()) {
           statusText = "DRAW";
           isGameOver = true;
@@ -2609,6 +2256,243 @@
           gameStatusElement.appendChild(reasonElement);
         }
       }
+
+      function animateCheckmate(winner, gameResult) {
+  // Clear the selectedPiece to remove the "selected" styling
+  selectedPiece = null;
+  
+  // Find the king piece
+  const kingColor = winner === "WHITE" ? "black" : "white";
+  let checkmatedKing = null;
+  
+  // Make sure the last move highlights remain visible
+  // We'll only clear them after displaying them properly first
+  // Don't clear them at the beginning of the animation
+  
+  // Find the king and continue with animation
+  document.querySelectorAll(`.piece.${kingColor}-piece`).forEach(piece => {
+    if (piece.textContent === "♚") {
+      checkmatedKing = piece;
+    }
+  });
+  
+  // Create the animation container with scanlines
+  const animationOverlay = document.createElement("div");
+  animationOverlay.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.5s;
+  `;
+  
+  // Add scanlines to the overlay
+  const scanlines = document.createElement("div");
+  scanlines.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      rgba(0, 255, 255, 0.05) 1px,
+      transparent 2px,
+      rgba(255, 0, 255, 0.05) 3px
+    );
+    background-size: 100% 4px;
+    opacity: 0.3;
+    pointer-events: none;
+    animation: scanEffect 8s linear infinite;
+    z-index: -1;
+  `;
+  
+  animationOverlay.appendChild(scanlines);  
+  boardElement.appendChild(animationOverlay);
+  
+  // Start animation sequence
+  setTimeout(() => {
+    animationOverlay.style.opacity = "1";
+    
+    // Enhanced king glitch effect
+    if (checkmatedKing) {
+      const kingSquare = checkmatedKing.closest('.square');
+      
+      // First, ensure the king's position is fixed in the center of its square
+      checkmatedKing.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transform-origin: center center;
+      `;
+      
+      // Create a wrapper for the king to contain the animation
+      const kingWrapper = document.createElement("div");
+      kingWrapper.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 4;
+      `;
+      
+      // Move the king into the wrapper
+      const kingClone = checkmatedKing.cloneNode(true);
+      kingClone.style.animation = "kingPulse 0.8s ease-in-out infinite";
+      
+      // Create multiple glitch layers for more dramatic effect
+      const glowEffect = document.createElement("div");
+      glowEffect.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        box-shadow: inset 0 0 30px #ff00ff, 0 0 40px #ff00ff;
+        animation: kingGlow 1.5s ease-in-out infinite;
+        z-index: 2;
+        pointer-events: none;
+      `;
+      
+      // Add a secondary glow with different timing
+      const secondaryGlow = document.createElement("div");
+      secondaryGlow.style.cssText = `
+        position: absolute;
+        top: -5px;
+        left: -5px;
+        right: -5px;
+        bottom: -5px;
+        border: 2px solid #ff00ff;
+        box-shadow: 0 0 15px rgba(255, 0, 255, 0.8);
+        animation: kingGlow 2s ease-in-out infinite 0.5s;
+        z-index: 1;
+        pointer-events: none;
+      `;
+      
+      kingSquare.style.position = "relative";
+      kingSquare.appendChild(glowEffect);
+      kingSquare.appendChild(secondaryGlow);
+      
+      // Replace original king with wrapper containing cloned king
+      checkmatedKing.style.opacity = "0";
+      kingWrapper.appendChild(kingClone);
+      kingSquare.appendChild(kingWrapper);
+      
+      // Add keyframe animations directly to the page
+      const styleSheet = document.createElement("style");
+      styleSheet.textContent = `
+        @keyframes kingPulse {
+          0% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+          20% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.05); }
+          40% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+          60% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
+          80% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+          100% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+        }
+        
+        @keyframes kingGlow {
+          0% { opacity: 0.3; }
+          50% { opacity: 0.8; }
+          100% { opacity: 0.3; }
+        }
+      `;
+      document.head.appendChild(styleSheet);
+    }
+    
+    // Checkmate text
+    const checkmateText = document.createElement("div");
+    checkmateText.textContent = "CHECKMATE";
+    checkmateText.style.cssText = `
+      color: #ff00ff;
+      font-size: 0;
+      font-weight: bold;
+      text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+      transition: font-size 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      text-align: center;
+    `;
+    animationOverlay.appendChild(checkmateText);
+    
+    // Animate text size
+    setTimeout(() => {
+      checkmateText.style.fontSize = "2.5rem";
+    }, 100);
+    
+    // Show winner
+    setTimeout(() => {
+      const winnerText = document.createElement("div");
+      winnerText.textContent = `${winner} WINS!`;
+      winnerText.style.cssText = `
+        color: #00ffff;
+        font-size: 1.2rem;
+        margin-top: 15px;
+        opacity: 0;
+        transition: opacity 1s;
+        text-shadow: 0 0 8px #00ffff, 0 0 16px #00ffff;
+      `;
+      animationOverlay.appendChild(winnerText);
+      
+      setTimeout(() => {
+        winnerText.style.opacity = "1";
+        
+        // Add continue button
+        const continueButton = document.createElement("button");
+        continueButton.textContent = "CONTINUE";
+        continueButton.className = "modal-button";
+        continueButton.style.cssText = `
+          margin-top: 30px;
+          opacity: 0;
+          transition: opacity 0.5s;
+          z-index: 5;
+        `;
+        animationOverlay.appendChild(continueButton);
+        
+        // Fade in button
+        setTimeout(() => {
+          continueButton.style.opacity = "1";
+        }, 500);
+        
+        // Button click handler
+        continueButton.addEventListener("click", () => {
+          // Play button sound
+          playButtonClickSound();
+          
+          // Remove animation overlay
+          animationOverlay.style.opacity = "0";
+          setTimeout(() => {
+            boardElement.removeChild(animationOverlay);
+            
+            // Display the stats overlay
+            if (gameMode === "ai") {
+              const scoreResult = calculateGameScore(gameResult);
+              gameScore = scoreResult.score;
+              showScoringOverlay(scoreResult);
+            }
+            
+            // Show game over overlay
+            showGameOverOverlay("CHECKMATE", `${winner} WINS!`);
+          }, 500);
+        });
+        
+        // Allow clicking anywhere to skip (same as before)
+        // Auto-continue after 10 seconds (same as before)
+      }, 800);
+    }, 1500);
+  }, 300);
+}
 
       function showGameOverOverlay(title, reason) {
         const overlay = document.createElement("div");
@@ -2944,7 +2828,7 @@
       loadPlayerStats(); // Load stats (currently does nothing in arcade mode)
 
       // Initialize AI Worker *after* the rest of the script is parsed
-      initializeAIWorker();
+      document.addEventListener('DOMContentLoaded', initializeAIWorker);
 
       // Initial render
       renderBoard();
