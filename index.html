@@ -2789,6 +2789,31 @@
         {once: true, capture: true},
       ); // Use capture to ensure it runs, once to self-remove
 
+      // Add click-outside-to-close functionality for modals
+const modalOverlays = document.querySelectorAll('.modal-overlay');
+modalOverlays.forEach(overlay => {
+  overlay.addEventListener('click', (event) => {
+    // Only close if click is directly on the overlay background (not its children)
+    if (event.target === overlay) {
+      // Don't allow closing the welcome screen by clicking outside
+      if (overlay.id === 'welcome-overlay') {
+        return;
+      }
+      
+      // Close modal by removing active class
+      overlay.classList.remove('active');
+      
+      // Reset header text for scoring overlay
+      if (overlay.id === 'scoring-overlay') {
+        document.querySelector("#scoring-overlay .modal-header").textContent = "CH3SS SCOREBOARD";
+      }
+      
+      // Play button click sound for feedback
+      playButtonClickSound();
+    }
+  });
+});
+
       // --- Initialization ---
       function updateWelcomeScreen() {
         /* ... unchanged ... */
