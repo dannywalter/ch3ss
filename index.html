@@ -632,6 +632,67 @@
       }
     }
 
+    /* AI thinking animation effects */
+@keyframes aiThinkingPulse {
+  0% {
+    box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.5);
+  }
+  100% {
+    box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.2);
+  }
+}
+
+@keyframes aiThinkingScan {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 100%;
+  }
+}
+
+.ai-thinking-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 255, 255, 0.05) 45%,
+    rgba(0, 255, 255, 0.1) 50%,
+    rgba(0, 255, 255, 0.05) 55%,
+    transparent 100%
+  );
+  background-size: 100% 200%;
+  animation: aiThinkingScan 1.5s linear infinite;
+}
+
+.square.ai-thinking-light {
+  animation: aiThinkingPulse 2s infinite;
+}
+
+.square.ai-thinking-dark {
+  position: relative;
+}
+
+.ai-thinking-indicator {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: rgba(0, 255, 255, 0.7);
+  animation: aiThinkingPulse 1s infinite alternate;
+}
+
     /* Media Queries for Responsive Design - Tablet & Desktop */
     @media (max-width: 480px) {
       .piece {
@@ -2006,98 +2067,189 @@
       // --- Modified AI OPPONENT FUNCTIONS ---
       // Make AI move (Now uses the worker)
       function makeAIMove() {
-        // Set thinking status before any processing
-        aiThinking = true;
-        renderBoard(); // Ensure status gets updated
-        gameStatusElement.textContent = "AI THINKING";
+  // Set thinking status before any processing
+  aiThinking = true;
+  renderBoard(); // Ensure status gets updated
+  gameStatusElement.textContent = "AI THINKING";
+  
+  // Record the start time for thinking animation
+  const thinkingStartTime = Date.now();
+  const minimumThinkingTime = 600; // Milliseconds
+  
+  // Helper to complete a move while respecting minimum thinking time
+  const completeMove = (moveResult) => {
+    const elapsedThinkingTime = Date.now() - thinkingStartTime;
+    const remainingTime = Math.max(0, minimumThinkingTime - elapsedThinkingTime);
+    
+    setTimeout(() => {
+      aiThinking = false;
+      
+      if (moveResult.captured) {
+        pieceCaptureSound.currentTime = 0;
+        pieceCaptureSound.play().catch(() => { });
+      } else {
+        playPutDownSound();
+      }
+      
+      lastMove = {
+        from: squareToCoords(moveResult.from),
+        to: squareToCoords(moveResult.to)
+      };
+      
+      updateCapturedPiecesFromMove(moveResult);
+      updatePgnDisplay();
+      renderBoard();
+      triggerHapticFeedback();
+    }, remainingTime);
+  };
 
-        // 1) Try mate-in-one first:
-        const mateMove = findMateInOne(chess);
-        if (mateMove) {
-          const result = chess.move(mateMove);
-          if (result.captured) {
+  // 1) Try mate-in-one first:
+  const mateMove = findMateInOne(chess);
+  if (mateMove) {
+    const result = chess.move(mateMove);
+    completeMove(result);
+    return; // skip the worker entirely
+  }
+  
+  // Determine AI's turn token ("w" or "b")
+  const aiTurn = aiColor.charAt(0);
+
+  // Only request a move if it's really the AI's turn
+  if (chess.game_over() || chess.turn() !== aiTurn || !aiWorker) {
+    aiThinking = false;
+    renderBoard();
+    return;
+  }
+
+  selectedPiece = null;
+  validMoves = [];
+
+  const currentFen = chess.fen();
+  const searchDepth = 3;
+
+  // Also modify worker message handler to respect minimum thinking time
+  const originalOnMessage = aiWorker.onmessage;
+  aiWorker.onmessage = function(event) {
+    const elapsedThinkingTime = Date.now() - thinkingStartTime;
+    const remainingTime = Math.max(0, minimumThinkingTime - elapsedThinkingTime);
+    
+    setTimeout(() => {
+      aiThinking = false;
+      gameStatusElement.textContent = "PLAYING vs AI";
+      const bestMove = event.data;
+
+      if (bestMove && bestMove.error) {
+        console.error("Error reported from AI Worker:", bestMove.error);
+        renderBoard();
+        return;
+      }
+
+      console.log("Main thread received best move:", bestMove);
+
+      // Sanity checks
+      if (chess.game_over() || chess.turn() !== (aiColor === "black" ? "b" : "w")) {
+        renderBoard();
+        return;
+      }
+
+      // Apply the move
+      if (bestMove) {
+        const moveResult = chess.move(bestMove);
+        if (moveResult) {
+          if (moveResult.captured) {
             pieceCaptureSound.currentTime = 0;
-            pieceCaptureSound.play().catch(() => { });
+            pieceCaptureSound.play().catch((e) => console.log("Audio error", e));
           } else {
             playPutDownSound();
           }
           lastMove = {
-            from: squareToCoords(result.from),
-            to: squareToCoords(result.to)
+            from: squareToCoords(moveResult.from),
+            to: squareToCoords(moveResult.to),
           };
-          updateCapturedPiecesFromMove(result);
+          updateCapturedPiecesFromMove(moveResult);
           updatePgnDisplay();
           renderBoard();
           triggerHapticFeedback();
-          return; // skip the worker entirely
+        } else {
+          console.error("Invalid move from AI Worker:", bestMove, "FEN:", chess.fen());
+          renderBoard();
         }
-        // Determine AI’s turn token ("w" or "b")
-        const aiTurn = aiColor.charAt(0);
-
-        // Only request a move if it’s really the AI’s turn
-        if (chess.game_over() || chess.turn() !== aiTurn || !aiWorker) {
-          return;
-        }
-
-        aiThinking = true;
-        selectedPiece = null;
-        validMoves = [];
+      } else {
+        console.error("AI Worker returned no move. FEN:", chess.fen());
         renderBoard();
-
-        const currentFen = chess.fen();
-        const searchDepth = 3;
-
-        aiWorker.postMessage({
-          fen: currentFen,
-          depth: searchDepth,
-          aiWorkerColor: aiColor,
-        });
+        updateGameStatus();
       }
+    }, remainingTime);
+  };
+  
+  aiWorker.postMessage({
+    fen: currentFen,
+    depth: searchDepth,
+    aiWorkerColor: aiColor,
+  });
+}
 
       // REMOVED: minimaxRoot, minimax, evaluatePosition, shuffleArray from the main thread
       // They are now defined inside the workerCode string.
 
       // --- Rendering and Game Logic (Mostly Unchanged) ---
       function renderBoard() {
-        boardElement.innerHTML = "";
-        const boardState = convertChessJsBoard();
-        for (let row = 0; row < 8; row++) {
-          const rowElement = document.createElement("div");
-          rowElement.className = "row";
-          for (let col = 0; col < 8; col++) {
-            const squareElement = document.createElement("div");
-            const isLightSquare = (row + col) % 2 === 0;
-            squareElement.className = `square ${isLightSquare ? "light-square" : "dark-square"}`;
-            squareElement.dataset.row = row;
-            squareElement.dataset.col = col;
-            const piece = boardState[row][col];
-            if (piece) {
-              const pieceElement = document.createElement("div");
-              const pieceColor = getPieceColor(piece);
-              pieceElement.className = `piece ${pieceColor}-piece`;
-              pieceElement.textContent = pieceMapping[piece];
-              squareElement.appendChild(pieceElement);
-            }
-            if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
-              squareElement.classList.add("selected");
-            }
-            if (validMoves.some(([r, c]) => r === row && c === col)) {
-              squareElement.classList.add("valid-move");
-            }
-            if (lastMove.from && row === lastMove.from[0] && col === lastMove.from[1]) {
-              squareElement.classList.add("last-move-from");
-            }
-            if (lastMove.to && row === lastMove.to[0] && col === lastMove.to[1]) {
-              squareElement.classList.add("last-move-to");
-            }
-            squareElement.addEventListener("click", () => handleSquareClick(row, col));
-            rowElement.appendChild(squareElement);
-          }
-          boardElement.appendChild(rowElement);
+  boardElement.innerHTML = "";
+  const boardState = convertChessJsBoard();
+  
+  // Add board-level AI thinking overlay if needed
+  if (gameMode === "ai" && aiThinking) {
+    const aiOverlay = document.createElement("div");
+    aiOverlay.className = "ai-thinking-overlay";
+    boardElement.appendChild(aiOverlay);
+  }
+  
+  for (let row = 0; row < 8; row++) {
+    const rowElement = document.createElement("div");
+    rowElement.className = "row";
+    for (let col = 0; col < 8; col++) {
+      const squareElement = document.createElement("div");
+      const isLightSquare = (row + col) % 2 === 0;
+      squareElement.className = `square ${isLightSquare ? "light-square" : "dark-square"}`;
+      
+      // Add AI thinking visual effect to squares - only light squares get the pulse effect
+      if (gameMode === "ai" && aiThinking) {
+        if (isLightSquare) {
+          squareElement.classList.add("ai-thinking-light");
         }
-        updateGameStatus(); // Update status after rendering board
-        updateCapturedPieces(); // Update captures after rendering board
+        // Dark squares don't get any special indicator now
       }
+      
+      squareElement.dataset.row = row;
+      squareElement.dataset.col = col;
+      const piece = boardState[row][col];
+      if (piece) {
+        const pieceElement = document.createElement("div");
+        const pieceColor = getPieceColor(piece);
+        pieceElement.className = `piece ${pieceColor}-piece`;
+        pieceElement.textContent = pieceMapping[piece];
+        squareElement.appendChild(pieceElement);
+      }
+      if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
+        squareElement.classList.add("selected");
+      }
+      if (validMoves.some(([r, c]) => r === row && c === col)) {
+        squareElement.classList.add("valid-move");
+      }
+      if (lastMove.from && row === lastMove.from[0] && col === lastMove.from[1]) {
+        squareElement.classList.add("last-move-from");
+      }
+      if (lastMove.to && row === lastMove.to[0] && col === lastMove.to[1]) {
+        squareElement.classList.add("last-move-to");
+      }
+      squareElement.addEventListener("click", () => handleSquareClick(row, col));
+      rowElement.appendChild(squareElement);
+    }
+    boardElement.appendChild(rowElement);
+  }
+  updateGameStatus(); // Update status after rendering board
+  updateCapturedPieces(); // Update captures after rendering board
+}
 
       function handleSquareClick(row, col) {
         // Don’t allow clicks when game over or AI is thinking
