@@ -1176,42 +1176,23 @@
             </div>
 
             <div class="option-label" style="margin-top: 10px">DIFFICULTY:</div>
-            <div class="difficulty-selector" style="opacity: 0.5; position: relative">
-              <div style="
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        background: rgba(0, 0, 0, 0.7);
-                        padding: 5px 10px;
-                        border: 1px solid #00ffff;
-                        color: #00ffff;
-                        font-size: 0.5rem;
-                        z-index: 1;
-                      ">
-                COMING SOON
-              </div>
-              <label class="difficulty-option" for="diff-easy">
-                <input type="radio" id="diff-easy" name="ai-difficulty" value="easy" disabled />
-                <span class="difficulty-name">Easy</span>
-                <span class="difficulty-multi">x1.0</span>
-              </label>
-              <label class="difficulty-option active" for="diff-medium">
-                <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" checked disabled />
-                <span class="difficulty-name">Medium</span>
-                <span class="difficulty-multi">x1.0</span>
-              </label>
-              <label class="difficulty-option" for="diff-hard">
-                <input type="radio" id="diff-hard" name="ai-difficulty" value="hard" disabled />
-                <span class="difficulty-name">Hard</span>
-                <span class="difficulty-multi">x1.0</span>
-              </label>
-              <label class="difficulty-option" for="diff-expert">
-                <input type="radio" id="diff-expert" name="ai-difficulty" value="expert" disabled />
-                <span class="difficulty-name">Expert</span>
-                <span class="difficulty-multi">x1.0</span>
-              </label>
-            </div>
+<div class="difficulty-selector">
+  <label class="difficulty-option" for="diff-easy">
+    <input type="radio" id="diff-easy" name="ai-difficulty" value="easy" />
+    <span class="difficulty-name">Easy</span>
+    <span class="difficulty-multi">x0.5</span>
+  </label>
+  <label class="difficulty-option active" for="diff-medium">
+    <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" checked />
+    <span class="difficulty-name">Medium</span>
+    <span class="difficulty-multi">x1.0</span>
+  </label>
+  <label class="difficulty-option" for="diff-hard">
+    <input type="radio" id="diff-hard" name="ai-difficulty" value="hard" />
+    <span class="difficulty-name">Hard</span>
+    <span class="difficulty-multi">x1.5</span>
+  </label>
+</div>
           </div>
           <div class="spacer-small"></div>
           <button id="new-game-modal" class="modal-button">NEW GAME</button>
@@ -2125,7 +2106,34 @@
   validMoves = [];
 
   const currentFen = chess.fen();
-  const searchDepth = 3;
+  
+  // Add difficulty settings
+  const difficultySettings = {
+    easy: {
+      depth: 1,
+      blunderChance: 0.25,
+      mateDetection: false
+    },
+    medium: {
+      depth: 2,
+      blunderChance: 0.15,
+      mateDetection: true
+    },
+    hard: {
+      depth: 3,
+      blunderChance: 0,
+      mateDetection: true
+    }
+  };
+  
+  // Get current difficulty or default to medium
+  const settings = difficultySettings[aiDifficulty] || difficultySettings.medium;
+  
+  // Only check for mate-in-one if the difficulty setting allows it
+  if (!settings.mateDetection) {
+    // Skip the mate-in-one check we did earlier for easy mode
+    // We've already checked earlier, so do nothing here
+  }
 
   // Also modify worker message handler to respect minimum thinking time
   const originalOnMessage = aiWorker.onmessage;
@@ -2136,12 +2144,28 @@
     setTimeout(() => {
       aiThinking = false;
       gameStatusElement.textContent = "PLAYING vs AI";
-      const bestMove = event.data;
+      let bestMove = event.data;
 
       if (bestMove && bestMove.error) {
         console.error("Error reported from AI Worker:", bestMove.error);
         renderBoard();
         return;
+      }
+
+      // Apply difficulty adjustments - possibly make a blunder
+      if (settings.blunderChance > 0 && Math.random() < settings.blunderChance) {
+        console.log("AI is making a deliberate suboptimal move (blunder)");
+        // Get all possible moves
+        const possibleMoves = chess.moves();
+        if (possibleMoves.length > 1) {
+          // Pick a random move that's not the best one
+          let randomMove;
+          do {
+            randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+          } while (randomMove === bestMove && possibleMoves.length > 1);
+          
+          bestMove = randomMove;
+        }
       }
 
       console.log("Main thread received best move:", bestMove);
@@ -2182,10 +2206,11 @@
     }, remainingTime);
   };
   
+  // Send request to worker with updated depth based on difficulty
   aiWorker.postMessage({
     fen: currentFen,
-    depth: searchDepth,
-    aiWorkerColor: aiColor,
+    depth: settings.depth,
+    aiWorkerColor: aiColor
   });
 }
 
@@ -2673,7 +2698,6 @@
       }
 
       function resetGame(fullReset = false) {
-        /* ... unchanged ... */
         chess = new Chess();
         selectedPiece = null;
         validMoves = [];
@@ -2700,6 +2724,17 @@
           playerStats.totalScore = 0;
           playerStats.achievements = [];
         }
+
+        // Ensure UI reflects the current difficulty setting
+  document.querySelectorAll('.difficulty-option').forEach(option => {
+    option.classList.remove('active');
+    const radio = option.querySelector('input[name="ai-difficulty"]');
+    if (radio && radio.value === aiDifficulty) {
+      option.classList.add('active');
+      radio.checked = true;
+    }
+  });
+  
         const scoreValue = document.querySelector(".score-value");
         if (scoreValue) scoreValue.textContent = "000";
         const scoreNotification = document.querySelector(".score-notification");
@@ -2945,6 +2980,21 @@
         },
         {once: true, capture: true},
       ); // Use capture to ensure it runs, once to self-remove
+
+      // Add event listeners for difficulty radio buttons
+document.querySelectorAll('input[name="ai-difficulty"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    aiDifficulty = this.value;
+    
+    // Update active class
+    document.querySelectorAll('.difficulty-option').forEach(option => {
+      option.classList.remove('active');
+    });
+    this.closest('.difficulty-option').classList.add('active');
+    
+    console.log(`AI difficulty set to: ${aiDifficulty}`);
+  });
+});
 
       // Add click-outside-to-close functionality for modals
 const modalOverlays = document.querySelectorAll('.modal-overlay');
