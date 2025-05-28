@@ -2471,23 +2471,26 @@
   continueButton.className = "modal-button";
   continueButton.textContent = "CONTINUE";
   
-  continueButton.addEventListener("click", () => {
-    playButtonClickSound();
-    
-    // Fade out animation overlay
-    animationOverlay.style.opacity = "0";
-    
-    setTimeout(() => {
+ continueButton.addEventListener("click", () => {
+  playButtonClickSound();
+  
+  // Fade out animation overlay
+  animationOverlay.style.opacity = "0";
+  
+  setTimeout(() => {
+    // Add a safety check before removing
+    if (animationOverlay.parentNode === boardElement) {
       boardElement.removeChild(animationOverlay);
-      
-      // Display the stats overlay
-      if (gameMode === "ai") {
-        const scoreResult = calculateGameScore(gameResult);
-        gameScore = scoreResult.score;
-        showScoringOverlay(scoreResult);
-      }
-    }, 500);
-  });
+    }
+    
+    // Display the stats overlay
+    if (gameMode === "ai") {
+      const scoreResult = calculateGameScore(gameResult);
+      gameScore = scoreResult.score;
+      showScoringOverlay(scoreResult);
+    }
+  }, 500);
+});
   
   buttonContainer.appendChild(continueButton);
   
@@ -2589,10 +2592,10 @@
           
           // Auto-continue after 10 seconds
           setTimeout(() => {
-            if (boardElement.contains(animationOverlay)) {
-              continueButton.click();
-            }
-          }, 10000);
+  if (boardElement.contains(animationOverlay)) {
+    continueButton.click();
+  }
+}, 10000);
         }, 500);
       }, 800);
     }, 500);
@@ -2716,7 +2719,9 @@
           setTimeout(makeAIMove, 500);
         }
         const existingOverlay = boardElement.querySelector(".checkmate-overlay");
-        if (existingOverlay) boardElement.removeChild(existingOverlay);
+  if (existingOverlay && existingOverlay.parentNode === boardElement) {
+    boardElement.removeChild(existingOverlay);
+  }
       }
 
       // --- Touch Handlers (Unchanged) ---
