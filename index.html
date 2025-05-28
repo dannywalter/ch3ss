@@ -1435,11 +1435,11 @@
       // Scoring system (kept in main thread for now)
       let gameScore = 0;
       let scoringSystem = {
-        base: {win: 100, draw: 30, loss: 10},
-        quickPlay: {movesUnder20: 75, movesUnder30: 30, timeUnder5Min: 50},
-        captures: {p: 2, n: 6, b: 6, r: 10, q: 20},
-        difficultyMultiplier: {easy: 1.0, medium: 1.5, hard: 2.0, expert: 3.0},
-        achievements: {
+  base: {win: 100, draw: 30, loss: 10},
+  quickPlay: {movesUnder20: 75, movesUnder30: 30, timeUnder5Min: 50},
+  captures: {p: 2, n: 6, b: 6, r: 10, q: 20},
+  difficultyMultiplier: {easy: 0.5, medium: 1.0, hard: 1.5}, // Fixed values to match UI
+  achievements: {
           unstoppable: {title: "Unstoppable", bonus: 250, description: "Win 10 consecutive games"},
           queenProtector: {title: "Queen Protector", bonus: 100, description: "Win without losing your Queen"},
           pawnSlayer: {title: "Pawn Slayer", bonus: 150, description: "Deliver checkmate using a Pawn"},
@@ -1691,7 +1691,6 @@
         });
       }
       function calculateGameScore(gameResult) {
-        /* ... unchanged ... */
         let score = 0;
         let scoreBreakdown = [];
         let achievementsEarned = [];
@@ -1802,10 +1801,23 @@
           achievementsEarned.push({id: "speedDemon", ...a});
           score += a.bonus;
         }
+        
+        // Apply difficulty multiplier
+const difficultyMult = scoringSystem.difficultyMultiplier[aiDifficulty] || 1.0;
+if (difficultyMult !== 1.0) {
+  const originalScore = score;
+  score = Math.round(score * difficultyMult);
+  scoreBreakdown.push({
+    description: `Difficulty (${aiDifficulty})`,
+    multiplier: difficultyMult.toFixed(1)
+  });
+}
+
         playerStats.totalScore += score;
         playerStats.gamesPlayed++;
         savePlayerStats();
-        return {score, breakdown: scoreBreakdown, achievements: achievementsEarned};
+
+return {score, breakdown: scoreBreakdown, achievements: achievementsEarned};
       }
       function savePlayerStats() {
               /* ... unchanged ... */ console.log("Stats not saved (arcade mode)");
