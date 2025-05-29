@@ -1182,13 +1182,13 @@
     <span class="difficulty-name">Easy</span>
     <span class="difficulty-multi">x0.5</span>
   </label>
-  <label class="difficulty-option active" for="diff-medium">
-    <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" checked />
+  <label class="difficulty-option" for="diff-medium">
+    <input type="radio" id="diff-medium" name="ai-difficulty" value="medium" />
     <span class="difficulty-name">Medium</span>
     <span class="difficulty-multi">x1.0</span>
   </label>
-  <label class="difficulty-option" for="diff-hard">
-    <input type="radio" id="diff-hard" name="ai-difficulty" value="hard" />
+  <label class="difficulty-option active" for="diff-hard">
+    <input type="radio" id="diff-hard" name="ai-difficulty" value="hard" checked />
     <span class="difficulty-name">Hard</span>
     <span class="difficulty-multi">x1.5</span>
   </label>
@@ -1429,7 +1429,8 @@
       let gameMode = "ai"; // default to AI
       let aiColor = "black"; // default AI plays black
       let aiThinking = false;
-      let aiDifficulty = "medium"; // Placeholder
+      let aiDifficulty = "hard";
+      let isFirstGame = true; // Track if this is the player's first game
       let aiWorker = null; // Variable to hold the AI worker instance
 
       // Scoring system (kept in main thread for now)
@@ -1445,7 +1446,7 @@
           pawnSlayer: {title: "Pawn Slayer", bonus: 150, description: "Deliver checkmate using a Pawn"},
           speedDemon: {title: "Speed Demon", bonus: 200, description: "Win 5 games within 30 moves"},
         },
-        penalties: {earlyLoss: -15, timeout: -10},
+        penalties: {earlyLoss: -10, timeout: -10},
       };
 
       // Player stats
@@ -1825,8 +1826,7 @@ return {score, breakdown: scoreBreakdown, achievements: achievementsEarned};
       function loadPlayerStats() {
               /* ... unchanged ... */ console.log("Stats not loaded (arcade mode)");
       }
-      function showScoringOverlay(scoreResult) {
-        /* ... unchanged, uses calculateGameScore result ... */
+      function showScoringOverlay(scoreResult, isFirstLoss = false) {
         const scoringOverlay = document.getElementById("scoring-overlay");
         const finalScoreDisplay = document.getElementById("final-score-display");
         const scoreBreakdownEl = document.getElementById("score-breakdown");
@@ -1834,6 +1834,43 @@ return {score, breakdown: scoreBreakdown, achievements: achievementsEarned};
         const playerStatsElement = document.getElementById("player-stats");
         finalScoreDisplay.textContent = scoreResult.score;
         let breakdownHtml = '<table style="width:100%; border-collapse:collapse; margin:10px 0;">';
+
+          if (isFirstLoss && aiDifficulty === "hard") {
+    // Add a suggestion to try medium difficulty
+    breakdownHtml += `<div style="margin-top:15px; text-align:center; padding:8px; border:1px dashed #00ffff; border-radius:5px; background:rgba(0,255,255,0.1);">
+      <span style="color:#00ffff; font-weight:bold;">DIFFICULTY TOO HIGH?</span><br>
+      <span style="font-size:0.45rem; color:#ffffff;">You can switch to Medium difficulty in the menu for a more balanced challenge.</span>
+      <button id="switch-to-medium" class="modal-button" style="margin-top:8px; width:100%; background:rgba(0,255,255,0.15);">SWITCH TO MEDIUM</button>
+    </div>`;
+  }
+  
+  // Set the HTML content
+  scoreBreakdownEl.innerHTML = breakdownHtml;
+  
+  // Add event listener for the switch to medium button if present
+  const switchButton = document.getElementById("switch-to-medium");
+  if (switchButton) {
+    switchButton.addEventListener("click", () => {
+      playButtonClickSound();
+      aiDifficulty = "medium";
+      
+      // Update UI to show Medium as selected
+      document.querySelectorAll('.difficulty-option').forEach(option => {
+        option.classList.remove('active');
+        const radio = option.querySelector('input[name="ai-difficulty"]');
+        if (radio && radio.value === "medium") {
+          option.classList.add('active');
+          radio.checked = true;
+        }
+      });
+      
+      // Close modal and start new game
+      scoringOverlay.classList.remove("active");
+      document.querySelector("#scoring-overlay .modal-header").textContent = "CH3SS SCOREBOARD";
+      resetGame(false);
+    });
+  }
+
         if (scoreResult.breakdown && scoreResult.breakdown.length > 0) {
           scoreResult.breakdown.forEach((item) => {
             if (item.multiplier) {
@@ -1872,8 +1909,8 @@ return {score, breakdown: scoreBreakdown, achievements: achievementsEarned};
         });
         scoringOverlay.classList.add("active");
       }
+
       function resetAllStats() {
-        /* ... unchanged ... */
         playerStats = {
           gamesPlayed: 0,
           wins: 0,
@@ -1901,7 +1938,6 @@ return {score, breakdown: scoreBreakdown, achievements: achievementsEarned};
         resetGame();
       }
       function showStatsOverlay() {
-        /* ... unchanged ... */
         const scoringOverlay = document.getElementById("scoring-overlay");
         const finalScoreDisplay = document.getElementById("final-score-display");
         const scoreBreakdownEl = document.getElementById("score-breakdown");
@@ -2508,28 +2544,63 @@ return {score, breakdown: scoreBreakdown, achievements: achievementsEarned};
   continueButton.className = "modal-button";
   continueButton.textContent = "CONTINUE";
   
- continueButton.addEventListener("click", () => {
-  playButtonClickSound();
-  
-  // Fade out animation overlay
-  animationOverlay.style.opacity = "0";
-  
-  setTimeout(() => {
-    // Add a safety check before removing
-    if (animationOverlay.parentNode === boardElement) {
-      boardElement.removeChild(animationOverlay);
-    }
+  continueButton.addEventListener("click", () => {
+    playButtonClickSound();
     
-    // Display the stats overlay
-    if (gameMode === "ai") {
-      const scoreResult = calculateGameScore(gameResult);
-      gameScore = scoreResult.score;
-      showScoringOverlay(scoreResult);
-    }
-  }, 500);
-});
+    // Fade out animation overlay
+    animationOverlay.style.opacity = "0";
+    
+    setTimeout(() => {
+      // Add a safety check before removing
+      if (animationOverlay.parentNode === boardElement) {
+        boardElement.removeChild(animationOverlay);
+      }
+      
+      // Display the stats overlay
+      if (gameMode === "ai") {
+        const scoreResult = calculateGameScore(gameResult);
+        gameScore = scoreResult.score;
+        showScoringOverlay(scoreResult, gameResult === "loss" && isFirstGame);
+      }
+    }, 500);
+  });
   
   buttonContainer.appendChild(continueButton);
+  
+  // Add "Switch to Medium" button if it's the player's first loss on hard difficulty
+  if (gameResult === "loss" && isFirstGame && aiDifficulty === "hard") {
+    const switchDifficultyButton = document.createElement("button");
+    switchDifficultyButton.className = "modal-button";
+    switchDifficultyButton.textContent = "SWITCH TO MEDIUM";
+    switchDifficultyButton.style.cssText = "background: rgba(0, 255, 255, 0.1); margin-top: 5px;";
+    
+    switchDifficultyButton.addEventListener("click", () => {
+      playButtonClickSound();
+      aiDifficulty = "medium";
+      
+      // Update UI in difficulty selector
+      document.querySelectorAll('.difficulty-option').forEach(option => {
+        option.classList.remove('active');
+        const radio = option.querySelector('input[name="ai-difficulty"]');
+        if (radio && radio.value === "medium") {
+          option.classList.add('active');
+          radio.checked = true;
+        }
+      });
+      
+      // Fade out and start new game
+      animationOverlay.style.opacity = "0";
+      
+      setTimeout(() => {
+        if (animationOverlay.parentNode === boardElement) {
+          boardElement.removeChild(animationOverlay);
+        }
+        resetGame(false);
+      }, 500);
+    });
+    
+    buttonContainer.appendChild(switchDifficultyButton);
+  }
   
   // Assemble the content
   content.appendChild(titleElement);
@@ -2716,6 +2787,8 @@ return {score, breakdown: scoreBreakdown, achievements: achievementsEarned};
         lastMove = {from: null, to: null};
         aiThinking = false;
         gameScore = 0;
+        // Mark that it's no longer the first game
+  isFirstGame = false;
         capturedPieces = {white: [], black: []};
         playerStats.capturedPieces = {p: 0, n: 0, b: 0, r: 0, q: 0};
         playerStats.capturedPieceValue = 0;
@@ -3056,9 +3129,19 @@ modalOverlays.forEach(overlay => {
       // Set initial UI state for AI options based on defaults
       aiOptionsContainer.style.display = gameMode === "ai" ? "block" : "none";
       if (gameMode === "ai") {
-        modeAIButton.classList.add("active");
-        modeHumanButton.classList.remove("active");
-      } else {
+  modeAIButton.classList.add("active");
+  modeHumanButton.classList.remove("active");
+  
+  // Update difficulty UI to show Hard selected by default
+  document.querySelectorAll('.difficulty-option').forEach(option => {
+    option.classList.remove('active');
+    const radio = option.querySelector('input[name="ai-difficulty"]');
+    if (radio && radio.value === aiDifficulty) {
+      option.classList.add('active');
+      radio.checked = true;
+    }
+  });
+} else {
         modeHumanButton.classList.add("active");
         modeAIButton.classList.remove("active");
       }
